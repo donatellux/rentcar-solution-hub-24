@@ -2,9 +2,9 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
-import ProtectedRoute from '@/components/ProtectedRoute';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Layout } from '@/components/Layout/Layout';
-import { Index } from '@/pages/Index';
+import Index from '@/pages/Index';
 import { Auth } from '@/pages/Auth';
 import { Dashboard } from '@/pages/Dashboard';
 import { Clients } from '@/pages/Clients';
@@ -15,7 +15,7 @@ import { Depenses } from '@/pages/Depenses';
 import { Documents } from '@/pages/Documents';
 import { Rapports } from '@/pages/Rapports';
 import { Parametres } from '@/pages/Parametres';
-import { NotFound } from '@/pages/NotFound';
+import NotFound from '@/pages/NotFound';
 import './App.css';
 
 function App() {
