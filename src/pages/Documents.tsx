@@ -134,7 +134,7 @@ export const Documents: React.FC = () => {
         title: formData.title,
         type: formData.type,
         description: formData.description,
-        car_id: formData.car_id || null,
+        car_id: formData.car_id === 'none' ? null : formData.car_id || null,
         file_path: filePath,
         uploaded_at: new Date().toISOString(),
         agency_id: user.id,
@@ -243,7 +243,7 @@ export const Documents: React.FC = () => {
       title: document.title || '',
       type: document.type || '',
       description: document.description || '',
-      car_id: document.car_id || '',
+      car_id: document.car_id || 'none',
       file: null,
     });
     setIsDialogOpen(true);
@@ -254,7 +254,7 @@ export const Documents: React.FC = () => {
       title: '',
       type: '',
       description: '',
-      car_id: '',
+      car_id: 'none',
       file: null,
     });
   };
@@ -338,7 +338,7 @@ export const Documents: React.FC = () => {
                       <SelectValue placeholder="Sélectionner un véhicule (optionnel)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Aucun véhicule</SelectItem>
+                      <SelectItem value="none">Aucun véhicule</SelectItem>
                       {vehicles.map((vehicle) => (
                         <SelectItem key={vehicle.id} value={vehicle.id}>
                           {vehicle.marque} {vehicle.modele} - {vehicle.immatriculation}
