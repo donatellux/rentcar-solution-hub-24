@@ -483,4 +483,3 @@ export const Parametres: React.FC = () => {
     </div>
   );
 };
-```
