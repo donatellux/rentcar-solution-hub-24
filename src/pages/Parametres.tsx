@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Settings, Building2, Globe, Palette, Save } from 'lucide-react';
+import { Settings, Building2, Globe, Palette, Save, Upload, Eye } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Agency {
@@ -34,6 +34,7 @@ export const Parametres: React.FC = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const [agencyData, setAgencyData] = useState<Agency>({
     agency_name: '',
@@ -99,6 +100,83 @@ export const Parametres: React.FC = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLogoUpload = async (file: File) => {
+    if (!user) return;
+
+    try {
+      setUploadingLogo(true);
+
+      // Delete old logo if exists
+      if (agencyData.logo_path) {
+        const oldFileName = agencyData.logo_path.split('/').pop();
+        if (oldFileName) {
+          await supabase.storage
+            .from('logos')
+            .remove([oldFileName]);
+        }
+      }
+
+      // Upload new logo
+      const fileExt = file.name.split('.').pop();
+      const fileName = `logo-${user.id}-${Date.now()}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from('logos')
+        .upload(fileName, file);
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('logos')
+        .getPublicUrl(fileName);
+
+      // Update agency data
+      setAgencyData({ ...agencyData, logo_path: publicUrl });
+
+      toast({
+        title: "Succès",
+        description: "Logo téléchargé avec succès",
+      });
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de télécharger le logo",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleLogoFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Erreur",
+          description: "Veuillez sélectionner un fichier image",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Erreur",
+          description: "La taille du fichier ne doit pas dépasser 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      handleLogoUpload(file);
     }
   };
 
@@ -239,6 +317,66 @@ export const Parametres: React.FC = () => {
                   placeholder="Votre slogan ou devise"
                 />
               </div>
+              
+              {/* Logo Upload Section */}
+              <div>
+                <Label>Logo de l'agence</Label>
+                <div className="mt-2 space-y-4">
+                  {agencyData.logo_path && (
+                    <div className="flex items-center space-x-4">
+                      <img 
+                        src={agencyData.logo_path} 
+                        alt="Logo actuel" 
+                        className="w-20 h-20 object-contain border rounded-lg"
+                      />
+                      <div>
+                        <p className="text-sm text-gray-600">Logo actuel</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(agencyData.logo_path!, '_blank')}
+                          className="mt-1"
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          Voir
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoFileSelect}
+                      className="hidden"
+                      id="logo-upload"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => document.getElementById('logo-upload')?.click()}
+                      disabled={uploadingLogo}
+                      className="w-full sm:w-auto"
+                    >
+                      {uploadingLogo ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2" />
+                          Téléchargement...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-2" />
+                          {agencyData.logo_path ? 'Changer le logo' : 'Télécharger un logo'}
+                        </>
+                      )}
+                    </Button>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Formats acceptés: JPG, PNG, GIF. Taille maximum: 5MB
+                    </p>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -338,16 +476,6 @@ export const Parametres: React.FC = () => {
                   </Select>
                 </div>
               </div>
-              <div>
-                <Label htmlFor="logo_path">Chemin du logo</Label>
-                <Input
-                  id="logo_path"
-                  value={agencyData.logo_path}
-                  onChange={(e) => setAgencyData({ ...agencyData, logo_path: e.target.value })}
-                  className="mt-1"
-                  placeholder="URL ou chemin vers votre logo"
-                />
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -355,3 +483,4 @@ export const Parametres: React.FC = () => {
     </div>
   );
 };
+```
