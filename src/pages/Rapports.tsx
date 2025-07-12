@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Edit, Trash2, FileBarChart, Download, Calendar } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, FileText, Download, BarChart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -12,15 +12,23 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 interface Rapport {
   id: string;
   titre: string | null;
   type: string | null;
   periode: string | null;
+  date: string | null;
   contenu: string | null;
   fichier_pdf: string | null;
-  date: string | null;
   created_at: string | null;
 }
 
@@ -32,14 +40,14 @@ export const Rapports: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRapport, setEditingRapport] = useState<Rapport | null>(null);
-  const [generating, setGenerating] = useState(false);
 
   const [formData, setFormData] = useState({
     titre: '',
     type: '',
     periode: '',
-    contenu: '',
     date: '',
+    contenu: '',
+    fichier_pdf: '',
   });
 
   useEffect(() => {
@@ -72,110 +80,18 @@ export const Rapports: React.FC = () => {
     }
   };
 
-  const generateRapportContent = async (type: string, periode: string) => {
-    try {
-      const currentDate = new Date();
-      let startDate, endDate;
-
-      // Calculate date range based on period
-      switch (periode) {
-        case 'mensuel':
-          startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-          endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-          break;
-        case 'trimestriel':
-          const quarter = Math.floor(currentDate.getMonth() / 3);
-          startDate = new Date(currentDate.getFullYear(), quarter * 3, 1);
-          endDate = new Date(currentDate.getFullYear(), (quarter + 1) * 3, 0);
-          break;
-        case 'annuel':
-          startDate = new Date(currentDate.getFullYear(), 0, 1);
-          endDate = new Date(currentDate.getFullYear(), 11, 31);
-          break;
-        default:
-          startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-          endDate = currentDate;
-      }
-
-      const startDateStr = startDate.toISOString().split('T')[0];
-      const endDateStr = endDate.toISOString().split('T')[0];
-
-      let content = `Rapport ${type} - Période: ${periode}\n`;
-      content += `Du ${startDate.toLocaleDateString()} au ${endDate.toLocaleDateString()}\n\n`;
-
-      if (type === 'financier') {
-        // Fetch financial data
-        const [vehicleExpenses, globalExpenses, reservations] = await Promise.all([
-          supabase.from('vehicle_expenses').select('amount').eq('agency_id', user.id).gte('date', startDateStr).lte('date', endDateStr),
-          supabase.from('global_expenses').select('amount').eq('agency_id', user.id).gte('date', startDateStr).lte('date', endDateStr),
-          supabase.from('reservations').select('prix_par_jour, date_debut, date_fin').eq('agency_id', user.id).gte('date_debut', startDateStr).lte('date_fin', endDateStr)
-        ]);
-
-        const vehicleExpensesTotal = vehicleExpenses.data?.reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0;
-        const globalExpensesTotal = globalExpenses.data?.reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0;
-        const totalExpenses = vehicleExpensesTotal + globalExpensesTotal;
-
-        // Calculate revenue from reservations
-        let totalRevenue = 0;
-        reservations.data?.forEach(res => {
-          if (res.prix_par_jour && res.date_debut && res.date_fin) {
-            const days = Math.ceil((new Date(res.date_fin).getTime() - new Date(res.date_debut).getTime()) / (1000 * 60 * 60 * 24));
-            totalRevenue += res.prix_par_jour * days;
-          }
-        });
-
-        content += `RÉSUMÉ FINANCIER\n`;
-        content += `================\n`;
-        content += `Revenus total: ${totalRevenue.toFixed(2)} MAD\n`;
-        content += `Dépenses véhicules: ${vehicleExpensesTotal.toFixed(2)} MAD\n`;
-        content += `Dépenses générales: ${globalExpensesTotal.toFixed(2)} MAD\n`;
-        content += `Total dépenses: ${totalExpenses.toFixed(2)} MAD\n`;
-        content += `Bénéfice net: ${(totalRevenue - totalExpenses).toFixed(2)} MAD\n\n`;
-      }
-
-      if (type === 'activite') {
-        // Fetch activity data
-        const [reservations, vehicles, clients] = await Promise.all([
-          supabase.from('reservations').select('*').eq('agency_id', user.id).gte('date_debut', startDateStr).lte('date_fin', endDateStr),
-          supabase.from('vehicles').select('*').eq('agency_id', user.id),
-          supabase.from('clients').select('*').eq('agency_id', user.id).gte('created_at', startDateStr).lte('created_at', endDateStr)
-        ]);
-
-        content += `RÉSUMÉ D'ACTIVITÉ\n`;
-        content += `==================\n`;
-        content += `Nouvelles réservations: ${reservations.data?.length || 0}\n`;
-        content += `Nouveaux clients: ${clients.data?.length || 0}\n`;
-        content += `Total véhicules: ${vehicles.data?.length || 0}\n`;
-        content += `Taux d'occupation: ${vehicles.data?.length ? ((reservations.data?.length || 0) / vehicles.data.length * 100).toFixed(1) : 0}%\n\n`;
-      }
-
-      return content;
-    } catch (error) {
-      console.error('Error generating report content:', error);
-      return `Rapport ${type} - Période: ${periode}\n\nErreur lors de la génération du contenu automatique.`;
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
     try {
-      setGenerating(true);
-
-      let content = formData.contenu;
-      
-      // Auto-generate content if empty
-      if (!content && formData.type && formData.periode) {
-        content = await generateRapportContent(formData.type, formData.periode);
-      }
-
       const rapportData = {
         titre: formData.titre,
         type: formData.type,
         periode: formData.periode,
-        contenu: content,
         date: formData.date || null,
+        contenu: formData.contenu,
+        fichier_pdf: formData.fichier_pdf,
         agency_id: user.id,
       };
 
@@ -197,7 +113,7 @@ export const Rapports: React.FC = () => {
 
       toast({
         title: "Succès",
-        description: editingRapport ? "Rapport modifié avec succès" : "Rapport généré avec succès",
+        description: editingRapport ? "Rapport modifié avec succès" : "Rapport ajouté avec succès",
       });
 
       setIsDialogOpen(false);
@@ -211,8 +127,6 @@ export const Rapports: React.FC = () => {
         description: "Impossible de sauvegarder le rapport",
         variant: "destructive",
       });
-    } finally {
-      setGenerating(false);
     }
   };
 
@@ -249,8 +163,9 @@ export const Rapports: React.FC = () => {
       titre: rapport.titre || '',
       type: rapport.type || '',
       periode: rapport.periode || '',
-      contenu: rapport.contenu || '',
       date: rapport.date ? rapport.date.split('T')[0] : '',
+      contenu: rapport.contenu || '',
+      fichier_pdf: rapport.fichier_pdf || '',
     });
     setIsDialogOpen(true);
   };
@@ -260,35 +175,25 @@ export const Rapports: React.FC = () => {
       titre: '',
       type: '',
       periode: '',
-      contenu: '',
       date: '',
+      contenu: '',
+      fichier_pdf: '',
     });
   };
 
   const getTypeColor = (type: string | null) => {
     switch (type) {
-      case 'financier':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'activite':
+      case 'mensuel':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'maintenance':
+      case 'trimestriel':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      case 'annuel':
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
+      case 'personnalise':
         return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
     }
-  };
-
-  const downloadRapport = (rapport: Rapport) => {
-    const content = `${rapport.titre}\n${'='.repeat(rapport.titre?.length || 0)}\n\n${rapport.contenu}`;
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${rapport.titre?.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 
   const filteredRapports = rapports.filter(rapport =>
@@ -296,6 +201,14 @@ export const Rapports: React.FC = () => {
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -312,7 +225,7 @@ export const Rapports: React.FC = () => {
               Nouveau rapport
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold">
                 {editingRapport ? 'Modifier le rapport' : 'Nouveau rapport'}
@@ -337,20 +250,6 @@ export const Rapports: React.FC = () => {
                       <SelectValue placeholder="Sélectionner le type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="financier">Financier</SelectItem>
-                      <SelectItem value="activite">Activité</SelectItem>
-                      <SelectItem value="maintenance">Maintenance</SelectItem>
-                      <SelectItem value="autre">Autre</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="periode">Période *</Label>
-                  <Select value={formData.periode} onValueChange={(value) => setFormData({ ...formData, periode: value })}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Sélectionner la période" />
-                    </SelectTrigger>
-                    <SelectContent>
                       <SelectItem value="mensuel">Mensuel</SelectItem>
                       <SelectItem value="trimestriel">Trimestriel</SelectItem>
                       <SelectItem value="annuel">Annuel</SelectItem>
@@ -359,39 +258,54 @@ export const Rapports: React.FC = () => {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="date">Date *</Label>
+                  <Label htmlFor="periode">Période</Label>
+                  <Input
+                    id="periode"
+                    value={formData.periode}
+                    onChange={(e) => setFormData({ ...formData, periode: e.target.value })}
+                    placeholder="Ex: Janvier 2024, Q1 2024"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="date">Date de génération</Label>
                   <Input
                     id="date"
                     type="date"
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    required
+                    className="mt-1"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <Label htmlFor="fichier_pdf">Lien vers le fichier PDF</Label>
+                  <Input
+                    id="fichier_pdf"
+                    value={formData.fichier_pdf}
+                    onChange={(e) => setFormData({ ...formData, fichier_pdf: e.target.value })}
+                    placeholder="URL du fichier PDF"
                     className="mt-1"
                   />
                 </div>
               </div>
-              
               <div>
-                <Label htmlFor="contenu">Contenu</Label>
+                <Label htmlFor="contenu">Contenu du rapport</Label>
                 <Textarea
                   id="contenu"
                   value={formData.contenu}
                   onChange={(e) => setFormData({ ...formData, contenu: e.target.value })}
                   className="mt-1"
-                  rows={8}
-                  placeholder="Laissez vide pour générer automatiquement le contenu basé sur vos données..."
+                  rows={5}
+                  placeholder="Résumé et détails du rapport..."
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Si vous laissez le contenu vide, nous générerons automatiquement un rapport basé sur vos données.
-                </p>
               </div>
               
               <div className="flex justify-end space-x-3 pt-4 border-t">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Annuler
                 </Button>
-                <Button type="submit" disabled={generating} className="bg-blue-600 hover:bg-blue-700">
-                  {generating ? 'Génération...' : editingRapport ? 'Modifier' : 'Générer'}
+                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                  {editingRapport ? 'Modifier' : 'Ajouter'}
                 </Button>
               </div>
             </form>
@@ -412,106 +326,95 @@ export const Rapports: React.FC = () => {
         </div>
       </div>
 
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
-                <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredRapports.map((rapport) => (
-            <Card key={rapport.id} className="hover:shadow-lg transition-all duration-200 border-0 shadow-md">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-teal-100 to-teal-200 dark:from-teal-800 dark:to-teal-900 rounded-full flex items-center justify-center">
-                      <FileBarChart className="w-6 h-6 text-teal-600 dark:text-teal-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
-                        {rapport.titre}
-                      </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {rapport.periode}
-                      </p>
-                    </div>
-                  </div>
-                  <Badge className={getTypeColor(rapport.type)}>
-                    {rapport.type || 'N/A'}
-                  </Badge>
-                </div>
-
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center space-x-2 text-sm">
-                    <Calendar className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-900 dark:text-white">
-                      {rapport.date ? new Date(rapport.date).toLocaleDateString() : 'Date non définie'}
-                    </span>
-                  </div>
-                  {rapport.contenu && (
-                    <div className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
-                      {rapport.contenu.substring(0, 150)}...
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex space-x-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => downloadRapport(rapport)}
-                    className="flex-1 hover:bg-green-50 hover:border-green-200 hover:text-green-700"
-                  >
-                    <Download className="w-4 h-4 mr-1" />
-                    Télécharger
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleEdit(rapport)}
-                    className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDelete(rapport.id)}
-                    className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {!loading && filteredRapports.length === 0 && (
-        <Card className="border-dashed border-2">
-          <CardContent className="p-12 text-center">
-            <FileBarChart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
-              Aucun rapport trouvé
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-4">
-              {searchTerm ? 'Aucun rapport ne correspond à votre recherche.' : 'Commencez par générer votre premier rapport.'}
-            </p>
-            {!searchTerm && (
-              <Button onClick={() => { resetForm(); setEditingRapport(null); setIsDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Nouveau rapport
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle>Liste des rapports ({filteredRapports.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {filteredRapports.length === 0 ? (
+            <div className="text-center py-8">
+              <BarChart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
+                Aucun rapport trouvé
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-4">
+                {searchTerm ? 'Aucun rapport ne correspond à votre recherche.' : 'Commencez par créer votre premier rapport.'}
+              </p>
+              {!searchTerm && (
+                <Button onClick={() => { resetForm(); setEditingRapport(null); setIsDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nouveau rapport
+                </Button>
+              )}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Titre</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Période</TableHead>
+                  <TableHead>Date de génération</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredRapports.map((rapport) => (
+                  <TableRow key={rapport.id}>
+                    <TableCell>
+                      <div className="font-medium">{rapport.titre}</div>
+                      {rapport.contenu && (
+                        <div className="text-sm text-gray-500 mt-1 truncate max-w-xs">
+                          {rapport.contenu}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getTypeColor(rapport.type)}>
+                        {rapport.type || 'N/A'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{rapport.periode || 'Non définie'}</TableCell>
+                    <TableCell>
+                      {rapport.date ? new Date(rapport.date).toLocaleDateString('fr-FR') : 'Non définie'}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        {rapport.fichier_pdf && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.open(rapport.fichier_pdf!, '_blank')}
+                            className="hover:bg-green-50 hover:border-green-200 hover:text-green-700"
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(rapport)}
+                          className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDelete(rapport.id)}
+                          className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

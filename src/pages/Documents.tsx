@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 interface Document {
   id: string;
@@ -51,7 +58,7 @@ export const Documents: React.FC = () => {
     title: '',
     type: '',
     description: '',
-    car_id: '',
+    car_id: 'none',
     file: null as File | null,
   });
 
@@ -65,7 +72,6 @@ export const Documents: React.FC = () => {
     if (!user) return;
 
     try {
-      // Fetch documents with vehicle data
       const { data: documentsData, error: documentsError } = await supabase
         .from('documents')
         .select(`
@@ -77,7 +83,6 @@ export const Documents: React.FC = () => {
 
       if (documentsError) throw documentsError;
 
-      // Fetch vehicles
       const { data: vehiclesData, error: vehiclesError } = await supabase
         .from('vehicles')
         .select('id, marque, modele, immatriculation')
@@ -125,7 +130,6 @@ export const Documents: React.FC = () => {
       setUploading(true);
       let filePath = editingDocument?.file_path || null;
 
-      // Upload file if provided
       if (formData.file) {
         filePath = await handleFileUpload(formData.file);
       }
@@ -181,7 +185,6 @@ export const Documents: React.FC = () => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) return;
 
     try {
-      // Delete file from storage if exists
       if (filePath) {
         await supabase.storage
           .from('vehiclephotos')
@@ -399,100 +402,104 @@ export const Documents: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
-                <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredDocuments.map((document) => (
-            <Card key={document.id} className="hover:shadow-lg transition-all duration-200 border-0 shadow-md">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-800 dark:to-indigo-900 rounded-full flex items-center justify-center">
-                      <FileText className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
-                        {document.title}
-                      </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {document.vehicles ? `${document.vehicles.marque} ${document.vehicles.modele}` : 'Document général'}
-                      </p>
-                    </div>
-                  </div>
-                  <Badge className={getTypeColor(document.type)}>
-                    {document.type || 'N/A'}
-                  </Badge>
-                </div>
-
-                <div className="space-y-3 mb-4">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {document.uploaded_at ? `Ajouté le ${new Date(document.uploaded_at).toLocaleDateString()}` : 'Date non définie'}
-                  </div>
-                  {document.description && (
-                    <div className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                      {document.description}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex space-x-2">
-                  {document.file_path && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDownload(document.file_path!, document.title!)}
-                      className="flex-1 hover:bg-green-50 hover:border-green-200 hover:text-green-700"
-                    >
-                      <Download className="w-4 h-4 mr-1" />
-                      Télécharger
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleEdit(document)}
-                    className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
-                  >
-                    <Edit className="w-4 h-4" />
+        <Card>
+          <CardHeader>
+            <CardTitle>Liste des documents ({filteredDocuments.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {filteredDocuments.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
+                  Aucun document trouvé
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-4">
+                  {searchTerm ? 'Aucun document ne correspond à votre recherche.' : 'Commencez par ajouter votre premier document.'}
+                </p>
+                {!searchTerm && (
+                  <Button onClick={() => { resetForm(); setEditingDocument(null); setIsDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nouveau document
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDelete(document.id, document.file_path)}
-                    className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {!loading && filteredDocuments.length === 0 && (
-        <Card className="border-dashed border-2">
-          <CardContent className="p-12 text-center">
-            <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
-              Aucun document trouvé
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-4">
-              {searchTerm ? 'Aucun document ne correspond à votre recherche.' : 'Commencez par ajouter votre premier document.'}
-            </p>
-            {!searchTerm && (
-              <Button onClick={() => { resetForm(); setEditingDocument(null); setIsDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Nouveau document
-              </Button>
+                )}
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Titre</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Véhicule</TableHead>
+                    <TableHead>Date d'ajout</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredDocuments.map((document) => (
+                    <TableRow key={document.id}>
+                      <TableCell>
+                        <div className="font-medium">{document.title}</div>
+                        {document.description && (
+                          <div className="text-sm text-gray-500 mt-1 truncate max-w-xs">
+                            {document.description}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getTypeColor(document.type)}>
+                          {document.type || 'N/A'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {document.vehicles ? 
+                          `${document.vehicles.marque} ${document.vehicles.modele}` : 
+                          'Document général'
+                        }
+                      </TableCell>
+                      <TableCell>
+                        {document.uploaded_at ? 
+                          new Date(document.uploaded_at).toLocaleDateString('fr-FR') : 
+                          'Date non définie'
+                        }
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          {document.file_path && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDownload(document.file_path!, document.title!)}
+                              className="hover:bg-green-50 hover:border-green-200 hover:text-green-700"
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEdit(document)}
+                            className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDelete(document.id, document.file_path)}
+                            className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </CardContent>
         </Card>

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Edit, Trash2, Wrench, Car, Calendar, DollarSign } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Wrench, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -12,6 +12,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 interface Entretien {
   id: string;
@@ -54,7 +62,7 @@ export const Entretien: React.FC = () => {
     cout: '',
     description: '',
     km_last_vidange: '',
-    vidange_periodicite_km: '10000',
+    vidange_periodicite_km: '',
   });
 
   useEffect(() => {
@@ -67,7 +75,6 @@ export const Entretien: React.FC = () => {
     if (!user) return;
 
     try {
-      // Fetch entretiens with vehicle data
       const { data: entretiensData, error: entretiensError } = await supabase
         .from('entretiens')
         .select(`
@@ -79,7 +86,6 @@ export const Entretien: React.FC = () => {
 
       if (entretiensError) throw entretiensError;
 
-      // Fetch vehicles
       const { data: vehiclesData, error: vehiclesError } = await supabase
         .from('vehicles')
         .select('id, marque, modele, immatriculation')
@@ -107,11 +113,13 @@ export const Entretien: React.FC = () => {
 
     try {
       const entretienData = {
-        ...formData,
+        vehicule_id: formData.vehicule_id || null,
+        type: formData.type,
+        date: formData.date || null,
         cout: formData.cout ? parseFloat(formData.cout) : null,
+        description: formData.description,
         km_last_vidange: formData.km_last_vidange ? parseInt(formData.km_last_vidange) : null,
         vidange_periodicite_km: formData.vidange_periodicite_km ? parseInt(formData.vidange_periodicite_km) : null,
-        date: formData.date || null,
         agency_id: user.id,
       };
 
@@ -186,7 +194,7 @@ export const Entretien: React.FC = () => {
       cout: entretien.cout?.toString() || '',
       description: entretien.description || '',
       km_last_vidange: entretien.km_last_vidange?.toString() || '',
-      vidange_periodicite_km: entretien.vidange_periodicite_km?.toString() || '10000',
+      vidange_periodicite_km: entretien.vidange_periodicite_km?.toString() || '',
     });
     setIsDialogOpen(true);
   };
@@ -199,7 +207,7 @@ export const Entretien: React.FC = () => {
       cout: '',
       description: '',
       km_last_vidange: '',
-      vidange_periodicite_km: '10000',
+      vidange_periodicite_km: '',
     });
   };
 
@@ -211,15 +219,15 @@ export const Entretien: React.FC = () => {
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
       case 'reparation':
         return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      case 'pneus':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
+      case 'controle_technique':
+        return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
     }
   };
 
   const filteredEntretiens = entretiens.filter(entretien =>
-    `${entretien.vehicles?.marque} ${entretien.vehicles?.modele} ${entretien.type} ${entretien.description}`
+    `${entretien.type} ${entretien.description} ${entretien.vehicles?.marque} ${entretien.vehicles?.modele}`
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
@@ -228,7 +236,7 @@ export const Entretien: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Entretien</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Entretiens</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">Gérez l'entretien de vos véhicules</p>
         </div>
         
@@ -242,7 +250,7 @@ export const Entretien: React.FC = () => {
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold">
-                {editingEntretien ? "Modifier l'entretien" : "Nouvel entretien"}
+                {editingEntretien ? 'Modifier l\'entretien' : 'Nouvel entretien'}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -272,19 +280,18 @@ export const Entretien: React.FC = () => {
                       <SelectItem value="vidange">Vidange</SelectItem>
                       <SelectItem value="revision">Révision</SelectItem>
                       <SelectItem value="reparation">Réparation</SelectItem>
-                      <SelectItem value="pneus">Pneus</SelectItem>
+                      <SelectItem value="controle_technique">Contrôle technique</SelectItem>
                       <SelectItem value="autre">Autre</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="date">Date *</Label>
+                  <Label htmlFor="date">Date</Label>
                   <Input
                     id="date"
                     type="date"
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    required
                     className="mt-1"
                   />
                 </div>
@@ -301,7 +308,7 @@ export const Entretien: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="km_last_vidange">KM dernière vidange</Label>
+                  <Label htmlFor="km_last_vidange">Km dernière vidange</Label>
                   <Input
                     id="km_last_vidange"
                     type="number"
@@ -312,11 +319,11 @@ export const Entretien: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="vidange_periodicite_km">Périodicité vidange (KM)</Label>
+                  <Label htmlFor="vidange_periodicite_km">Périodicité vidange (Km)</Label>
                   <Input
                     id="vidange_periodicite_km"
                     type="number"
-                    min="1000"
+                    min="0"
                     value={formData.vidange_periodicite_km}
                     onChange={(e) => setFormData({ ...formData, vidange_periodicite_km: e.target.value })}
                     className="mt-1"
@@ -361,101 +368,92 @@ export const Entretien: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
-                <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredEntretiens.map((entretien) => (
-            <Card key={entretien.id} className="hover:shadow-lg transition-all duration-200 border-0 shadow-md">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-800 dark:to-orange-900 rounded-full flex items-center justify-center">
-                      <Wrench className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
-                        {entretien.vehicles?.marque} {entretien.vehicles?.modele}
-                      </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {entretien.vehicles?.immatriculation}
-                      </p>
-                    </div>
-                  </div>
-                  <Badge className={getTypeColor(entretien.type)}>
-                    {entretien.type || 'N/A'}
-                  </Badge>
-                </div>
-
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center space-x-2 text-sm">
-                    <Calendar className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-900 dark:text-white">
-                      {entretien.date ? new Date(entretien.date).toLocaleDateString() : 'Date non définie'}
-                    </span>
-                  </div>
-                  {entretien.cout && (
-                    <div className="flex items-center space-x-2 text-sm">
-                      <DollarSign className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-900 dark:text-white font-medium">
-                        {entretien.cout} MAD
-                      </span>
-                    </div>
-                  )}
-                  {entretien.description && (
-                    <div className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                      {entretien.description}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex space-x-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleEdit(entretien)}
-                    className="flex-1 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
-                  >
-                    <Edit className="w-4 h-4 mr-1" />
-                    Modifier
+        <Card>
+          <CardHeader>
+            <CardTitle>Liste des entretiens ({filteredEntretiens.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {filteredEntretiens.length === 0 ? (
+              <div className="text-center py-8">
+                <Wrench className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
+                  Aucun entretien trouvé
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-4">
+                  {searchTerm ? 'Aucun entretien ne correspond à votre recherche.' : 'Commencez par ajouter votre premier entretien.'}
+                </p>
+                {!searchTerm && (
+                  <Button onClick={() => { resetForm(); setEditingEntretien(null); setIsDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nouvel entretien
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDelete(entretien.id)}
-                    className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {!loading && filteredEntretiens.length === 0 && (
-        <Card className="border-dashed border-2">
-          <CardContent className="p-12 text-center">
-            <Wrench className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
-              Aucun entretien trouvé
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-4">
-              {searchTerm ? 'Aucun entretien ne correspond à votre recherche.' : 'Commencez par ajouter votre premier entretien.'}
-            </p>
-            {!searchTerm && (
-              <Button onClick={() => { resetForm(); setEditingEntretien(null); setIsDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Nouvel entretien
-              </Button>
+                )}
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Véhicule</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Coût</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredEntretiens.map((entretien) => (
+                    <TableRow key={entretien.id}>
+                      <TableCell>
+                        {entretien.vehicles ? 
+                          `${entretien.vehicles.marque} ${entretien.vehicles.modele} - ${entretien.vehicles.immatriculation}` : 
+                          'Véhicule inconnu'
+                        }
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getTypeColor(entretien.type)}>
+                          {entretien.type || 'N/A'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {entretien.date ? new Date(entretien.date).toLocaleDateString('fr-FR') : 'Non définie'}
+                      </TableCell>
+                      <TableCell>
+                        {entretien.cout ? `${entretien.cout} MAD` : 'Non défini'}
+                      </TableCell>
+                      <TableCell>
+                        <div className="max-w-xs truncate">
+                          {entretien.description || 'Aucune description'}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEdit(entretien)}
+                            className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDelete(entretien.id)}
+                            className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </CardContent>
         </Card>

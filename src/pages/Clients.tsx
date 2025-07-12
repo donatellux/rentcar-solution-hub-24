@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 interface Client {
   id: string;
@@ -189,12 +196,6 @@ export const Clients: React.FC = () => {
     });
   };
 
-  const filteredClients = clients.filter(client =>
-    `${client.nom} ${client.prenom} ${client.email} ${client.telephone}`
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase())
-  );
-
   const getClientTypeColor = (type: string | null) => {
     switch (type) {
       case 'particulier':
@@ -205,6 +206,12 @@ export const Clients: React.FC = () => {
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
     }
   };
+
+  const filteredClients = clients.filter(client =>
+    `${client.nom} ${client.prenom} ${client.email} ${client.telephone}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -375,100 +382,98 @@ export const Clients: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
-                <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredClients.map((client) => (
-            <Card key={client.id} className="hover:shadow-lg transition-all duration-200 border-0 shadow-md">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-800 dark:to-blue-900 rounded-full flex items-center justify-center">
-                      <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
-                        {client.prenom} {client.nom}
-                      </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {client.cin}
-                      </p>
-                    </div>
-                  </div>
-                  <Badge className={getClientTypeColor(client.type)}>
-                    {client.type || 'N/A'}
-                  </Badge>
-                </div>
-
-                <div className="space-y-3 mb-4">
-                  {client.telephone && (
-                    <div className="flex items-center space-x-2 text-sm">
-                      <Phone className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-900 dark:text-white">{client.telephone}</span>
-                    </div>
-                  )}
-                  {client.email && (
-                    <div className="flex items-center space-x-2 text-sm">
-                      <Mail className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-900 dark:text-white">{client.email}</span>
-                    </div>
-                  )}
-                  {client.adresse && (
-                    <div className="flex items-center space-x-2 text-sm">
-                      <MapPin className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-900 dark:text-white text-truncate">{client.adresse}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex space-x-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleEdit(client)}
-                    className="flex-1 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
-                  >
-                    <Edit className="w-4 h-4 mr-1" />
-                    Modifier
+        <Card>
+          <CardHeader>
+            <CardTitle>Liste des clients ({filteredClients.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {filteredClients.length === 0 ? (
+              <div className="text-center py-8">
+                <User className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
+                  Aucun client trouvé
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-4">
+                  {searchTerm ? 'Aucun client ne correspond à votre recherche.' : 'Commencez par ajouter votre premier client.'}
+                </p>
+                {!searchTerm && (
+                  <Button onClick={() => { resetForm(); setEditingClient(null); setIsDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Ajouter un client
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDelete(client.id)}
-                    className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {!loading && filteredClients.length === 0 && (
-        <Card className="border-dashed border-2">
-          <CardContent className="p-12 text-center">
-            <User className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
-              Aucun client trouvé
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-4">
-              {searchTerm ? 'Aucun client ne correspond à votre recherche.' : 'Commencez par ajouter votre premier client.'}
-            </p>
-            {!searchTerm && (
-              <Button onClick={() => { resetForm(); setEditingClient(null); setIsDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Ajouter un client
-              </Button>
+                )}
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nom & Prénom</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>CIN</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Nationalité</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredClients.map((client) => (
+                    <TableRow key={client.id}>
+                      <TableCell>
+                        <div className="font-medium">
+                          {client.prenom} {client.nom}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          {client.telephone && (
+                            <div className="flex items-center space-x-1 text-sm">
+                              <Phone className="w-3 h-3 text-gray-400" />
+                              <span>{client.telephone}</span>
+                            </div>
+                          )}
+                          {client.email && (
+                            <div className="flex items-center space-x-1 text-sm">
+                              <Mail className="w-3 h-3 text-gray-400" />
+                              <span>{client.email}</span>
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>{client.cin}</TableCell>
+                      <TableCell>
+                        <Badge className={getClientTypeColor(client.type)}>
+                          {client.type || 'N/A'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{client.nationalite}</TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEdit(client)}
+                            className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDelete(client.id)}
+                            className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </CardContent>
         </Card>
