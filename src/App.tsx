@@ -13,7 +13,7 @@ import { Reservations } from '@/pages/Reservations';
 import { Entretien } from '@/pages/Entretien';
 import { Depenses } from '@/pages/Depenses';
 import { Documents } from '@/pages/Documents';
-import { Rapports } from '@/pages/Rapports';
+import { Statistics } from '@/pages/Statistics';
 import { Parametres } from '@/pages/Parametres';
 import NotFound from '@/pages/NotFound';
 import './App.css';
@@ -75,10 +75,10 @@ function App() {
               </Layout>
             </ProtectedRoute>
           } />
-          <Route path="/rapports" element={
+          <Route path="/statistiques" element={
             <ProtectedRoute>
               <Layout>
-                <Rapports />
+                <Statistics />
               </Layout>
             </ProtectedRoute>
           } />

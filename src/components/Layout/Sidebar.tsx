@@ -12,7 +12,8 @@ import {
   Settings,
   LogOut,
   Menu,
-  X
+  X,
+  BarChart3
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -27,11 +28,11 @@ const navigation = [
   { name: 'Véhicules', href: '/vehicles', icon: Car },
   { name: 'Clients', href: '/clients', icon: Users },
   { name: 'Réservations', href: '/reservations', icon: Calendar },
-  { name: 'Entretiens', href: '/maintenance', icon: Wrench },
-  { name: 'Dépenses', href: '/expenses', icon: Receipt },
+  { name: 'Entretiens', href: '/entretien', icon: Wrench },
+  { name: 'Dépenses', href: '/depenses', icon: Receipt },
   { name: 'Documents', href: '/documents', icon: FileText },
-  { name: 'Rapports', href: '/reports', icon: FileText },
-  { name: 'Paramètres', href: '/settings', icon: Settings },
+  { name: 'Statistiques', href: '/statistiques', icon: BarChart3 },
+  { name: 'Paramètres', href: '/parametres', icon: Settings },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {

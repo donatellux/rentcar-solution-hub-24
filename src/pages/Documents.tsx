@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Edit, Trash2, FileText, Download, Upload } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, FileText, Download, Upload, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -53,6 +53,9 @@ export const Documents: React.FC = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<Document | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewType, setPreviewType] = useState<'image' | 'pdf' | 'other'>('other');
 
   const [formData, setFormData] = useState({
     title: '',
@@ -235,6 +238,34 @@ export const Documents: React.FC = () => {
       toast({
         title: "Erreur",
         description: "Impossible de télécharger le fichier",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePreview = async (filePath: string) => {
+    try {
+      const { data: { publicUrl } } = supabase.storage
+        .from('vehiclephotos')
+        .getPublicUrl(filePath);
+
+      const fileExtension = filePath.split('.').pop()?.toLowerCase();
+      
+      if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension || '')) {
+        setPreviewType('image');
+      } else if (fileExtension === 'pdf') {
+        setPreviewType('pdf');
+      } else {
+        setPreviewType('other');
+      }
+
+      setPreviewUrl(publicUrl);
+      setIsPreviewOpen(true);
+    } catch (error) {
+      console.error('Error previewing file:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de prévisualiser le fichier",
         variant: "destructive",
       });
     }
@@ -469,14 +500,24 @@ export const Documents: React.FC = () => {
                       <TableCell>
                         <div className="flex space-x-2">
                           {document.file_path && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDownload(document.file_path!, document.title!)}
-                              className="hover:bg-green-50 hover:border-green-200 hover:text-green-700"
-                            >
-                              <Download className="w-4 h-4" />
-                            </Button>
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handlePreview(document.file_path!)}
+                                className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDownload(document.file_path!, document.title!)}
+                                className="hover:bg-green-50 hover:border-green-200 hover:text-green-700"
+                              >
+                                <Download className="w-4 h-4" />
+                              </Button>
+                            </>
                           )}
                           <Button
                             size="sm"
@@ -504,6 +545,47 @@ export const Documents: React.FC = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Document Preview Dialog */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Aperçu du document</DialogTitle>
+          </DialogHeader>
+          <div className="flex justify-center items-center min-h-96">
+            {previewUrl && (
+              <>
+                {previewType === 'image' && (
+                  <img 
+                    src={previewUrl} 
+                    alt="Document preview" 
+                    className="max-w-full max-h-96 object-contain rounded-lg"
+                  />
+                )}
+                {previewType === 'pdf' && (
+                  <iframe
+                    src={previewUrl}
+                    className="w-full h-96 rounded-lg border"
+                    title="PDF Preview"
+                  />
+                )}
+                {previewType === 'other' && (
+                  <div className="text-center p-8">
+                    <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">Aperçu non disponible pour ce type de fichier</p>
+                    <Button 
+                      onClick={() => window.open(previewUrl, '_blank')}
+                      className="mt-4"
+                    >
+                      Ouvrir dans un nouvel onglet
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

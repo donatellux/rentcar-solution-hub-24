@@ -1,10 +1,9 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Edit, Trash2, Calendar, Car, User, MapPin } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Calendar, Car, User, MapPin, Upload, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -24,6 +23,8 @@ interface Reservation {
   statut: string | null;
   lieu_delivrance: string | null;
   lieu_recuperation: string | null;
+  cin_scan_url: string | null;
+  permis_scan_url: string | null;
   created_at: string | null;
   clients?: {
     nom: string;
@@ -60,6 +61,9 @@ export const Reservations: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     client_id: '',
@@ -72,6 +76,8 @@ export const Reservations: React.FC = () => {
     statut: 'en_attente',
     lieu_delivrance: '',
     lieu_recuperation: '',
+    cin_file: null as File | null,
+    permis_file: null as File | null,
   });
 
   useEffect(() => {
@@ -128,18 +134,62 @@ export const Reservations: React.FC = () => {
     }
   };
 
+  const handleFileUpload = async (file: File, type: 'cin' | 'permis'): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${type}-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from('clientlicences')
+        .upload(fileName, file);
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('clientlicences')
+        .getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
     try {
+      setUploading(true);
+      
+      let cinUrl = editingReservation?.cin_scan_url || null;
+      let permisUrl = editingReservation?.permis_scan_url || null;
+
+      // Upload CIN file if provided
+      if (formData.cin_file) {
+        cinUrl = await handleFileUpload(formData.cin_file, 'cin');
+      }
+
+      // Upload Permis file if provided
+      if (formData.permis_file) {
+        permisUrl = await handleFileUpload(formData.permis_file, 'permis');
+      }
+
       const reservationData = {
-        ...formData,
+        client_id: formData.client_id,
+        vehicule_id: formData.vehicule_id,
+        date_debut: formData.date_debut || null,
+        date_fin: formData.date_fin || null,
         prix_par_jour: formData.prix_par_jour ? parseFloat(formData.prix_par_jour) : null,
         km_depart: formData.km_depart ? parseInt(formData.km_depart) : null,
         km_retour: formData.km_retour ? parseInt(formData.km_retour) : null,
-        date_debut: formData.date_debut || null,
-        date_fin: formData.date_fin || null,
+        statut: formData.statut,
+        lieu_delivrance: formData.lieu_delivrance,
+        lieu_recuperation: formData.lieu_recuperation,
+        cin_scan_url: cinUrl,
+        permis_scan_url: permisUrl,
         agency_id: user.id,
       };
 
@@ -175,6 +225,8 @@ export const Reservations: React.FC = () => {
         description: "Impossible de sauvegarder la réservation",
         variant: "destructive",
       });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -218,6 +270,8 @@ export const Reservations: React.FC = () => {
       statut: reservation.statut || 'en_attente',
       lieu_delivrance: reservation.lieu_delivrance || '',
       lieu_recuperation: reservation.lieu_recuperation || '',
+      cin_file: null,
+      permis_file: null,
     });
     setIsDialogOpen(true);
   };
@@ -234,7 +288,14 @@ export const Reservations: React.FC = () => {
       statut: 'en_attente',
       lieu_delivrance: '',
       lieu_recuperation: '',
+      cin_file: null,
+      permis_file: null,
     });
+  };
+
+  const handlePreviewImage = (imageUrl: string) => {
+    setPreviewImage(imageUrl);
+    setIsPreviewOpen(true);
   };
 
   const getStatusColor = (statut: string | null) => {
@@ -400,14 +461,60 @@ export const Reservations: React.FC = () => {
                     className="mt-1"
                   />
                 </div>
+                <div>
+                  <Label htmlFor="cin_file">Photo CIN</Label>
+                  <Input
+                    id="cin_file"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setFormData({ ...formData, cin_file: e.target.files?.[0] || null })}
+                    className="mt-1"
+                  />
+                  {editingReservation?.cin_scan_url && (
+                    <div className="mt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePreviewImage(editingReservation.cin_scan_url!)}
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        Voir CIN actuelle
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="permis_file">Photo Permis</Label>
+                  <Input
+                    id="permis_file"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setFormData({ ...formData, permis_file: e.target.files?.[0] || null })}
+                    className="mt-1"
+                  />
+                  {editingReservation?.permis_scan_url && (
+                    <div className="mt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePreviewImage(editingReservation.permis_scan_url!)}
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        Voir Permis actuel
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
               
               <div className="flex justify-end space-x-3 pt-4 border-t">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Annuler
                 </Button>
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                  {editingReservation ? 'Modifier' : 'Ajouter'}
+                <Button type="submit" disabled={uploading} className="bg-blue-600 hover:bg-blue-700">
+                  {uploading ? 'Téléchargement...' : editingReservation ? 'Modifier' : 'Ajouter'}
                 </Button>
               </div>
             </form>
@@ -488,6 +595,34 @@ export const Reservations: React.FC = () => {
                       </span>
                     </div>
                   )}
+                  
+                  {/* Document preview buttons */}
+                  {(reservation.cin_scan_url || reservation.permis_scan_url) && (
+                    <div className="flex items-center space-x-2 pt-2 border-t">
+                      {reservation.cin_scan_url && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handlePreviewImage(reservation.cin_scan_url!)}
+                          className="text-xs"
+                        >
+                          <Eye className="w-3 h-3 mr-1" />
+                          CIN
+                        </Button>
+                      )}
+                      {reservation.permis_scan_url && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handlePreviewImage(reservation.permis_scan_url!)}
+                          className="text-xs"
+                        >
+                          <Eye className="w-3 h-3 mr-1" />
+                          Permis
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex space-x-2">
@@ -534,6 +669,24 @@ export const Reservations: React.FC = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Image Preview Dialog */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Aperçu du document</DialogTitle>
+          </DialogHeader>
+          {previewImage && (
+            <div className="flex justify-center">
+              <img 
+                src={previewImage} 
+                alt="Document preview" 
+                className="max-w-full max-h-96 object-contain rounded-lg"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
