@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Edit, Trash2, Calendar, Car, User, MapPin, Upload, Eye, FileText, Download } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Calendar, Car, User, MapPin, Upload, Eye, FileText, Download, CalendarDays } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -11,6 +11,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 interface Reservation {
   id: string;
@@ -73,6 +78,7 @@ export const Reservations: React.FC = () => {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([]);
   const [agency, setAgency] = useState<Agency | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -82,6 +88,11 @@ export const Reservations: React.FC = () => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [generatingPDF, setGeneratingPDF] = useState<string | null>(null);
+  const [dateRange, setDateRange] = useState<{debut: Date | null, fin: Date | null}>({
+    debut: null,
+    fin: null
+  });
+  const [showDateFirst, setShowDateFirst] = useState(true);
 
   const [formData, setFormData] = useState({
     client_id: '',
@@ -103,6 +114,12 @@ export const Reservations: React.FC = () => {
       fetchData();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (dateRange.debut && dateRange.fin) {
+      checkAvailableVehicles();
+    }
+  }, [dateRange, vehicles]);
 
   const fetchData = async () => {
     if (!user) return;
@@ -162,22 +179,75 @@ export const Reservations: React.FC = () => {
     }
   };
 
+  const checkAvailableVehicles = async () => {
+    if (!dateRange.debut || !dateRange.fin || !user) {
+      setAvailableVehicles(vehicles);
+      return;
+    }
+
+    try {
+      const { data: conflictingReservations, error } = await supabase
+        .from('reservations')
+        .select('vehicule_id')
+        .eq('agency_id', user.id)
+        .in('statut', ['confirmee', 'en_cours'])
+        .or(
+          `and(date_debut.lte.${dateRange.debut.toISOString()},date_fin.gte.${dateRange.debut.toISOString()}),` +
+          `and(date_debut.lte.${dateRange.fin.toISOString()},date_fin.gte.${dateRange.fin.toISOString()}),` +
+          `and(date_debut.gte.${dateRange.debut.toISOString()},date_fin.lte.${dateRange.fin.toISOString()})`
+        );
+
+      if (error) throw error;
+
+      const unavailableVehicleIds = conflictingReservations?.map(r => r.vehicule_id) || [];
+      const available = vehicles.filter(v => 
+        v.etat === 'disponible' && !unavailableVehicleIds.includes(v.id)
+      );
+
+      setAvailableVehicles(available);
+    } catch (error) {
+      console.error('Error checking vehicle availability:', error);
+      setAvailableVehicles(vehicles);
+    }
+  };
+
   const handleFileUpload = async (file: File, type: 'cin' | 'permis'): Promise<string | null> => {
     try {
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error('Le fichier est trop volumineux (max 5MB)');
+      }
+
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        throw new Error('Le fichier doit être une image');
+      }
+
       const fileExt = file.name.split('.').pop();
       const fileName = `${type}-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
+      console.log('Uploading file:', fileName);
+
       const { data, error } = await supabase.storage
         .from('clientlicences')
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Storage upload error:', error);
+        throw error;
+      }
+
+      console.log('Upload successful:', data);
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('clientlicences')
         .getPublicUrl(fileName);
 
+      console.log('Public URL:', publicUrl);
       return publicUrl;
     } catch (error) {
       console.error('Error uploading file:', error);
@@ -197,12 +267,16 @@ export const Reservations: React.FC = () => {
 
       // Upload CIN file if provided
       if (formData.cin_file) {
+        console.log('Uploading CIN file...');
         cinUrl = await handleFileUpload(formData.cin_file, 'cin');
+        console.log('CIN uploaded:', cinUrl);
       }
 
       // Upload Permis file if provided
       if (formData.permis_file) {
+        console.log('Uploading Permis file...');
         permisUrl = await handleFileUpload(formData.permis_file, 'permis');
+        console.log('Permis uploaded:', permisUrl);
       }
 
       const reservationData = {
@@ -221,6 +295,8 @@ export const Reservations: React.FC = () => {
         agency_id: user.id,
       };
 
+      console.log('Saving reservation data:', reservationData);
+
       let error;
       if (editingReservation) {
         const { error: updateError } = await supabase
@@ -235,7 +311,10 @@ export const Reservations: React.FC = () => {
         error = insertError;
       }
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
 
       toast({
         title: "Succès",
@@ -250,7 +329,7 @@ export const Reservations: React.FC = () => {
       console.error('Error saving reservation:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de sauvegarder la réservation",
+        description: error instanceof Error ? error.message : "Impossible de sauvegarder la réservation",
         variant: "destructive",
       });
     } finally {
@@ -452,6 +531,7 @@ export const Reservations: React.FC = () => {
       cin_file: null,
       permis_file: null,
     });
+    setDateRange({ debut: null, fin: null });
   };
 
   const handlePreviewImage = (imageUrl: string) => {
@@ -474,6 +554,19 @@ export const Reservations: React.FC = () => {
     }
   };
 
+  const handleDateSelect = (type: 'debut' | 'fin') => (date: Date | undefined) => {
+    if (!date) return;
+    
+    const newDateRange = { ...dateRange, [type]: date };
+    setDateRange(newDateRange);
+    
+    if (type === 'debut') {
+      setFormData({ ...formData, date_debut: date.toISOString().split('T')[0] });
+    } else {
+      setFormData({ ...formData, date_fin: date.toISOString().split('T')[0] });
+    }
+  };
+
   const filteredReservations = reservations.filter(reservation =>
     `${reservation.clients?.nom} ${reservation.clients?.prenom} ${reservation.vehicles?.marque} ${reservation.vehicles?.modele}`
       .toLowerCase()
@@ -484,24 +577,101 @@ export const Reservations: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Réservations</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Réservations
+          </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">Gérez vos réservations de véhicules</p>
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => { resetForm(); setEditingReservation(null); }} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => { resetForm(); setEditingReservation(null); }} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg">
               <Plus className="w-4 h-4 mr-2" />
               Nouvelle réservation
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold">
                 {editingReservation ? 'Modifier la réservation' : 'Nouvelle réservation'}
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Date Selection First */}
+              <Card className="border-blue-200 dark:border-blue-800">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2 text-blue-600">
+                    <CalendarDays className="w-5 h-5" />
+                    <span>Période de location</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Date de début *</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal mt-1",
+                              !dateRange.debut && "text-muted-foreground"
+                            )}
+                          >
+                            <Calendar className="mr-2 h-4 w-4" />
+                            {dateRange.debut ? format(dateRange.debut, "PPP", { locale: fr }) : "Choisir une date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={dateRange.debut || undefined}
+                            onSelect={handleDateSelect('debut')}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div>
+                      <Label>Date de fin *</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal mt-1",
+                              !dateRange.fin && "text-muted-foreground"
+                            )}
+                          >
+                            <Calendar className="mr-2 h-4 w-4" />
+                            {dateRange.fin ? format(dateRange.fin, "PPP", { locale: fr }) : "Choisir une date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={dateRange.fin || undefined}
+                            onSelect={handleDateSelect('fin')}
+                            disabled={(date) => date < (dateRange.debut || new Date())}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                  {dateRange.debut && dateRange.fin && (
+                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                      <p className="text-sm text-blue-600 dark:text-blue-400">
+                        <strong>{availableVehicles.length}</strong> véhicule(s) disponible(s) pour cette période
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="client_id">Client *</Label>
@@ -520,40 +690,34 @@ export const Reservations: React.FC = () => {
                 </div>
                 <div>
                   <Label htmlFor="vehicule_id">Véhicule *</Label>
-                  <Select value={formData.vehicule_id} onValueChange={(value) => setFormData({ ...formData, vehicule_id: value })}>
+                  <Select 
+                    value={formData.vehicule_id} 
+                    onValueChange={(value) => setFormData({ ...formData, vehicule_id: value })}
+                    disabled={!dateRange.debut || !dateRange.fin}
+                  >
                     <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Sélectionner un véhicule" />
+                      <SelectValue placeholder={
+                        !dateRange.debut || !dateRange.fin 
+                          ? "Choisissez d'abord les dates" 
+                          : "Sélectionner un véhicule disponible"
+                      } />
                     </SelectTrigger>
                     <SelectContent>
-                      {vehicles.map((vehicle) => (
+                      {availableVehicles.map((vehicle) => (
                         <SelectItem key={vehicle.id} value={vehicle.id}>
-                          {vehicle.marque} {vehicle.modele} - {vehicle.immatriculation}
+                          <div className="flex items-center space-x-2">
+                            <Car className="w-4 h-4 text-green-600" />
+                            <span>{vehicle.marque} {vehicle.modele} - {vehicle.immatriculation}</span>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-                <div>
-                  <Label htmlFor="date_debut">Date de début *</Label>
-                  <Input
-                    id="date_debut"
-                    type="date"
-                    value={formData.date_debut}
-                    onChange={(e) => setFormData({ ...formData, date_debut: e.target.value })}
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="date_fin">Date de fin *</Label>
-                  <Input
-                    id="date_fin"
-                    type="date"
-                    value={formData.date_fin}
-                    onChange={(e) => setFormData({ ...formData, date_fin: e.target.value })}
-                    required
-                    className="mt-1"
-                  />
+                  {dateRange.debut && dateRange.fin && availableVehicles.length === 0 && (
+                    <p className="text-sm text-red-600 mt-1">
+                      Aucun véhicule disponible pour cette période
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="prix_par_jour">Prix par jour (MAD)</Label>
@@ -565,6 +729,7 @@ export const Reservations: React.FC = () => {
                     value={formData.prix_par_jour}
                     onChange={(e) => setFormData({ ...formData, prix_par_jour: e.target.value })}
                     className="mt-1"
+                    placeholder="0.00"
                   />
                 </div>
                 <div>
@@ -591,6 +756,7 @@ export const Reservations: React.FC = () => {
                     value={formData.km_depart}
                     onChange={(e) => setFormData({ ...formData, km_depart: e.target.value })}
                     className="mt-1"
+                    placeholder="0"
                   />
                 </div>
                 <div>
@@ -602,6 +768,7 @@ export const Reservations: React.FC = () => {
                     value={formData.km_retour}
                     onChange={(e) => setFormData({ ...formData, km_retour: e.target.value })}
                     className="mt-1"
+                    placeholder="0"
                   />
                 </div>
                 <div>
@@ -611,6 +778,7 @@ export const Reservations: React.FC = () => {
                     value={formData.lieu_delivrance}
                     onChange={(e) => setFormData({ ...formData, lieu_delivrance: e.target.value })}
                     className="mt-1"
+                    placeholder="Adresse de délivrance"
                   />
                 </div>
                 <div>
@@ -620,6 +788,7 @@ export const Reservations: React.FC = () => {
                     value={formData.lieu_recuperation}
                     onChange={(e) => setFormData({ ...formData, lieu_recuperation: e.target.value })}
                     className="mt-1"
+                    placeholder="Adresse de récupération"
                   />
                 </div>
                 <div>
@@ -674,8 +843,19 @@ export const Reservations: React.FC = () => {
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Annuler
                 </Button>
-                <Button type="submit" disabled={uploading} className="bg-blue-600 hover:bg-blue-700">
-                  {uploading ? 'Téléchargement...' : editingReservation ? 'Modifier' : 'Ajouter'}
+                <Button 
+                  type="submit" 
+                  disabled={uploading || !formData.client_id || !formData.vehicule_id} 
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                >
+                  {uploading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                      Téléchargement...
+                    </>
+                  ) : (
+                    editingReservation ? 'Modifier' : 'Ajouter'
+                  )}
                 </Button>
               </div>
             </form>
@@ -707,9 +887,12 @@ export const Reservations: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle>Liste des réservations</CardTitle>
+            <CardTitle className="flex items-center space-x-2">
+              <Calendar className="w-5 h-5 text-blue-600" />
+              <span>Liste des réservations ({filteredReservations.length})</span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {filteredReservations.length === 0 ? (
@@ -722,7 +905,7 @@ export const Reservations: React.FC = () => {
                   {searchTerm ? 'Aucune réservation ne correspond à votre recherche.' : 'Commencez par ajouter votre première réservation.'}
                 </p>
                 {!searchTerm && (
-                  <Button onClick={() => { resetForm(); setEditingReservation(null); setIsDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
+                  <Button onClick={() => { resetForm(); setEditingReservation(null); setIsDialogOpen(true); }} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
                     <Plus className="w-4 h-4 mr-2" />
                     Nouvelle réservation
                   </Button>
@@ -744,24 +927,30 @@ export const Reservations: React.FC = () => {
                   </TableHeader>
                   <TableBody>
                     {filteredReservations.map((reservation) => (
-                      <TableRow key={reservation.id}>
+                      <TableRow key={reservation.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                         <TableCell>
-                          <div>
-                            <div className="font-medium">
-                              {reservation.clients?.prenom} {reservation.clients?.nom}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {reservation.clients?.telephone}
+                          <div className="flex items-center space-x-2">
+                            <User className="w-4 h-4 text-gray-400" />
+                            <div>
+                              <div className="font-medium">
+                                {reservation.clients?.prenom} {reservation.clients?.nom}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {reservation.clients?.telephone}
+                              </div>
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div>
-                            <div className="font-medium">
-                              {reservation.vehicles?.marque} {reservation.vehicles?.modele}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {reservation.vehicles?.immatriculation}
+                          <div className="flex items-center space-x-2">
+                            <Car className="w-4 h-4 text-gray-400" />
+                            <div>
+                              <div className="font-medium">
+                                {reservation.vehicles?.marque} {reservation.vehicles?.modele}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {reservation.vehicles?.immatriculation}
+                              </div>
                             </div>
                           </div>
                         </TableCell>
@@ -769,8 +958,8 @@ export const Reservations: React.FC = () => {
                           <div className="text-sm">
                             {reservation.date_debut && reservation.date_fin ? (
                               <>
-                                <div>{new Date(reservation.date_debut).toLocaleDateString()}</div>
-                                <div>au {new Date(reservation.date_fin).toLocaleDateString()}</div>
+                                <div>{new Date(reservation.date_debut).toLocaleDateString('fr-FR')}</div>
+                                <div className="text-gray-500">au {new Date(reservation.date_fin).toLocaleDateString('fr-FR')}</div>
                               </>
                             ) : (
                               'Dates non définies'
@@ -778,7 +967,9 @@ export const Reservations: React.FC = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {reservation.prix_par_jour ? `${reservation.prix_par_jour} MAD` : 'N/A'}
+                          <div className="font-medium">
+                            {reservation.prix_par_jour ? `${reservation.prix_par_jour} MAD` : 'N/A'}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Badge className={getStatusColor(reservation.statut)}>
@@ -792,7 +983,7 @@ export const Reservations: React.FC = () => {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handlePreviewImage(reservation.cin_scan_url!)}
-                                className="text-xs"
+                                className="text-xs hover:bg-blue-50 hover:border-blue-200"
                               >
                                 <Eye className="w-3 h-3 mr-1" />
                                 CIN
@@ -803,7 +994,7 @@ export const Reservations: React.FC = () => {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handlePreviewImage(reservation.permis_scan_url!)}
-                                className="text-xs"
+                                className="text-xs hover:bg-blue-50 hover:border-blue-200"
                               >
                                 <Eye className="w-3 h-3 mr-1" />
                                 Permis
@@ -866,7 +1057,7 @@ export const Reservations: React.FC = () => {
               <img 
                 src={previewImage} 
                 alt="Document preview" 
-                className="max-w-full max-h-96 object-contain rounded-lg"
+                className="max-w-full max-h-96 object-contain rounded-lg shadow-lg"
               />
             </div>
           )}

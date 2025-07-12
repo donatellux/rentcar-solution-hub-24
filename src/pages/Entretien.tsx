@@ -1,10 +1,9 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Edit, Trash2, Wrench, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Wrench, AlertTriangle, Calendar, Car } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -12,14 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface Entretien {
   id: string;
@@ -43,6 +35,14 @@ interface Vehicle {
   marque: string;
   modele: string;
   immatriculation: string;
+  kilometrage: number;
+  km_last_vidange: number;
+  vidange_periodicite_km: number;
+}
+
+interface VehicleNeedingMaintenance extends Vehicle {
+  kmSinceLastMaintenance: number;
+  progressPercentage: number;
 }
 
 export const Entretien: React.FC = () => {
@@ -50,10 +50,12 @@ export const Entretien: React.FC = () => {
   const { toast } = useToast();
   const [entretiens, setEntretiens] = useState<Entretien[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [vehiclesNeedingMaintenance, setVehiclesNeedingMaintenance] = useState<VehicleNeedingMaintenance[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEntretien, setEditingEntretien] = useState<Entretien | null>(null);
+  const [activeTab, setActiveTab] = useState<'alerts' | 'history'>('alerts');
 
   const [formData, setFormData] = useState({
     vehicule_id: '',
@@ -88,13 +90,31 @@ export const Entretien: React.FC = () => {
 
       const { data: vehiclesData, error: vehiclesError } = await supabase
         .from('vehicles')
-        .select('id, marque, modele, immatriculation')
+        .select('id, marque, modele, immatriculation, kilometrage, km_last_vidange, vidange_periodicite_km')
         .eq('agency_id', user.id);
 
       if (vehiclesError) throw vehiclesError;
 
+      // Calculate vehicles needing maintenance
+      const needingMaintenance = vehiclesData?.filter(vehicle => {
+        if (vehicle.kilometrage && vehicle.km_last_vidange && vehicle.vidange_periodicite_km) {
+          const kmSinceLastMaintenance = vehicle.kilometrage - vehicle.km_last_vidange;
+          return kmSinceLastMaintenance >= vehicle.vidange_periodicite_km * 0.9;
+        }
+        return false;
+      }).map(vehicle => {
+        const kmSinceLastMaintenance = vehicle.kilometrage - vehicle.km_last_vidange;
+        const progressPercentage = (kmSinceLastMaintenance / vehicle.vidange_periodicite_km) * 100;
+        return {
+          ...vehicle,
+          kmSinceLastMaintenance,
+          progressPercentage,
+        };
+      }) || [];
+
       setEntretiens(entretiensData || []);
       setVehicles(vehiclesData || []);
+      setVehiclesNeedingMaintenance(needingMaintenance);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
@@ -139,6 +159,21 @@ export const Entretien: React.FC = () => {
 
       if (error) throw error;
 
+      // Update vehicle maintenance info if this is a vidange
+      if (formData.type === 'vidange' && formData.vehicule_id && formData.km_last_vidange) {
+        const { error: vehicleUpdateError } = await supabase
+          .from('vehicles')
+          .update({
+            km_last_vidange: parseInt(formData.km_last_vidange),
+            vidange_periodicite_km: formData.vidange_periodicite_km ? parseInt(formData.vidange_periodicite_km) : null,
+          })
+          .eq('id', formData.vehicule_id);
+
+        if (vehicleUpdateError) {
+          console.error('Error updating vehicle:', vehicleUpdateError);
+        }
+      }
+
       toast({
         title: "Succès",
         description: editingEntretien ? "Entretien modifié avec succès" : "Entretien ajouté avec succès",
@@ -156,6 +191,20 @@ export const Entretien: React.FC = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleQuickMaintenance = (vehicle: VehicleNeedingMaintenance) => {
+    setFormData({
+      vehicule_id: vehicle.id,
+      type: 'vidange',
+      date: new Date().toISOString().split('T')[0],
+      cout: '',
+      description: `Vidange effectuée à ${vehicle.kilometrage.toLocaleString()} km`,
+      km_last_vidange: vehicle.kilometrage.toString(),
+      vidange_periodicite_km: vehicle.vidange_periodicite_km.toString(),
+    });
+    setEditingEntretien(null);
+    setIsDialogOpen(true);
   };
 
   const handleDelete = async (entretienId: string) => {
@@ -232,17 +281,27 @@ export const Entretien: React.FC = () => {
       .includes(searchTerm.toLowerCase())
   );
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Entretiens</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Entretiens
+          </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">Gérez l'entretien de vos véhicules</p>
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => { resetForm(); setEditingEntretien(null); }} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => { resetForm(); setEditingEntretien(null); }} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg">
               <Plus className="w-4 h-4 mr-2" />
               Nouvel entretien
             </Button>
@@ -345,7 +404,7 @@ export const Entretien: React.FC = () => {
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Annuler
                 </Button>
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                <Button type="submit" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
                   {editingEntretien ? 'Modifier' : 'Ajouter'}
                 </Button>
               </div>
@@ -354,109 +413,200 @@ export const Entretien: React.FC = () => {
         </Dialog>
       </div>
 
-      <div className="flex items-center space-x-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            type="text"
-            placeholder="Rechercher un entretien..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+      {/* Tab Navigation */}
+      <div className="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-fit">
+        <button
+          onClick={() => setActiveTab('alerts')}
+          className={`px-4 py-2 rounded-md font-medium transition-all ${
+            activeTab === 'alerts'
+              ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+          }`}
+        >
+          <AlertTriangle className="w-4 h-4 mr-2 inline" />
+          Alertes ({vehiclesNeedingMaintenance.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('history')}
+          className={`px-4 py-2 rounded-md font-medium transition-all ${
+            activeTab === 'history'
+              ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+          }`}
+        >
+          <Calendar className="w-4 h-4 mr-2 inline" />
+          Historique ({filteredEntretiens.length})
+        </button>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      ) : (
-        <Card>
+      {activeTab === 'alerts' && (
+        <Card className="border-orange-200 dark:border-orange-800">
           <CardHeader>
-            <CardTitle>Liste des entretiens ({filteredEntretiens.length})</CardTitle>
+            <CardTitle className="flex items-center space-x-2 text-orange-600 dark:text-orange-400">
+              <AlertTriangle className="w-5 h-5" />
+              <span>Véhicules nécessitant un entretien</span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            {filteredEntretiens.length === 0 ? (
+            {vehiclesNeedingMaintenance.length === 0 ? (
               <div className="text-center py-8">
-                <Wrench className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <Car className="w-16 h-16 text-green-400 mx-auto mb-4" />
                 <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
-                  Aucun entretien trouvé
+                  Aucun véhicule ne nécessite d'entretien
                 </h3>
-                <p className="text-gray-500 dark:text-gray-400 mb-4">
-                  {searchTerm ? 'Aucun entretien ne correspond à votre recherche.' : 'Commencez par ajouter votre premier entretien.'}
+                <p className="text-gray-500 dark:text-gray-400">
+                  Tous vos véhicules sont à jour au niveau de l'entretien.
                 </p>
-                {!searchTerm && (
-                  <Button onClick={() => { resetForm(); setEditingEntretien(null); setIsDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Nouvel entretien
-                  </Button>
-                )}
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Véhicule</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Coût</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredEntretiens.map((entretien) => (
-                    <TableRow key={entretien.id}>
-                      <TableCell>
-                        {entretien.vehicles ? 
-                          `${entretien.vehicles.marque} ${entretien.vehicles.modele} - ${entretien.vehicles.immatriculation}` : 
-                          'Véhicule inconnu'
-                        }
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getTypeColor(entretien.type)}>
-                          {entretien.type || 'N/A'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {entretien.date ? new Date(entretien.date).toLocaleDateString('fr-FR') : 'Non définie'}
-                      </TableCell>
-                      <TableCell>
-                        {entretien.cout ? `${entretien.cout} MAD` : 'Non défini'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="max-w-xs truncate">
-                          {entretien.description || 'Aucune description'}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEdit(entretien)}
-                            className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDelete(entretien.id)}
-                            className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="space-y-4">
+                {vehiclesNeedingMaintenance.map((vehicle) => (
+                  <div key={vehicle.id} className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950 dark:to-red-950 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h4 className="font-semibold text-lg text-gray-900 dark:text-white">
+                          {vehicle.marque} {vehicle.modele}
+                        </h4>
+                        <p className="text-gray-600 dark:text-gray-400">
+                          {vehicle.immatriculation}
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => handleQuickMaintenance(vehicle)}
+                        size="sm"
+                        className="bg-orange-600 hover:bg-orange-700 text-white shadow-lg"
+                      >
+                        <Wrench className="w-4 h-4 mr-2" />
+                        Effectuer vidange
+                      </Button>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Progression depuis dernière vidange</span>
+                        <span className="font-medium text-orange-600">
+                          {Math.round(vehicle.progressPercentage)}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div 
+                          className="bg-gradient-to-r from-orange-500 to-red-500 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min(vehicle.progressPercentage, 100)}%` }}
+                        />
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        {vehicle.kmSinceLastMaintenance.toLocaleString()} km / {vehicle.vidange_periodicite_km.toLocaleString()} km
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>
+      )}
+
+      {activeTab === 'history' && (
+        <>
+          <div className="flex items-center space-x-4">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Rechercher un entretien..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Historique des entretiens ({filteredEntretiens.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {filteredEntretiens.length === 0 ? (
+                <div className="text-center py-8">
+                  <Wrench className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
+                    Aucun entretien trouvé
+                  </h3>
+                  <p className="text-gray-500 dark:text-gray-400 mb-4">
+                    {searchTerm ? 'Aucun entretien ne correspond à votre recherche.' : 'Commencez par ajouter votre premier entretien.'}
+                  </p>
+                  {!searchTerm && (
+                    <Button onClick={() => { resetForm(); setEditingEntretien(null); setIsDialogOpen(true); }} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Nouvel entretien
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Véhicule</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Coût</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredEntretiens.map((entretien) => (
+                      <TableRow key={entretien.id}>
+                        <TableCell>
+                          {entretien.vehicles ? 
+                            `${entretien.vehicles.marque} ${entretien.vehicles.modele} - ${entretien.vehicles.immatriculation}` : 
+                            'Véhicule inconnu'
+                          }
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getTypeColor(entretien.type)}>
+                            {entretien.type || 'N/A'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {entretien.date ? new Date(entretien.date).toLocaleDateString('fr-FR') : 'Non définie'}
+                        </TableCell>
+                        <TableCell>
+                          {entretien.cout ? `${entretien.cout} MAD` : 'Non défini'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="max-w-xs truncate">
+                            {entretien.description || 'Aucune description'}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEdit(entretien)}
+                              className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDelete(entretien.id)}
+                              className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </>
       )}
     </div>
   );

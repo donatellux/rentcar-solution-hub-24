@@ -1,52 +1,52 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Settings, Building2, Globe, Palette, Save, Upload, Eye } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from 'sonner';
+import { Upload, Save, Building, Globe, Mail, Phone, FileText, Palette, Settings } from 'lucide-react';
 
-interface Agency {
-  agency_name: string | null;
-  email: string | null;
-  phone: string | null;
-  address: string | null;
-  website: string | null;
-  slogan: string | null;
-  rc: string | null;
-  ice: string | null;
-  patente: string | null;
-  tax_id: string | null;
-  langue: string | null;
-  devise: string | null;
-  theme: string | null;
-  logo_path: string | null;
+interface AgencyData {
+  agency_name: string;
+  address: string;
+  phone: string;
+  email: string;
+  website: string;
+  rc: string;
+  ice: string;
+  patente: string;
+  tax_id: string;
+  slogan: string;
+  langue: string;
+  devise: string;
+  theme: string;
+  logo_path: string;
 }
 
 export const Parametres: React.FC = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  const [agencyData, setAgencyData] = useState<Agency>({
+  const [formData, setFormData] = useState<AgencyData>({
     agency_name: '',
-    email: '',
-    phone: '',
     address: '',
+    phone: '',
+    email: '',
     website: '',
-    slogan: '',
     rc: '',
     ice: '',
     patente: '',
     tax_id: '',
+    slogan: '',
     langue: 'fr',
     devise: 'MAD',
     theme: 'light',
@@ -55,11 +55,11 @@ export const Parametres: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-      fetchAgencySettings();
+      fetchAgencyData();
     }
   }, [user]);
 
-  const fetchAgencySettings = async () => {
+  const fetchAgencyData = async () => {
     if (!user) return;
 
     try {
@@ -74,44 +74,55 @@ export const Parametres: React.FC = () => {
       }
 
       if (data) {
-        setAgencyData({
+        setFormData({
           agency_name: data.agency_name || '',
-          email: data.email || '',
-          phone: data.phone || '',
           address: data.address || '',
+          phone: data.phone || '',
+          email: data.email || '',
           website: data.website || '',
-          slogan: data.slogan || '',
           rc: data.rc || '',
           ice: data.ice || '',
           patente: data.patente || '',
           tax_id: data.tax_id || '',
+          slogan: data.slogan || '',
           langue: data.langue || 'fr',
           devise: data.devise || 'MAD',
           theme: data.theme || 'light',
           logo_path: data.logo_path || '',
         });
+        
+        if (data.logo_path) {
+          setPreviewUrl(data.logo_path);
+        }
       }
     } catch (error) {
-      console.error('Error fetching agency settings:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les paramètres",
-        variant: "destructive",
-      });
+      console.error('Error fetching agency data:', error);
+      toast.error('Erreur lors du chargement des données');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogoUpload = async (file: File) => {
-    if (!user) return;
-
+  const handleLogoUpload = async (file: File): Promise<string | null> => {
     try {
-      setUploadingLogo(true);
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error('Le fichier est trop volumineux (max 5MB)');
+      }
+
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        throw new Error('Le fichier doit être une image');
+      }
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `logo-${user?.id}-${Date.now()}.${fileExt}`;
+
+      console.log('Uploading logo:', fileName);
 
       // Delete old logo if exists
-      if (agencyData.logo_path) {
-        const oldFileName = agencyData.logo_path.split('/').pop();
+      if (formData.logo_path) {
+        const oldFileName = formData.logo_path.split('/').pop();
         if (oldFileName) {
           await supabase.storage
             .from('logos')
@@ -119,96 +130,97 @@ export const Parametres: React.FC = () => {
         }
       }
 
-      // Upload new logo
-      const fileExt = file.name.split('.').pop();
-      const fileName = `logo-${user.id}-${Date.now()}.${fileExt}`;
-
       const { data, error } = await supabase.storage
         .from('logos')
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Storage upload error:', error);
+        throw error;
+      }
+
+      console.log('Upload successful:', data);
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('logos')
         .getPublicUrl(fileName);
 
-      // Update agency data
-      setAgencyData({ ...agencyData, logo_path: publicUrl });
-
-      toast({
-        title: "Succès",
-        description: "Logo téléchargé avec succès",
-      });
+      console.log('Public URL:', publicUrl);
+      return publicUrl;
     } catch (error) {
       console.error('Error uploading logo:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de télécharger le logo",
-        variant: "destructive",
-      });
-    } finally {
-      setUploadingLogo(false);
+      throw error;
     }
   };
 
-  const handleLogoFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: "Erreur",
-          description: "Veuillez sélectionner un fichier image",
-          variant: "destructive",
-        });
-        return;
-      }
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-      // Validate file size (5MB limit)
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "Erreur",
-          description: "La taille du fichier ne doit pas dépasser 5MB",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      handleLogoUpload(file);
-    }
+    setLogoFile(file);
+    
+    // Create preview URL
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
   };
 
-  const handleSaveSettings = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!user) return;
 
     try {
       setSaving(true);
+      
+      let logoPath = formData.logo_path;
+
+      // Upload logo if a new file was selected
+      if (logoFile) {
+        setUploadingLogo(true);
+        console.log('Uploading new logo...');
+        logoPath = await handleLogoUpload(logoFile);
+        console.log('Logo uploaded:', logoPath);
+        setUploadingLogo(false);
+      }
+
+      const dataToSave = {
+        ...formData,
+        logo_path: logoPath,
+      };
+
+      console.log('Saving agency data:', dataToSave);
 
       const { error } = await supabase
         .from('agencies')
         .upsert({
           id: user.id,
-          ...agencyData,
+          ...dataToSave,
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
 
-      toast({
-        title: "Succès",
-        description: "Paramètres sauvegardés avec succès",
-      });
+      // Update local state
+      setFormData(prev => ({ ...prev, logo_path: logoPath || '' }));
+      setLogoFile(null);
+
+      toast.success('Paramètres sauvegardés avec succès');
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de sauvegarder les paramètres",
-        variant: "destructive",
-      });
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la sauvegarde');
     } finally {
       setSaving(false);
+      setUploadingLogo(false);
     }
+  };
+
+  const handleInputChange = (field: keyof AgencyData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   if (loading) {
@@ -221,265 +233,271 @@ export const Parametres: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Paramètres</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Configurez les paramètres de votre agence</p>
-        </div>
-        <Button 
-          onClick={handleSaveSettings} 
-          disabled={saving}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Save className="w-4 h-4 mr-2" />
-          {saving ? 'Sauvegarde...' : 'Sauvegarder'}
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          Paramètres
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
+          Configurez les informations de votre agence
+        </p>
       </div>
 
-      <Tabs defaultValue="general" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="general" className="flex items-center space-x-2">
-            <Building2 className="w-4 h-4" />
-            <span>Informations générales</span>
-          </TabsTrigger>
-          <TabsTrigger value="legal" className="flex items-center space-x-2">
-            <Settings className="w-4 h-4" />
-            <span>Informations légales</span>
-          </TabsTrigger>
-          <TabsTrigger value="preferences" className="flex items-center space-x-2">
-            <Palette className="w-4 h-4" />
-            <span>Préférences</span>
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="general">
-          <Card>
-            <CardHeader>
-              <CardTitle>Informations générales de l'agence</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="agency_name">Nom de l'agence</Label>
-                  <Input
-                    id="agency_name"
-                    value={agencyData.agency_name}
-                    onChange={(e) => setAgencyData({ ...agencyData, agency_name: e.target.value })}
-                    className="mt-1"
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Logo Section */}
+        <Card className="border-blue-200 dark:border-blue-800">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-blue-600">
+              <Upload className="w-5 h-5" />
+              <span>Logo de l'agence</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center space-x-4">
+              {previewUrl && (
+                <div className="w-24 h-24 border-2 border-gray-300 rounded-lg overflow-hidden bg-white shadow-lg">
+                  <img
+                    src={previewUrl}
+                    alt="Logo preview"
+                    className="w-full h-full object-contain"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={agencyData.email}
-                    onChange={(e) => setAgencyData({ ...agencyData, email: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="phone">Téléphone</Label>
-                  <Input
-                    id="phone"
-                    value={agencyData.phone}
-                    onChange={(e) => setAgencyData({ ...agencyData, phone: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="website">Site web</Label>
-                  <Input
-                    id="website"
-                    value={agencyData.website}
-                    onChange={(e) => setAgencyData({ ...agencyData, website: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="address">Adresse</Label>
-                <Textarea
-                  id="address"
-                  value={agencyData.address}
-                  onChange={(e) => setAgencyData({ ...agencyData, address: e.target.value })}
+              )}
+              <div className="flex-1">
+                <Label htmlFor="logo">Choisir un nouveau logo</Label>
+                <Input
+                  id="logo"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
                   className="mt-1"
-                  rows={3}
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Formats acceptés: JPG, PNG, GIF (Max 5MB)
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Company Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Building className="w-5 h-5" />
+              <span>Informations de l'entreprise</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="agency_name">Nom de l'agence *</Label>
+                <Input
+                  id="agency_name"
+                  value={formData.agency_name}
+                  onChange={(e) => handleInputChange('agency_name', e.target.value)}
+                  className="mt-1"
+                  placeholder="Nom de votre agence"
+                  required
                 />
               </div>
               <div>
                 <Label htmlFor="slogan">Slogan</Label>
                 <Input
                   id="slogan"
-                  value={agencyData.slogan}
-                  onChange={(e) => setAgencyData({ ...agencyData, slogan: e.target.value })}
+                  value={formData.slogan}
+                  onChange={(e) => handleInputChange('slogan', e.target.value)}
                   className="mt-1"
-                  placeholder="Votre slogan ou devise"
+                  placeholder="Votre slogan"
                 />
               </div>
-              
-              {/* Logo Upload Section */}
+              <div className="md:col-span-2">
+                <Label htmlFor="address">Adresse</Label>
+                <Textarea
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => handleInputChange('address', e.target.value)}
+                  className="mt-1"
+                  placeholder="Adresse complète de l'agence"
+                  rows={3}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Contact Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Phone className="w-5 h-5" />
+              <span>Informations de contact</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>Logo de l'agence</Label>
-                <div className="mt-2 space-y-4">
-                  {agencyData.logo_path && (
-                    <div className="flex items-center space-x-4">
-                      <img 
-                        src={agencyData.logo_path} 
-                        alt="Logo actuel" 
-                        className="w-20 h-20 object-contain border rounded-lg"
-                      />
-                      <div>
-                        <p className="text-sm text-gray-600">Logo actuel</p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.open(agencyData.logo_path!, '_blank')}
-                          className="mt-1"
-                        >
-                          <Eye className="w-4 h-4 mr-1" />
-                          Voir
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoFileSelect}
-                      className="hidden"
-                      id="logo-upload"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => document.getElementById('logo-upload')?.click()}
-                      disabled={uploadingLogo}
-                      className="w-full sm:w-auto"
-                    >
-                      {uploadingLogo ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2" />
-                          Téléchargement...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-4 h-4 mr-2" />
-                          {agencyData.logo_path ? 'Changer le logo' : 'Télécharger un logo'}
-                        </>
-                      )}
-                    </Button>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Formats acceptés: JPG, PNG, GIF. Taille maximum: 5MB
-                    </p>
-                  </div>
-                </div>
+                <Label htmlFor="phone">Téléphone</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  className="mt-1"
+                  placeholder="+212 6 XX XX XX XX"
+                />
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  className="mt-1"
+                  placeholder="contact@agence.com"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label htmlFor="website">Site web</Label>
+                <Input
+                  id="website"
+                  value={formData.website}
+                  onChange={(e) => handleInputChange('website', e.target.value)}
+                  className="mt-1"
+                  placeholder="https://www.monagence.com"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        <TabsContent value="legal">
-          <Card>
-            <CardHeader>
-              <CardTitle>Informations légales et fiscales</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="rc">Registre de Commerce (RC)</Label>
-                  <Input
-                    id="rc"
-                    value={agencyData.rc}
-                    onChange={(e) => setAgencyData({ ...agencyData, rc: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="ice">Identifiant Commun de l'Entreprise (ICE)</Label>
-                  <Input
-                    id="ice"
-                    value={agencyData.ice}
-                    onChange={(e) => setAgencyData({ ...agencyData, ice: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="patente">Numéro de Patente</Label>
-                  <Input
-                    id="patente"
-                    value={agencyData.patente}
-                    onChange={(e) => setAgencyData({ ...agencyData, patente: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="tax_id">Identifiant Fiscal</Label>
-                  <Input
-                    id="tax_id"
-                    value={agencyData.tax_id}
-                    onChange={(e) => setAgencyData({ ...agencyData, tax_id: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
+        {/* Legal Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <FileText className="w-5 h-5" />
+              <span>Informations légales</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="rc">Registre de Commerce</Label>
+                <Input
+                  id="rc"
+                  value={formData.rc}
+                  onChange={(e) => handleInputChange('rc', e.target.value)}
+                  className="mt-1"
+                  placeholder="RC XXXXXXX"
+                />
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+              <div>
+                <Label htmlFor="ice">ICE</Label>
+                <Input
+                  id="ice"
+                  value={formData.ice}
+                  onChange={(e) => handleInputChange('ice', e.target.value)}
+                  className="mt-1"
+                  placeholder="ICE XXXXXXXXXXXXXXX"
+                />
+              </div>
+              <div>
+                <Label htmlFor="patente">Patente</Label>
+                <Input
+                  id="patente"
+                  value={formData.patente}
+                  onChange={(e) => handleInputChange('patente', e.target.value)}
+                  className="mt-1"
+                  placeholder="Numéro de patente"
+                />
+              </div>
+              <div>
+                <Label htmlFor="tax_id">Identifiant fiscal</Label>
+                <Input
+                  id="tax_id"
+                  value={formData.tax_id}
+                  onChange={(e) => handleInputChange('tax_id', e.target.value)}
+                  className="mt-1"
+                  placeholder="IF XXXXXXXX"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        <TabsContent value="preferences">
-          <Card>
-            <CardHeader>
-              <CardTitle>Préférences de l'application</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="langue">Langue de l'interface</Label>
-                  <Select value={agencyData.langue} onValueChange={(value) => setAgencyData({ ...agencyData, langue: value })}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fr">Français</SelectItem>
-                      <SelectItem value="ar">العربية</SelectItem>
-                      <SelectItem value="en">English</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="devise">Devise</Label>
-                  <Select value={agencyData.devise} onValueChange={(value) => setAgencyData({ ...agencyData, devise: value })}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="MAD">Dirham Marocain (MAD)</SelectItem>
-                      <SelectItem value="EUR">Euro (EUR)</SelectItem>
-                      <SelectItem value="USD">Dollar US (USD)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="theme">Thème de l'interface</Label>
-                  <Select value={agencyData.theme} onValueChange={(value) => setAgencyData({ ...agencyData, theme: value })}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="light">Clair</SelectItem>
-                      <SelectItem value="dark">Sombre</SelectItem>
-                      <SelectItem value="auto">Automatique</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+        {/* Preferences */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Settings className="w-5 h-5" />
+              <span>Préférences</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="langue">Langue</Label>
+                <Select value={formData.langue} onValueChange={(value) => handleInputChange('langue', value)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fr">Français</SelectItem>
+                    <SelectItem value="ar">العربية</SelectItem>
+                    <SelectItem value="en">English</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              <div>
+                <Label htmlFor="devise">Devise</Label>
+                <Select value={formData.devise} onValueChange={(value) => handleInputChange('devise', value)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MAD">MAD (Dirham)</SelectItem>
+                    <SelectItem value="EUR">EUR (Euro)</SelectItem>
+                    <SelectItem value="USD">USD (Dollar)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="theme">Thème</Label>
+                <Select value={formData.theme} onValueChange={(value) => handleInputChange('theme', value)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">Clair</SelectItem>
+                    <SelectItem value="dark">Sombre</SelectItem>
+                    <SelectItem value="auto">Automatique</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Submit Button */}
+        <div className="flex justify-end">
+          <Button
+            type="submit"
+            disabled={saving || uploadingLogo}
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg"
+          >
+            {saving || uploadingLogo ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                {uploadingLogo ? 'Téléchargement du logo...' : 'Sauvegarde...'}
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" />
+                Sauvegarder
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 };
