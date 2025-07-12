@@ -58,19 +58,28 @@ export const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
+      console.log('Uploading file:', fileName);
+
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
         .from('vehiclephotos')
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          upsert: false
+        });
 
       if (error) {
+        console.error('Upload error:', error);
         throw error;
       }
+
+      console.log('Upload success:', data);
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('vehiclephotos')
         .getPublicUrl(fileName);
+
+      console.log('Public URL:', publicUrl);
 
       setPreviewUrl(publicUrl);
       onImageUploaded(fileName);
@@ -84,7 +93,7 @@ export const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
       console.error('Error uploading image:', error);
       toast({
         title: "Erreur",
-        description: "Erreur lors du téléchargement de l'image",
+        description: `Erreur lors du téléchargement de l'image: ${error.message}`,
         variant: "destructive",
       });
     } finally {
@@ -95,9 +104,13 @@ export const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
   const handleRemoveImage = async () => {
     try {
       if (currentImagePath) {
-        await supabase.storage
+        const { error } = await supabase.storage
           .from('vehiclephotos')
           .remove([currentImagePath]);
+        
+        if (error) {
+          console.error('Remove error:', error);
+        }
       }
       
       setPreviewUrl(null);
@@ -127,6 +140,10 @@ export const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
             src={previewUrl}
             alt="Véhicule"
             className="w-full h-48 object-cover rounded-lg border"
+            onError={(e) => {
+              console.error('Image load error:', e);
+              setPreviewUrl(null);
+            }}
           />
           <Button
             type="button"
