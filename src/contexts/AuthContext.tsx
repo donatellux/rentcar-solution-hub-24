@@ -80,7 +80,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const createAgencyRecord = async (userId: string, email: string) => {
+  const createAgencyRecord = async (userId: string, email: string, userData?: any) => {
     try {
       console.log('Creating agency record for user:', userId);
       const { data, error } = await supabase
@@ -88,6 +88,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .insert({
           id: userId,
           email: email,
+          agency_name: userData?.full_name || userData?.name || null,
           theme: 'light',
           langue: 'fr',
           devise: 'MAD'
@@ -118,15 +119,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Defer the agency fetch to avoid potential deadlocks
-          setTimeout(async () => {
-            await fetchAgency(session.user.id);
-            
-            // If no agency found, create one (this might happen for existing users)
-            if (!agency) {
-              await createAgencyRecord(session.user.id, session.user.email!);
-            }
-          }, 0);
+          // For Google sign-in, redirect to dashboard after successful authentication
+          if (event === 'SIGNED_IN' && session.user.app_metadata?.provider === 'google') {
+            // Defer the agency fetch and redirect to avoid potential conflicts
+            setTimeout(async () => {
+              await fetchAgency(session.user.id);
+              
+              // If no agency found, create one for Google users
+              const existingAgency = await supabase
+                .from('agencies')
+                .select('id')
+                .eq('id', session.user.id)
+                .maybeSingle();
+              
+              if (!existingAgency.data) {
+                await createAgencyRecord(
+                  session.user.id, 
+                  session.user.email!, 
+                  session.user.user_metadata
+                );
+              }
+              
+              // Redirect to dashboard
+              window.location.href = '/dashboard';
+            }, 100);
+          } else {
+            // Regular flow for email/password
+            setTimeout(async () => {
+              await fetchAgency(session.user.id);
+              
+              // If no agency found, create one (this might happen for existing users)
+              if (!agency) {
+                await createAgencyRecord(session.user.id, session.user.email!);
+              }
+            }, 0);
+          }
         } else {
           setAgency(null);
         }
@@ -170,7 +197,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signUp = async (email: string, password: string, agencyData: Partial<Agency>) => {
-    const redirectUrl = `${window.location.origin}/`;
+    const redirectUrl = `${window.location.origin}/dashboard`;
     
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -209,7 +236,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/`
+        redirectTo: `${window.location.origin}/dashboard`
       }
     });
     return { error };
