@@ -56,20 +56,56 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const fetchAgency = async (userId: string) => {
     try {
+      console.log('Fetching agency for user:', userId);
       const { data, error } = await supabase
         .from('agencies')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching agency:', error);
         return;
       }
 
-      setAgency(data);
+      if (data) {
+        console.log('Agency data found:', data);
+        setAgency(data);
+      } else {
+        console.log('No agency found for user, will need to create one');
+        setAgency(null);
+      }
     } catch (error) {
       console.error('Error fetching agency:', error);
+    }
+  };
+
+  const createAgencyRecord = async (userId: string, email: string) => {
+    try {
+      console.log('Creating agency record for user:', userId);
+      const { data, error } = await supabase
+        .from('agencies')
+        .insert({
+          id: userId,
+          email: email,
+          theme: 'light',
+          langue: 'fr',
+          devise: 'MAD'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating agency:', error);
+        return null;
+      }
+
+      console.log('Agency created successfully:', data);
+      setAgency(data);
+      return data;
+    } catch (error) {
+      console.error('Error creating agency:', error);
+      return null;
     }
   };
 
@@ -77,12 +113,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          setTimeout(() => {
-            fetchAgency(session.user.id);
+          // Defer the agency fetch to avoid potential deadlocks
+          setTimeout(async () => {
+            await fetchAgency(session.user.id);
+            
+            // If no agency found, create one (this might happen for existing users)
+            if (!agency) {
+              await createAgencyRecord(session.user.id, session.user.email!);
+            }
           }, 0);
         } else {
           setAgency(null);
@@ -94,61 +137,65 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.id);
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        fetchAgency(session.user.id);
+        fetchAgency(session.user.id).then(() => {
+          setLoading(false);
+        });
+      } else {
+        setLoading(false);
       }
-      
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) return { error };
+      
+      // The onAuthStateChange will handle fetching the agency
+      return { error: null };
+    } catch (error) {
+      return { error };
+    }
   };
 
   const signUp = async (email: string, password: string, agencyData: Partial<Agency>) => {
     const redirectUrl = `${window.location.origin}/`;
     
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl
+        }
+      });
+
+      if (error) return { error };
+
+      // Create agency entry immediately after successful signup
+      if (data.user && !data.session) {
+        // User needs to confirm email, we'll create the agency record later
+        console.log('User created, waiting for email confirmation');
+      } else if (data.user && data.session) {
+        // User is immediately signed in, create agency record
+        await createAgencyRecord(data.user.id, email);
       }
-    });
 
-    if (error) return { error };
-
-    // Create agency entry
-    if (data.user) {
-      const { error: agencyError } = await supabase
-        .from('agencies')
-        .insert({
-          id: data.user.id,
-          agency_name: agencyData.agency_name,
-          email: email,
-          phone: agencyData.phone,
-          address: agencyData.address,
-          theme: 'light',
-          langue: 'fr',
-          devise: 'MAD'
-        });
-
-      if (agencyError) {
-        console.error('Error creating agency:', agencyError);
-      }
+      return { error: null };
+    } catch (error) {
+      return { error };
     }
-
-    return { error };
   };
 
   const signOut = async () => {
