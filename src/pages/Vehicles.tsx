@@ -78,6 +78,9 @@ export const Vehicles: React.FC = () => {
     if (!user) return;
 
     try {
+      // First, update vehicle mileages based on reservations
+      await updateVehicleMileagesFromReservations();
+      
       const { data, error } = await supabase
         .from('vehicles')
         .select('*')
@@ -95,6 +98,44 @@ export const Vehicles: React.FC = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const updateVehicleMileagesFromReservations = async () => {
+    if (!user) return;
+
+    try {
+      // Fetch vehicles and reservations
+      const { data: vehicles } = await supabase
+        .from('vehicles')
+        .select('id, kilometrage')
+        .eq('agency_id', user.id);
+
+      const { data: reservations } = await supabase
+        .from('reservations')
+        .select('vehicule_id, km_retour')
+        .eq('agency_id', user.id)
+        .not('km_retour', 'is', null);
+
+      if (!vehicles || !reservations) return;
+
+      // Update each vehicle's mileage if needed
+      for (const vehicle of vehicles) {
+        const vehicleReservations = reservations.filter(r => r.vehicule_id === vehicle.id && r.km_retour);
+        
+        if (vehicleReservations.length > 0) {
+          const maxKmRetour = Math.max(...vehicleReservations.map(r => r.km_retour || 0));
+          
+          if (maxKmRetour > (vehicle.kilometrage || 0)) {
+            await supabase
+              .from('vehicles')
+              .update({ kilometrage: maxKmRetour })
+              .eq('id', vehicle.id);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error updating vehicle mileages:', error);
     }
   };
 

@@ -89,8 +89,10 @@ export const Dashboard: React.FC = () => {
         return sum;
       }, 0) || 0;
 
-      // Get detailed info about vehicles needing maintenance
-      const vehiclesNeedingMaintenance = vehicles?.filter(vehicle => {
+      // Get detailed info about vehicles needing maintenance and update kilometrage
+      const vehiclesNeedingMaintenance = [];
+      
+      for (const vehicle of vehicles || []) {
         if (vehicle.kilometrage && vehicle.km_last_vidange && vehicle.vidange_periodicite_km) {
           // Get the highest km_retour for this vehicle from reservations
           const vehicleReservations = reservations?.filter(r => r.vehicule_id === vehicle.id && r.km_retour) || [];
@@ -100,11 +102,28 @@ export const Dashboard: React.FC = () => {
           
           // Use the higher value between vehicle's mileage and max km_retour
           const currentKm = Math.max(vehicle.kilometrage, maxKmRetour);
+          
+          // Update the vehicle's kilometrage in database if it's lower than maxKmRetour
+          if (maxKmRetour > 0 && vehicle.kilometrage < maxKmRetour) {
+            try {
+              await supabase
+                .from('vehicles')
+                .update({ kilometrage: maxKmRetour })
+                .eq('id', vehicle.id);
+            } catch (error) {
+              console.error('Error updating vehicle kilometrage:', error);
+            }
+          }
+          
           const kmSinceLastMaintenance = currentKm - vehicle.km_last_vidange;
-          return kmSinceLastMaintenance >= vehicle.vidange_periodicite_km * 0.9;
+          if (kmSinceLastMaintenance >= vehicle.vidange_periodicite_km * 0.9) {
+            vehiclesNeedingMaintenance.push({
+              ...vehicle,
+              kilometrage: currentKm // Update the local data with the new kilometrage
+            });
+          }
         }
-        return false;
-      }) || [];
+      }
 
       const maintenanceAlerts = vehiclesNeedingMaintenance.length;
 
