@@ -1,17 +1,19 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Edit, Trash2, Car } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Car, Fuel, Calendar, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { VehicleImageUpload } from '@/components/VehicleImageUpload';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/PaginationControls';
 
 interface Vehicle {
   id: string;
@@ -32,21 +34,22 @@ interface Vehicle {
 const getStatusColor = (etat: string | null) => {
   switch (etat) {
     case 'disponible':
-      return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      return 'bg-success/20 text-success border-success/30';
     case 'reserve':
-      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+      return 'bg-warning/20 text-warning border-warning/30';
     case 'maintenance':
-      return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      return 'bg-destructive/20 text-destructive border-destructive/30';
     case 'hors_service':
-      return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+      return 'bg-muted text-muted-foreground border-border';
     default:
-      return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+      return 'bg-muted text-muted-foreground border-border';
   }
 };
 
 export const Vehicles: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -267,25 +270,37 @@ export const Vehicles: React.FC = () => {
       .includes(searchTerm.toLowerCase())
   );
 
+  const {
+    currentPage,
+    totalPages,
+    totalItems,
+    paginatedData,
+    goToPage,
+    nextPage,
+    prevPage,
+    hasNext,
+    hasPrev,
+  } = usePagination({ data: filteredVehicles, itemsPerPage: 10 });
+
   return (
-    <div className="space-y-6">
+    <div className="page-spacing animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Véhicules</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Gérez votre flotte de véhicules</p>
+          <h1 className="text-3xl font-bold gradient-text">{t('vehicles.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('vehicles.subtitle')}</p>
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => { resetForm(); setEditingVehicle(null); }} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => { resetForm(); setEditingVehicle(null); }} className="gradient-primary shadow-elegant transition-all-smooth hover:shadow-glow">
               <Plus className="w-4 h-4 mr-2" />
-              Ajouter un véhicule
+              {t('vehicles.addVehicle')}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold">
-                {editingVehicle ? 'Modifier le véhicule' : 'Ajouter un véhicule'}
+                {editingVehicle ? t('vehicles.editVehicle') : t('vehicles.addVehicle')}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -443,126 +458,123 @@ export const Vehicles: React.FC = () => {
 
       <div className="flex items-center space-x-4">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Rechercher un véhicule..."
+            placeholder={t('vehicles.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 transition-all-smooth focus:shadow-glow"
           />
         </div>
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="card-grid">
           {[...Array(6)].map((_, i) => (
             <Card key={i} className="animate-pulse">
               <CardContent className="p-6">
-                <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                <div className="h-48 bg-muted rounded-lg"></div>
               </CardContent>
             </Card>
           ))}
         </div>
+      ) : filteredVehicles.length === 0 ? (
+        <Card className="text-center py-16">
+          <CardContent>
+            <Car className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-medium mb-2">
+              {searchTerm ? 'Aucun véhicule trouvé' : 'Aucun véhicule'}
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              {searchTerm 
+                ? 'Aucun véhicule ne correspond à votre recherche.' 
+                : 'Commencez par ajouter votre premier véhicule.'
+              }
+            </p>
+            {!searchTerm && (
+              <Button onClick={() => { resetForm(); setEditingVehicle(null); setIsDialogOpen(true); }} className="gradient-primary">
+                <Plus className="w-4 h-4 mr-2" />
+                {t('vehicles.addVehicle')}
+              </Button>
+            )}
+          </CardContent>
+        </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredVehicles.map((vehicle) => {
-            const imageUrl = getVehicleImageUrl(vehicle.photo_path);
-            
-            return (
-              <Card key={vehicle.id} className="hover:shadow-lg transition-all duration-200 border-0 shadow-md">
-                <CardContent className="p-0">
-                  {imageUrl ? (
-                    <div className="h-48 overflow-hidden rounded-t-lg">
-                      <img
-                        src={imageUrl}
-                        alt={`${vehicle.marque} ${vehicle.modele}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="h-48 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 rounded-t-lg flex items-center justify-center">
-                      <Car className="w-16 h-16 text-blue-400" />
-                    </div>
-                  )}
-                  
-                  <div className="p-6">
+        <>
+          <div className="card-grid">
+            {paginatedData.map((vehicle) => {
+              const imageUrl = getVehicleImageUrl(vehicle.photo_path);
+              
+              return (
+                <Card key={vehicle.id} className="hover:shadow-elegant transition-all-smooth hover:scale-[1.02] border-border/50">
+                  <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
-                          {vehicle.marque} {vehicle.modele}
-                        </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 font-mono">
-                          {vehicle.immatriculation}
-                        </p>
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 gradient-primary rounded-lg">
+                          <Car className="w-5 h-5 text-primary-foreground" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-lg">
+                            {vehicle.marque} {vehicle.modele}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {vehicle.annee} • {vehicle.immatriculation}
+                          </p>
+                        </div>
                       </div>
                       <Badge className={getStatusColor(vehicle.etat)}>
-                        {vehicle.etat || 'N/A'}
+                        {vehicle.etat}
                       </Badge>
                     </div>
 
-                    <div className="space-y-2 text-sm mb-4">
-                      <div className="flex justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">Année:</span>
-                        <span className="text-gray-900 dark:text-white font-medium">{vehicle.annee || 'N/A'}</span>
+                    {imageUrl && (
+                      <div className="mb-4">
+                        <img
+                          src={imageUrl}
+                          alt={`${vehicle.marque} ${vehicle.modele}`}
+                          className="w-full h-32 object-cover rounded-lg border border-border"
+                        />
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">Carburant:</span>
-                        <span className="text-gray-900 dark:text-white font-medium">{vehicle.carburant || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">Kilométrage:</span>
-                        <span className="text-gray-900 dark:text-white font-medium">
-                          {vehicle.kilometrage ? `${vehicle.kilometrage.toLocaleString()} km` : 'N/A'}
-                        </span>
-                      </div>
-                    </div>
+                    )}
 
                     <div className="flex space-x-2">
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleEdit(vehicle)}
-                        className="flex-1 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
+                        className="flex-1 hover:bg-primary/10 hover:border-primary/20 hover:text-primary transition-colors"
                       >
-                        <Edit className="w-4 h-4 mr-1" />
-                        Modifier
+                        <Edit className="w-4 h-4 mr-2" />
+                        {t('common.edit')}
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleDelete(vehicle.id)}
-                        className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
+                        className="hover:bg-destructive/10 hover:border-destructive/20 hover:text-destructive transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-
-      {!loading && filteredVehicles.length === 0 && (
-        <Card className="border-dashed border-2">
-          <CardContent className="p-12 text-center">
-            <Car className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
-              Aucun véhicule trouvé
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-4">
-              {searchTerm ? 'Aucun véhicule ne correspond à votre recherche.' : 'Commencez par ajouter votre premier véhicule.'}
-            </p>
-            {!searchTerm && (
-              <Button onClick={() => { resetForm(); setEditingVehicle(null); setIsDialogOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Ajouter un véhicule
-              </Button>
-            )}
-          </CardContent>
-        </Card>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+          
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={10}
+            onPageChange={goToPage}
+            onNext={nextPage}
+            onPrev={prevPage}
+            hasNext={hasNext}
+            hasPrev={hasPrev}
+          />
+        </>
       )}
     </div>
   );
