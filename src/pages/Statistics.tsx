@@ -406,76 +406,110 @@ export const Statistics: React.FC = () => {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="relative overflow-hidden">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Revenus Totaux</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {data.totalRevenue.toLocaleString('fr-FR')} MAD
-                </p>
+        {/* Revenue Card */}
+        <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-950 dark:to-emerald-900">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full -translate-y-16 translate-x-16"></div>
+          <CardContent className="p-6 relative">
+            <div className="flex items-start justify-between">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-green-500/20 rounded-lg">
+                    <DollarSign className="w-5 h-5 text-green-600" />
+                  </div>
+                  <p className="text-sm font-semibold text-green-700 dark:text-green-400">Revenus Totaux</p>
+                </div>
+                <div>
+                  <p className="text-3xl font-bold text-green-700 dark:text-green-300">
+                    {data.totalRevenue.toLocaleString('fr-FR')}
+                  </p>
+                  <p className="text-sm text-green-600 dark:text-green-400 font-medium">MAD</p>
+                </div>
                 {data.revenueGrowth !== 0 && (
-                  <p className={`text-xs flex items-center gap-1 ${data.revenueGrowth > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
+                    data.revenueGrowth > 0 
+                      ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200' 
+                      : 'bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-200'
+                  }`}>
                     {data.revenueGrowth > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                     {Math.abs(data.revenueGrowth).toFixed(1)}%
-                  </p>
+                  </div>
                 )}
               </div>
-              <div className="p-3 bg-green-100 rounded-full">
-                <DollarSign className="w-6 h-6 text-green-600" />
-              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Bénéfice Net</p>
-                <p className={`text-2xl font-bold ${data.profit >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                  {data.profit.toLocaleString('fr-FR')} MAD
-                </p>
-                <p className="text-xs text-muted-foreground">
+        {/* Profit Card */}
+        <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950 dark:to-indigo-900">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full -translate-y-16 translate-x-16"></div>
+          <CardContent className="p-6 relative">
+            <div className="flex items-start justify-between">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-blue-500/20 rounded-lg">
+                    <Target className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <p className="text-sm font-semibold text-blue-700 dark:text-blue-400">Bénéfice Net</p>
+                </div>
+                <div>
+                  <p className={`text-3xl font-bold ${data.profit >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-red-600 dark:text-red-400'}`}>
+                    {data.profit.toLocaleString('fr-FR')}
+                  </p>
+                  <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">MAD</p>
+                </div>
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-200 dark:bg-blue-800 rounded-full text-xs font-medium text-blue-800 dark:text-blue-200">
                   Marge: {data.totalRevenue > 0 ? ((data.profit / data.totalRevenue) * 100).toFixed(1) : 0}%
-                </p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-full">
-                <Target className="w-6 h-6 text-blue-600" />
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Réservations</p>
-                <p className="text-2xl font-bold text-purple-600">{data.totalReservations}</p>
-                <p className="text-xs text-muted-foreground">
+        {/* Reservations Card */}
+        <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-purple-50 to-violet-100 dark:from-purple-950 dark:to-violet-900">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full -translate-y-16 translate-x-16"></div>
+          <CardContent className="p-6 relative">
+            <div className="flex items-start justify-between">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-purple-500/20 rounded-lg">
+                    <Calendar className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <p className="text-sm font-semibold text-purple-700 dark:text-purple-400">Réservations</p>
+                </div>
+                <div>
+                  <p className="text-3xl font-bold text-purple-700 dark:text-purple-300">{data.totalReservations}</p>
+                  <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">Total</p>
+                </div>
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-purple-200 dark:bg-purple-800 rounded-full text-xs font-medium text-purple-800 dark:text-purple-200">
+                  <Activity className="w-3 h-3" />
                   {data.activeReservations} actives
-                </p>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-full">
-                <Calendar className="w-6 h-6 text-purple-600" />
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Parc Automobile</p>
-                <p className="text-2xl font-bold text-orange-600">{data.totalVehicles}</p>
-                <p className="text-xs text-muted-foreground">
+        {/* Vehicles Card */}
+        <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-orange-50 to-amber-100 dark:from-orange-950 dark:to-amber-900">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full -translate-y-16 translate-x-16"></div>
+          <CardContent className="p-6 relative">
+            <div className="flex items-start justify-between">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-orange-500/20 rounded-lg">
+                    <Car className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <p className="text-sm font-semibold text-orange-700 dark:text-orange-400">Parc Automobile</p>
+                </div>
+                <div>
+                  <p className="text-3xl font-bold text-orange-700 dark:text-orange-300">{data.totalVehicles}</p>
+                  <p className="text-sm text-orange-600 dark:text-orange-400 font-medium">Véhicules</p>
+                </div>
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-orange-200 dark:bg-orange-800 rounded-full text-xs font-medium text-orange-800 dark:text-orange-200">
+                  <Users className="w-3 h-3" />
                   {data.totalClients} clients
-                </p>
-              </div>
-              <div className="p-3 bg-orange-100 rounded-full">
-                <Car className="w-6 h-6 text-orange-600" />
+                </div>
               </div>
             </div>
           </CardContent>

@@ -14,6 +14,7 @@ import { Entretien } from '@/pages/Entretien';
 import { Depenses } from '@/pages/Depenses';
 import { Documents } from '@/pages/Documents';
 import { Statistics } from '@/pages/Statistics';
+import CalendarAvailability from '@/pages/CalendarAvailability';
 import { Parametres } from '@/pages/Parametres';
 import NotFound from '@/pages/NotFound';
 import './App.css';
@@ -79,6 +80,13 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <Statistics />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/calendrier" element={
+            <ProtectedRoute>
+              <Layout>
+                <CalendarAvailability />
               </Layout>
             </ProtectedRoute>
           } />
