@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -28,7 +27,11 @@ import {
   Calendar, 
   DollarSign,
   BarChart3,
-  Filter
+  Filter,
+  Clock,
+  Target,
+  Activity,
+  PieChart as PieChartIcon
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,10 +44,14 @@ interface StatisticsData {
   totalVehicles: number;
   totalClients: number;
   profit: number;
+  averageRevenuePerReservation: number;
+  occupancyRate: number;
   monthlyRevenue: any[];
   vehicleRevenue: any[];
   expensesByCategory: any[];
   reservationsByStatus: any[];
+  revenueGrowth: number;
+  activeReservations: number;
 }
 
 interface Vehicle {
@@ -64,10 +71,14 @@ export const Statistics: React.FC = () => {
     totalVehicles: 0,
     totalClients: 0,
     profit: 0,
+    averageRevenuePerReservation: 0,
+    occupancyRate: 0,
     monthlyRevenue: [],
     vehicleRevenue: [],
     expensesByCategory: [],
-    reservationsByStatus: []
+    reservationsByStatus: [],
+    revenueGrowth: 0,
+    activeReservations: 0
   });
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -185,6 +196,42 @@ export const Statistics: React.FC = () => {
       const totalGlobalExpenses = globalExpenses?.reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0;
       const totalExpenses = totalVehicleExpenses + totalGlobalExpenses;
 
+      // Calculate additional statistics
+      const activeReservations = reservations?.filter(res => res.statut === 'en_cours' || res.statut === 'confirmee').length || 0;
+      const averageRevenuePerReservation = reservations?.length ? totalRevenue / reservations.length : 0;
+      
+      // Calculate occupancy rate (simplified - based on active vs total reservations)
+      const occupancyRate = reservations?.length ? (activeReservations / reservations.length) * 100 : 0;
+
+      // Calculate revenue growth (compare this month vs last month)
+      const thisMonth = new Date().getMonth();
+      const thisYear = new Date().getFullYear();
+      const thisMonthRevenue = reservations?.filter(res => {
+        if (!res.date_debut) return false;
+        const resDate = new Date(res.date_debut);
+        return resDate.getMonth() === thisMonth && resDate.getFullYear() === thisYear;
+      }).reduce((sum, res) => {
+        if (res.prix_par_jour && res.date_debut && res.date_fin) {
+          const days = Math.ceil((new Date(res.date_fin).getTime() - new Date(res.date_debut).getTime()) / (1000 * 60 * 60 * 24));
+          return sum + (res.prix_par_jour * days);
+        }
+        return sum;
+      }, 0) || 0;
+
+      const lastMonthRevenue = reservations?.filter(res => {
+        if (!res.date_debut) return false;
+        const resDate = new Date(res.date_debut);
+        return resDate.getMonth() === (thisMonth - 1) && resDate.getFullYear() === thisYear;
+      }).reduce((sum, res) => {
+        if (res.prix_par_jour && res.date_debut && res.date_fin) {
+          const days = Math.ceil((new Date(res.date_fin).getTime() - new Date(res.date_debut).getTime()) / (1000 * 60 * 60 * 24));
+          return sum + (res.prix_par_jour * days);
+        }
+        return sum;
+      }, 0) || 0;
+
+      const revenueGrowth = lastMonthRevenue > 0 ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : 0;
+
       // Monthly revenue data
       const monthlyRevenue = [];
       for (let i = 0; i < 12; i++) {
@@ -261,10 +308,14 @@ export const Statistics: React.FC = () => {
         totalVehicles: vehiclesData?.length || 0,
         totalClients: clients?.length || 0,
         profit: totalRevenue - totalExpenses,
+        averageRevenuePerReservation,
+        occupancyRate,
         monthlyRevenue,
         vehicleRevenue,
         expensesByCategory,
-        reservationsByStatus
+        reservationsByStatus,
+        revenueGrowth,
+        activeReservations
       });
 
     } catch (error) {
@@ -290,24 +341,26 @@ export const Statistics: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Statistiques</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Statistiques
+          </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">Analysez les performances de votre agence</p>
         </div>
       </div>
 
       {/* Filters */}
-      <Card>
+      <Card className="shadow-md">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="w-5 h-5" />
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Filter className="w-5 h-5 text-blue-600" />
             Filtres
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <Label htmlFor="vehicle">Véhicule</Label>
               <Select value={selectedVehicle} onValueChange={setSelectedVehicle}>
@@ -361,77 +414,143 @@ export const Statistics: React.FC = () => {
       </Card>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
-        <Card>
-          <CardContent className="p-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-700">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Revenus Totaux</p>
-                <p className="text-2xl font-bold text-green-600">{data.totalRevenue.toFixed(2)} MAD</p>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-green-600 dark:text-green-400">Revenus Totaux</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-700 dark:text-green-300">
+                  {data.totalRevenue.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} MAD
+                </p>
+                {data.revenueGrowth !== 0 && (
+                  <p className={`text-xs flex items-center gap-1 ${data.revenueGrowth > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {data.revenueGrowth > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                    {Math.abs(data.revenueGrowth).toFixed(1)}% vs mois précédent
+                  </p>
+                )}
               </div>
-              <TrendingUp className="w-8 h-8 text-green-600" />
+              <div className="p-3 bg-green-200 dark:bg-green-800 rounded-full">
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 dark:text-green-300" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
+        <Card className="bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-700">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Dépenses Totales</p>
-                <p className="text-2xl font-bold text-red-600">{data.totalExpenses.toFixed(2)} MAD</p>
-              </div>
-              <TrendingDown className="w-8 h-8 text-red-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Bénéfice Net</p>
-                <p className={`text-2xl font-bold ${data.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {data.profit.toFixed(2)} MAD
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-red-600 dark:text-red-400">Dépenses Totales</p>
+                <p className="text-xl sm:text-2xl font-bold text-red-700 dark:text-red-300">
+                  {data.totalExpenses.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} MAD
                 </p>
               </div>
-              <DollarSign className="w-8 h-8 text-blue-600" />
+              <div className="p-3 bg-red-200 dark:bg-red-800 rounded-full">
+                <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8 text-red-600 dark:text-red-300" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
+        <Card className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-700">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Réservations</p>
-                <p className="text-2xl font-bold text-blue-600">{data.totalReservations}</p>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Bénéfice Net</p>
+                <p className={`text-xl sm:text-2xl font-bold ${data.profit >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-red-700 dark:text-red-300'}`}>
+                  {data.profit.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} MAD
+                </p>
+                <p className="text-xs text-blue-600 dark:text-blue-400">
+                  Marge: {data.totalRevenue > 0 ? ((data.profit / data.totalRevenue) * 100).toFixed(1) : 0}%
+                </p>
               </div>
-              <Calendar className="w-8 h-8 text-blue-600" />
+              <div className="p-3 bg-blue-200 dark:bg-blue-800 rounded-full">
+                <Target className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-300" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
+        <Card className="bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200 dark:border-purple-700">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Véhicules</p>
-                <p className="text-2xl font-bold text-purple-600">{data.totalVehicles}</p>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Réservations Actives</p>
+                <p className="text-xl sm:text-2xl font-bold text-purple-700 dark:text-purple-300">{data.activeReservations}</p>
+                <p className="text-xs text-purple-600 dark:text-purple-400">
+                  Total: {data.totalReservations}
+                </p>
               </div>
-              <Car className="w-8 h-8 text-purple-600" />
+              <div className="p-3 bg-purple-200 dark:bg-purple-800 rounded-full">
+                <Activity className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 dark:text-purple-300" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
+        <Card className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-200 dark:border-orange-700">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Clients</p>
-                <p className="text-2xl font-bold text-orange-600">{data.totalClients}</p>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Revenus Moyens</p>
+                <p className="text-xl sm:text-2xl font-bold text-orange-700 dark:text-orange-300">
+                  {data.averageRevenuePerReservation.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} MAD
+                </p>
+                <p className="text-xs text-orange-600 dark:text-orange-400">
+                  Par réservation
+                </p>
               </div>
-              <Users className="w-8 h-8 text-orange-600" />
+              <div className="p-3 bg-orange-200 dark:bg-orange-800 rounded-full">
+                <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600 dark:text-orange-300" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-r from-teal-50 to-teal-100 dark:from-teal-900/20 dark:to-teal-800/20 border-teal-200 dark:border-teal-700">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-teal-600 dark:text-teal-400">Taux d'Occupation</p>
+                <p className="text-xl sm:text-2xl font-bold text-teal-700 dark:text-teal-300">
+                  {data.occupancyRate.toFixed(1)}%
+                </p>
+                <p className="text-xs text-teal-600 dark:text-teal-400">
+                  Véhicules actifs
+                </p>
+              </div>
+              <div className="p-3 bg-teal-200 dark:bg-teal-800 rounded-full">
+                <PieChartIcon className="w-6 h-6 sm:w-8 sm:h-8 text-teal-600 dark:text-teal-300" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 border-indigo-200 dark:border-indigo-700">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400">Véhicules</p>
+                <p className="text-xl sm:text-2xl font-bold text-indigo-700 dark:text-indigo-300">{data.totalVehicles}</p>
+              </div>
+              <div className="p-3 bg-indigo-200 dark:bg-indigo-800 rounded-full">
+                <Car className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-600 dark:text-indigo-300" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-r from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20 border-pink-200 dark:border-pink-700">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-pink-600 dark:text-pink-400">Clients</p>
+                <p className="text-xl sm:text-2xl font-bold text-pink-700 dark:text-pink-300">{data.totalClients}</p>
+              </div>
+              <div className="p-3 bg-pink-200 dark:bg-pink-800 rounded-full">
+                <Users className="w-6 h-6 sm:w-8 sm:h-8 text-pink-600 dark:text-pink-300" />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -440,9 +559,12 @@ export const Statistics: React.FC = () => {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Monthly Revenue */}
-        <Card>
+        <Card className="shadow-md">
           <CardHeader>
-            <CardTitle>Revenus Mensuels</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+              Revenus Mensuels
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -451,16 +573,19 @@ export const Statistics: React.FC = () => {
                 <XAxis dataKey="month" />
                 <YAxis />
                 <Tooltip formatter={(value) => [`${value} MAD`, 'Revenus']} />
-                <Line type="monotone" dataKey="revenue" stroke="#0088FE" strokeWidth={2} />
+                <Line type="monotone" dataKey="revenue" stroke="#0088FE" strokeWidth={3} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
         {/* Vehicle Revenue */}
-        <Card>
+        <Card className="shadow-md">
           <CardHeader>
-            <CardTitle>Revenus par Véhicule</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Car className="w-5 h-5 text-green-600" />
+              Revenus par Véhicule
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -476,9 +601,12 @@ export const Statistics: React.FC = () => {
         </Card>
 
         {/* Expenses by Category */}
-        <Card>
+        <Card className="shadow-md">
           <CardHeader>
-            <CardTitle>Dépenses par Catégorie</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <PieChartIcon className="w-5 h-5 text-red-600" />
+              Dépenses par Catégorie
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -504,9 +632,12 @@ export const Statistics: React.FC = () => {
         </Card>
 
         {/* Reservations by Status */}
-        <Card>
+        <Card className="shadow-md">
           <CardHeader>
-            <CardTitle>Réservations par Statut</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-purple-600" />
+              Réservations par Statut
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>

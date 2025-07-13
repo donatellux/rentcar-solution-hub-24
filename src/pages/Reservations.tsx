@@ -213,9 +213,9 @@ export const Reservations: React.FC = () => {
 
   const handleFileUpload = async (file: File, type: 'cin' | 'permis'): Promise<string | null> => {
     try {
-      // Check file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        throw new Error('Le fichier est trop volumineux (max 5MB)');
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error('Le fichier est trop volumineux (max 10MB)');
       }
 
       // Check file type
@@ -223,8 +223,8 @@ export const Reservations: React.FC = () => {
         throw new Error('Le fichier doit être une image');
       }
 
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${type}-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${user?.id}/${type}-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
       console.log('Uploading file:', fileName);
 
@@ -232,12 +232,13 @@ export const Reservations: React.FC = () => {
         .from('clientlicences')
         .upload(fileName, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: false,
+          contentType: file.type
         });
 
       if (error) {
         console.error('Storage upload error:', error);
-        throw error;
+        throw new Error(`Erreur d'upload: ${error.message}`);
       }
 
       console.log('Upload successful:', data);
@@ -259,6 +260,16 @@ export const Reservations: React.FC = () => {
     e.preventDefault();
     if (!user) return;
 
+    // Validation
+    if (!formData.client_id || !formData.vehicule_id) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner un client et un véhicule",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setUploading(true);
       
@@ -268,15 +279,35 @@ export const Reservations: React.FC = () => {
       // Upload CIN file if provided
       if (formData.cin_file) {
         console.log('Uploading CIN file...');
-        cinUrl = await handleFileUpload(formData.cin_file, 'cin');
-        console.log('CIN uploaded:', cinUrl);
+        try {
+          cinUrl = await handleFileUpload(formData.cin_file, 'cin');
+          console.log('CIN uploaded:', cinUrl);
+        } catch (error) {
+          console.error('CIN upload failed:', error);
+          toast({
+            title: "Erreur",
+            description: `Échec de l'upload CIN: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
+            variant: "destructive",
+          });
+          return;
+        }
       }
 
       // Upload Permis file if provided
       if (formData.permis_file) {
         console.log('Uploading Permis file...');
-        permisUrl = await handleFileUpload(formData.permis_file, 'permis');
-        console.log('Permis uploaded:', permisUrl);
+        try {
+          permisUrl = await handleFileUpload(formData.permis_file, 'permis');
+          console.log('Permis uploaded:', permisUrl);
+        } catch (error) {
+          console.error('Permis upload failed:', error);
+          toast({
+            title: "Erreur",
+            description: `Échec de l'upload Permis: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
+            variant: "destructive",
+          });
+          return;
+        }
       }
 
       const reservationData = {
@@ -313,7 +344,7 @@ export const Reservations: React.FC = () => {
 
       if (error) {
         console.error('Database error:', error);
-        throw error;
+        throw new Error(`Erreur de base de données: ${error.message}`);
       }
 
       toast({
@@ -574,10 +605,10 @@ export const Reservations: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Réservations
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">Gérez vos réservations de véhicules</p>
@@ -587,7 +618,8 @@ export const Reservations: React.FC = () => {
           <DialogTrigger asChild>
             <Button onClick={() => { resetForm(); setEditingReservation(null); }} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg">
               <Plus className="w-4 h-4 mr-2" />
-              Nouvelle réservation
+              <span className="hidden sm:inline">Nouvelle réservation</span>
+              <span className="sm:hidden">Nouveau</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
@@ -839,14 +871,14 @@ export const Reservations: React.FC = () => {
                 </div>
               </div>
               
-              <div className="flex justify-end space-x-3 pt-4 border-t">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 border-t">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="w-full sm:w-auto">
                   Annuler
                 </Button>
                 <Button 
                   type="submit" 
                   disabled={uploading || !formData.client_id || !formData.vehicule_id} 
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 w-full sm:w-auto"
                 >
                   {uploading ? (
                     <>
@@ -977,7 +1009,7 @@ export const Reservations: React.FC = () => {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="flex space-x-1">
+                          <div className="flex flex-wrap gap-1">
                             {reservation.cin_scan_url && (
                               <Button
                                 size="sm"
@@ -1003,7 +1035,7 @@ export const Reservations: React.FC = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex space-x-1">
+                          <div className="flex flex-wrap gap-1">
                             <Button
                               size="sm"
                               variant="outline"
@@ -1016,7 +1048,7 @@ export const Reservations: React.FC = () => {
                               ) : (
                                 <FileText className="w-4 h-4 mr-1" />
                               )}
-                              Contrat
+                              <span className="hidden sm:inline">Contrat</span>
                             </Button>
                             <Button
                               size="sm"
