@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 
 interface StatisticsData {
@@ -57,6 +58,7 @@ interface Vehicle {
 
 export const Statistics: React.FC = () => {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [data, setData] = useState<StatisticsData>({
     totalRevenue: 0,
@@ -313,7 +315,7 @@ export const Statistics: React.FC = () => {
     } catch (error) {
       console.error('Error fetching statistics:', error);
       toast({
-        title: "Erreur",
+        title: t('common.error'),
         description: "Impossible de charger les statistiques",
         variant: "destructive",
       });
@@ -335,45 +337,45 @@ export const Statistics: React.FC = () => {
   return (
     <div className="page-spacing">
       {/* Header */}
-      <div className="text-center space-y-2">
+      <div className="text-center space-y-2 mb-8">
         <h1 className="text-3xl font-bold text-foreground">
-          Tableau de Bord
+          {t('statistics.dashboard')}
         </h1>
-        <p className="text-muted-foreground">Vue d'ensemble de votre agence de location</p>
+        <p className="text-muted-foreground">{t('statistics.dashboardSubtitle')}</p>
       </div>
 
       {/* Filters */}
-      <Card>
+      <Card className="mb-8">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Filter className="w-5 h-5" />
-            Filtres
+            {t('common.filters')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <Label htmlFor="period">Période</Label>
+              <Label htmlFor="period">{t('statistics.period')}</Label>
               <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="this_year">Cette année</SelectItem>
-                  <SelectItem value="this_month">Ce mois</SelectItem>
-                  <SelectItem value="last_month">Mois dernier</SelectItem>
-                  <SelectItem value="all">Toutes les périodes</SelectItem>
+                  <SelectItem value="this_year">{t('statistics.thisYear')}</SelectItem>
+                  <SelectItem value="this_month">{t('statistics.thisMonth')}</SelectItem>
+                  <SelectItem value="last_month">{t('statistics.lastMonth')}</SelectItem>
+                  <SelectItem value="all">{t('statistics.allPeriods')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label htmlFor="vehicle">Véhicule</Label>
+              <Label htmlFor="vehicle">{t('reservations.vehicle')}</Label>
               <Select value={selectedVehicle} onValueChange={setSelectedVehicle}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Tous les véhicules" />
+                  <SelectValue placeholder={t('statistics.allVehicles')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tous les véhicules</SelectItem>
+                  <SelectItem value="all">{t('statistics.allVehicles')}</SelectItem>
                   {vehicles.map(vehicle => (
                     <SelectItem key={vehicle.id} value={vehicle.id}>
                       {vehicle.marque} {vehicle.modele}
@@ -383,7 +385,7 @@ export const Statistics: React.FC = () => {
               </Select>
             </div>
             <div>
-              <Label htmlFor="start-date">Date de début</Label>
+              <Label htmlFor="start-date">{t('statistics.startDate')}</Label>
               <Input
                 id="start-date"
                 type="date"
@@ -392,7 +394,7 @@ export const Statistics: React.FC = () => {
               />
             </div>
             <div>
-              <Label htmlFor="end-date">Date de fin</Label>
+              <Label htmlFor="end-date">{t('statistics.endDate')}</Label>
               <Input
                 id="end-date"
                 type="date"
@@ -405,27 +407,29 @@ export const Statistics: React.FC = () => {
       </Card>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Revenue Card */}
         <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-950 dark:to-emerald-900">
           <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full -translate-y-16 translate-x-16"></div>
           <CardContent className="p-6 relative">
             <div className="flex items-start justify-between">
-              <div className="space-y-3">
+              <div className="space-y-3 w-full">
                 <div className="flex items-center gap-2">
                   <div className="p-2 bg-green-500/20 rounded-lg">
                     <DollarSign className="w-5 h-5 text-green-600" />
                   </div>
-                  <p className="text-sm font-semibold text-green-700 dark:text-green-400">Revenus Totaux</p>
+                  <p className="text-sm font-semibold text-green-700 dark:text-green-400">
+                    {t('statistics.totalRevenue')}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-green-700 dark:text-green-300">
+                  <p className="text-2xl lg:text-3xl font-bold text-green-700 dark:text-green-300 break-words">
                     {data.totalRevenue.toLocaleString('fr-FR')}
                   </p>
                   <p className="text-sm text-green-600 dark:text-green-400 font-medium">MAD</p>
                 </div>
                 {data.revenueGrowth !== 0 && (
-                  <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
+                  <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium w-fit ${
                     data.revenueGrowth > 0 
                       ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200' 
                       : 'bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-200'
@@ -444,21 +448,23 @@ export const Statistics: React.FC = () => {
           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full -translate-y-16 translate-x-16"></div>
           <CardContent className="p-6 relative">
             <div className="flex items-start justify-between">
-              <div className="space-y-3">
+              <div className="space-y-3 w-full">
                 <div className="flex items-center gap-2">
                   <div className="p-2 bg-blue-500/20 rounded-lg">
                     <Target className="w-5 h-5 text-blue-600" />
                   </div>
-                  <p className="text-sm font-semibold text-blue-700 dark:text-blue-400">Bénéfice Net</p>
+                  <p className="text-sm font-semibold text-blue-700 dark:text-blue-400">
+                    {t('statistics.netProfit')}
+                  </p>
                 </div>
                 <div>
-                  <p className={`text-3xl font-bold ${data.profit >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-red-600 dark:text-red-400'}`}>
+                  <p className={`text-2xl lg:text-3xl font-bold break-words ${data.profit >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-red-600 dark:text-red-400'}`}>
                     {data.profit.toLocaleString('fr-FR')}
                   </p>
                   <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">MAD</p>
                 </div>
-                <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-200 dark:bg-blue-800 rounded-full text-xs font-medium text-blue-800 dark:text-blue-200">
-                  Marge: {data.totalRevenue > 0 ? ((data.profit / data.totalRevenue) * 100).toFixed(1) : 0}%
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-200 dark:bg-blue-800 rounded-full text-xs font-medium text-blue-800 dark:text-blue-200 w-fit">
+                  {t('statistics.margin')}: {data.totalRevenue > 0 ? ((data.profit / data.totalRevenue) * 100).toFixed(1) : 0}%
                 </div>
               </div>
             </div>
@@ -470,20 +476,26 @@ export const Statistics: React.FC = () => {
           <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full -translate-y-16 translate-x-16"></div>
           <CardContent className="p-6 relative">
             <div className="flex items-start justify-between">
-              <div className="space-y-3">
+              <div className="space-y-3 w-full">
                 <div className="flex items-center gap-2">
                   <div className="p-2 bg-purple-500/20 rounded-lg">
                     <Calendar className="w-5 h-5 text-purple-600" />
                   </div>
-                  <p className="text-sm font-semibold text-purple-700 dark:text-purple-400">Réservations</p>
+                  <p className="text-sm font-semibold text-purple-700 dark:text-purple-400">
+                    {t('statistics.totalReservations')}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-purple-700 dark:text-purple-300">{data.totalReservations}</p>
-                  <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">Total</p>
+                  <p className="text-2xl lg:text-3xl font-bold text-purple-700 dark:text-purple-300">
+                    {data.totalReservations}
+                  </p>
+                  <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">
+                    {t('common.total')}
+                  </p>
                 </div>
-                <div className="flex items-center gap-1.5 px-2 py-1 bg-purple-200 dark:bg-purple-800 rounded-full text-xs font-medium text-purple-800 dark:text-purple-200">
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-purple-200 dark:bg-purple-800 rounded-full text-xs font-medium text-purple-800 dark:text-purple-200 w-fit">
                   <Activity className="w-3 h-3" />
-                  {data.activeReservations} actives
+                  {data.activeReservations} {t('statistics.activeLabel')}
                 </div>
               </div>
             </div>
@@ -495,20 +507,26 @@ export const Statistics: React.FC = () => {
           <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full -translate-y-16 translate-x-16"></div>
           <CardContent className="p-6 relative">
             <div className="flex items-start justify-between">
-              <div className="space-y-3">
+              <div className="space-y-3 w-full">
                 <div className="flex items-center gap-2">
                   <div className="p-2 bg-orange-500/20 rounded-lg">
                     <Car className="w-5 h-5 text-orange-600" />
                   </div>
-                  <p className="text-sm font-semibold text-orange-700 dark:text-orange-400">Parc Automobile</p>
+                  <p className="text-sm font-semibold text-orange-700 dark:text-orange-400">
+                    {t('statistics.fleetSize')}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-orange-700 dark:text-orange-300">{data.totalVehicles}</p>
-                  <p className="text-sm text-orange-600 dark:text-orange-400 font-medium">Véhicules</p>
+                  <p className="text-2xl lg:text-3xl font-bold text-orange-700 dark:text-orange-300">
+                    {data.totalVehicles}
+                  </p>
+                  <p className="text-sm text-orange-600 dark:text-orange-400 font-medium">
+                    {t('statistics.vehiclesLabel')}
+                  </p>
                 </div>
-                <div className="flex items-center gap-1.5 px-2 py-1 bg-orange-200 dark:bg-orange-800 rounded-full text-xs font-medium text-orange-800 dark:text-orange-200">
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-orange-200 dark:bg-orange-800 rounded-full text-xs font-medium text-orange-800 dark:text-orange-200 w-fit">
                   <Users className="w-3 h-3" />
-                  {data.totalClients} clients
+                  {data.totalClients} {t('statistics.clientsLabel')}
                 </div>
               </div>
             </div>
@@ -523,7 +541,7 @@ export const Statistics: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-blue-600" />
-              Évolution des Revenus
+              {t('statistics.revenueEvolution')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -533,7 +551,7 @@ export const Statistics: React.FC = () => {
                 <XAxis dataKey="month" />
                 <YAxis />
                 <Tooltip 
-                  formatter={(value) => [`${value} MAD`, 'Revenus']}
+                  formatter={(value) => [`${value} MAD`, t('statistics.totalRevenue')]}
                   contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
                 />
                 <Line 
@@ -553,7 +571,7 @@ export const Statistics: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Car className="w-5 h-5 text-green-600" />
-              Performance des Véhicules
+              {t('statistics.vehiclePerformance')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -569,7 +587,7 @@ export const Statistics: React.FC = () => {
                 />
                 <YAxis />
                 <Tooltip 
-                  formatter={(value) => [`${value} MAD`, 'Revenus']}
+                  formatter={(value) => [`${value} MAD`, t('statistics.totalRevenue')]}
                   contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
                 />
                 <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
@@ -583,7 +601,7 @@ export const Statistics: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="w-5 h-5 text-red-600" />
-              Répartition des Dépenses
+              {t('statistics.expenseBreakdown')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -609,7 +627,7 @@ export const Statistics: React.FC = () => {
               </ResponsiveContainer>
             ) : (
               <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                Aucune dépense enregistrée
+                {t('statistics.noExpenseData')}
               </div>
             )}
           </CardContent>
@@ -620,7 +638,7 @@ export const Statistics: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5 text-purple-600" />
-              Statut des Réservations
+              {t('statistics.reservationStatus')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -636,7 +654,7 @@ export const Statistics: React.FC = () => {
               </ResponsiveContainer>
             ) : (
               <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                Aucune réservation trouvée
+                {t('statistics.noReservationData')}
               </div>
             )}
           </CardContent>

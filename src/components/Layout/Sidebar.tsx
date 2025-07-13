@@ -17,6 +17,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 
 interface SidebarProps {
@@ -24,22 +25,23 @@ interface SidebarProps {
   onToggle: () => void;
 }
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Véhicules', href: '/vehicles', icon: Car },
-  { name: 'Clients', href: '/clients', icon: Users },
-  { name: 'Réservations', href: '/reservations', icon: Calendar },
-  { name: 'Calendrier', href: '/calendrier', icon: CalendarCheck },
-  { name: 'Entretiens', href: '/entretien', icon: Wrench },
-  { name: 'Dépenses', href: '/depenses', icon: Receipt },
-  { name: 'Documents', href: '/documents', icon: FileText },
-  { name: 'Statistiques', href: '/statistiques', icon: BarChart3 },
-  { name: 'Paramètres', href: '/parametres', icon: Settings },
-];
-
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
   const { signOut, agency } = useAuth();
+  const { t } = useLanguage();
   const location = useLocation();
+
+  const navigation = [
+    { name: t('nav.dashboard'), href: '/dashboard', icon: LayoutDashboard },
+    { name: t('nav.vehicles'), href: '/vehicles', icon: Car },
+    { name: t('nav.clients'), href: '/clients', icon: Users },
+    { name: t('nav.reservations'), href: '/reservations', icon: Calendar },
+    { name: t('nav.calendar'), href: '/calendrier', icon: CalendarCheck },
+    { name: t('nav.maintenance'), href: '/entretien', icon: Wrench },
+    { name: t('nav.expenses'), href: '/depenses', icon: Receipt },
+    { name: t('nav.documents'), href: '/documents', icon: FileText },
+    { name: t('nav.statistics'), href: '/statistiques', icon: BarChart3 },
+    { name: t('nav.settings'), href: '/parametres', icon: Settings },
+  ];
 
   const handleSignOut = async () => {
     await signOut();
@@ -57,13 +59,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
 
       {/* Sidebar */}
       <div
-        className={`fixed left-0 top-0 h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 transition-transform duration-300 ease-in-out z-50 ${
+        className={`fixed left-0 top-0 h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 transition-transform duration-300 ease-in-out z-50 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 lg:static lg:z-auto`}
+        } lg:translate-x-0 lg:static lg:z-auto flex flex-col`}
         style={{ width: '280px' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <Car className="w-5 h-5 text-white" />
@@ -89,8 +91,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
           </Button>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-4 py-6">
+        {/* Navigation - Scrollable content */}
+        <nav className="flex-1 px-4 py-6 overflow-y-auto">
           <ul className="space-y-2">
             {navigation.map((item) => {
               const Icon = item.icon;
@@ -116,15 +118,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
           </ul>
         </nav>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+        {/* Footer - Sticky at bottom */}
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
           <Button
             variant="ghost"
             onClick={handleSignOut}
             className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
           >
             <LogOut className="w-5 h-5 mr-3" />
-            Déconnexion
+            {t('common.logout')}
           </Button>
         </div>
       </div>
