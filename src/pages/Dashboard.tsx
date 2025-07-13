@@ -62,7 +62,7 @@ export const Dashboard: React.FC = () => {
       // Fetch active reservations (en_cours and confirmee)
       const { data: reservations } = await supabase
         .from('reservations')
-        .select('prix_par_jour, date_debut, date_fin, statut')
+        .select('prix_par_jour, date_debut, date_fin, statut, vehicule_id, km_retour')
         .eq('agency_id', user.id)
         .in('statut', ['en_cours', 'confirmee']);
 
@@ -92,7 +92,15 @@ export const Dashboard: React.FC = () => {
       // Get detailed info about vehicles needing maintenance
       const vehiclesNeedingMaintenance = vehicles?.filter(vehicle => {
         if (vehicle.kilometrage && vehicle.km_last_vidange && vehicle.vidange_periodicite_km) {
-          const kmSinceLastMaintenance = vehicle.kilometrage - vehicle.km_last_vidange;
+          // Get the highest km_retour for this vehicle from reservations
+          const vehicleReservations = reservations?.filter(r => r.vehicule_id === vehicle.id && r.km_retour) || [];
+          const maxKmRetour = vehicleReservations.length > 0 
+            ? Math.max(...vehicleReservations.map(r => r.km_retour || 0))
+            : 0;
+          
+          // Use the higher value between vehicle's mileage and max km_retour
+          const currentKm = Math.max(vehicle.kilometrage, maxKmRetour);
+          const kmSinceLastMaintenance = currentKm - vehicle.km_last_vidange;
           return kmSinceLastMaintenance >= vehicle.vidange_periodicite_km * 0.9;
         }
         return false;
