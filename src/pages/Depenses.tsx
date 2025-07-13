@@ -303,83 +303,91 @@ export const Depenses: React.FC = () => {
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <Label>Type de dépense</Label>
-                <Tabs value={expenseType} onValueChange={(value) => setExpenseType(value as 'global' | 'vehicle')} className="mt-1">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="global">Dépense globale</TabsTrigger>
-                    <TabsTrigger value="vehicle">Dépense véhicule</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="category">Catégorie *</Label>
-                  <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Sélectionner la catégorie" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="carburant">Carburant</SelectItem>
-                      <SelectItem value="entretien">Entretien</SelectItem>
-                      <SelectItem value="assurance">Assurance</SelectItem>
-                      <SelectItem value="reparation">Réparation</SelectItem>
-                      <SelectItem value="administration">Administration</SelectItem>
-                      <SelectItem value="autre">Autre</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="amount">Montant (MAD) *</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.amount}
-                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="date">Date</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-                {expenseType === 'vehicle' && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-4">
                   <div>
-                    <Label htmlFor="vehicle_id">Véhicule</Label>
-                    <Select value={formData.vehicle_id} onValueChange={(value) => setFormData({ ...formData, vehicle_id: value })}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Sélectionner un véhicule" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {vehicles.map((vehicle) => (
-                          <SelectItem key={vehicle.id} value={vehicle.id}>
-                            {vehicle.marque} {vehicle.modele} - {vehicle.immatriculation}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label>Type de dépense</Label>
+                    <Tabs value={expenseType} onValueChange={(value) => setExpenseType(value as 'global' | 'vehicle')} className="mt-1">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="global">Dépense globale</TabsTrigger>
+                        <TabsTrigger value="vehicle">Dépense véhicule</TabsTrigger>
+                      </TabsList>
+                    </Tabs>
                   </div>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="mt-1"
-                  rows={3}
-                />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="category">Catégorie *</Label>
+                      <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Sélectionner la catégorie" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="carburant">Carburant</SelectItem>
+                          <SelectItem value="entretien">Entretien</SelectItem>
+                          <SelectItem value="assurance">Assurance</SelectItem>
+                          <SelectItem value="reparation">Réparation</SelectItem>
+                          <SelectItem value="administration">Administration</SelectItem>
+                          <SelectItem value="autre">Autre</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="amount">Montant (MAD) *</Label>
+                      <Input
+                        id="amount"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={formData.amount}
+                        onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                        required
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="date">Date</Label>
+                      <Input
+                        id="date"
+                        type="date"
+                        value={formData.date}
+                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                        className="mt-1"
+                      />
+                    </div>
+                    {expenseType === 'vehicle' && (
+                      <div>
+                        <Label htmlFor="vehicle_id">Véhicule</Label>
+                        <Select value={formData.vehicle_id} onValueChange={(value) => setFormData({ ...formData, vehicle_id: value })}>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Sélectionner un véhicule" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {vehicles.map((vehicle) => (
+                              <SelectItem key={vehicle.id} value={vehicle.id}>
+                                {vehicle.marque} {vehicle.modele} - {vehicle.immatriculation}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="mt-1"
+                      rows={8}
+                      placeholder="Détails de la dépense..."
+                    />
+                  </div>
+                </div>
               </div>
               
               <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 border-t">

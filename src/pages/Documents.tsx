@@ -338,72 +338,79 @@ export const Documents: React.FC = () => {
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="title">Titre *</Label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    required
-                    className="mt-1"
-                  />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="title">Titre *</Label>
+                      <Input
+                        id="title"
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        required
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="type">Type *</Label>
+                      <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Sélectionner le type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="carte_grise">Carte grise</SelectItem>
+                          <SelectItem value="assurance">Assurance</SelectItem>
+                          <SelectItem value="visite_technique">Visite technique</SelectItem>
+                          <SelectItem value="permis">Permis de conduire</SelectItem>
+                          <SelectItem value="cin">CIN</SelectItem>
+                          <SelectItem value="autre">Autre</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label htmlFor="car_id">Véhicule (optionnel)</Label>
+                      <Select value={formData.car_id} onValueChange={(value) => setFormData({ ...formData, car_id: value })}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Sélectionner un véhicule (optionnel)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Aucun véhicule</SelectItem>
+                          {vehicles.map((vehicle) => (
+                            <SelectItem key={vehicle.id} value={vehicle.id}>
+                              {vehicle.marque} {vehicle.modele} - {vehicle.immatriculation}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="type">Type *</Label>
-                  <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Sélectionner le type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="carte_grise">Carte grise</SelectItem>
-                      <SelectItem value="assurance">Assurance</SelectItem>
-                      <SelectItem value="visite_technique">Visite technique</SelectItem>
-                      <SelectItem value="permis">Permis de conduire</SelectItem>
-                      <SelectItem value="cin">CIN</SelectItem>
-                      <SelectItem value="autre">Autre</SelectItem>
-                    </SelectContent>
-                  </Select>
+                
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="file">Fichier</Label>
+                    <Input
+                      id="file"
+                      type="file"
+                      onChange={(e) => setFormData({ ...formData, file: e.target.files?.[0] || null })}
+                      className="mt-1"
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Formats acceptés: PDF, DOC, DOCX, JPG, PNG
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="mt-1"
+                      rows={5}
+                    />
+                  </div>
                 </div>
-                <div className="sm:col-span-2">
-                  <Label htmlFor="car_id">Véhicule (optionnel)</Label>
-                  <Select value={formData.car_id} onValueChange={(value) => setFormData({ ...formData, car_id: value })}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Sélectionner un véhicule (optionnel)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Aucun véhicule</SelectItem>
-                      {vehicles.map((vehicle) => (
-                        <SelectItem key={vehicle.id} value={vehicle.id}>
-                          {vehicle.marque} {vehicle.modele} - {vehicle.immatriculation}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="sm:col-span-2">
-                  <Label htmlFor="file">Fichier</Label>
-                  <Input
-                    id="file"
-                    type="file"
-                    onChange={(e) => setFormData({ ...formData, file: e.target.files?.[0] || null })}
-                    className="mt-1"
-                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Formats acceptés: PDF, DOC, DOCX, JPG, PNG
-                  </p>
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="mt-1"
-                  rows={3}
-                />
               </div>
               
               <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 border-t">

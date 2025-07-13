@@ -235,126 +235,136 @@ export const Clients: React.FC = () => {
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="nom">Nom *</Label>
-                  <Input
-                    id="nom"
-                    value={formData.nom}
-                    onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                    required
-                    className="mt-1"
-                  />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="nom">Nom *</Label>
+                      <Input
+                        id="nom"
+                        value={formData.nom}
+                        onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
+                        required
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="prenom">Prénom *</Label>
+                      <Input
+                        id="prenom"
+                        value={formData.prenom}
+                        onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
+                        required
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="telephone">Téléphone *</Label>
+                      <Input
+                        id="telephone"
+                        value={formData.telephone}
+                        onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
+                        required
+                        className="mt-1"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label htmlFor="adresse">Adresse</Label>
+                      <Input
+                        id="adresse"
+                        value={formData.adresse}
+                        onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="cin">CIN *</Label>
+                      <Input
+                        id="cin"
+                        value={formData.cin}
+                        onChange={(e) => setFormData({ ...formData, cin: e.target.value })}
+                        required
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="permis">N° Permis</Label>
+                      <Input
+                        id="permis"
+                        value={formData.permis}
+                        onChange={(e) => setFormData({ ...formData, permis: e.target.value })}
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="prenom">Prénom *</Label>
-                  <Input
-                    id="prenom"
-                    value={formData.prenom}
-                    onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="telephone">Téléphone *</Label>
-                  <Input
-                    id="telephone"
-                    value={formData.telephone}
-                    onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <Label htmlFor="adresse">Adresse</Label>
-                  <Input
-                    id="adresse"
-                    value={formData.adresse}
-                    onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="cin">CIN *</Label>
-                  <Input
-                    id="cin"
-                    value={formData.cin}
-                    onChange={(e) => setFormData({ ...formData, cin: e.target.value })}
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="permis">N° Permis</Label>
-                  <Input
-                    id="permis"
-                    value={formData.permis}
-                    onChange={(e) => setFormData({ ...formData, permis: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="date_delivrance">Date délivrance permis</Label>
-                  <Input
-                    id="date_delivrance"
-                    type="date"
-                    value={formData.date_delivrance}
-                    onChange={(e) => setFormData({ ...formData, date_delivrance: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="nationalite">Nationalité</Label>
-                  <Select value={formData.nationalite} onValueChange={(value) => setFormData({ ...formData, nationalite: value })}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Marocaine">Marocaine</SelectItem>
-                      <SelectItem value="Française">Française</SelectItem>
-                      <SelectItem value="Espagnole">Espagnole</SelectItem>
-                      <SelectItem value="Italienne">Italienne</SelectItem>
-                      <SelectItem value="Allemande">Allemande</SelectItem>
-                      <SelectItem value="Autre">Autre</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="sexe">Sexe</Label>
-                  <Select value={formData.sexe} onValueChange={(value) => setFormData({ ...formData, sexe: value })}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Sélectionner" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="homme">Homme</SelectItem>
-                      <SelectItem value="femme">Femme</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="type">Type de client</Label>
-                  <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="particulier">Particulier</SelectItem>
-                      <SelectItem value="entreprise">Entreprise</SelectItem>
-                    </SelectContent>
-                  </Select>
+                
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="date_delivrance">Date délivrance permis</Label>
+                      <Input
+                        id="date_delivrance"
+                        type="date"
+                        value={formData.date_delivrance}
+                        onChange={(e) => setFormData({ ...formData, date_delivrance: e.target.value })}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="nationalite">Nationalité</Label>
+                      <Select value={formData.nationalite} onValueChange={(value) => setFormData({ ...formData, nationalite: value })}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Marocaine">Marocaine</SelectItem>
+                          <SelectItem value="Française">Française</SelectItem>
+                          <SelectItem value="Espagnole">Espagnole</SelectItem>
+                          <SelectItem value="Italienne">Italienne</SelectItem>
+                          <SelectItem value="Allemande">Allemande</SelectItem>
+                          <SelectItem value="Autre">Autre</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="sexe">Sexe</Label>
+                      <Select value={formData.sexe} onValueChange={(value) => setFormData({ ...formData, sexe: value })}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Sélectionner" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="homme">Homme</SelectItem>
+                          <SelectItem value="femme">Femme</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="type">Type de client</Label>
+                      <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="particulier">Particulier</SelectItem>
+                          <SelectItem value="entreprise">Entreprise</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
               </div>
+              
               <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 border-t">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Annuler
