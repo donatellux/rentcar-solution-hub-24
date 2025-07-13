@@ -335,29 +335,29 @@ export const Statistics: React.FC = () => {
   }
 
   return (
-    <div className="page-spacing">
-      {/* Header */}
-      <div className="text-center space-y-2 mb-8">
-        <h1 className="text-3xl font-bold text-foreground">
+    <div className="section-spacing">
+      {/* Header with optimized spacing */}
+      <div className="page-header text-center">
+        <h1 className="page-title">
           {t('statistics.dashboard')}
         </h1>
-        <p className="text-muted-foreground">{t('statistics.dashboardSubtitle')}</p>
+        <p className="page-subtitle">{t('statistics.dashboardSubtitle')}</p>
       </div>
 
-      {/* Filters */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Filter className="w-5 h-5" />
+      {/* Filters with compact spacing */}
+      <Card className="mb-4 sm:mb-6 lg:mb-8">
+        <CardHeader className="padding-compact">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Filter className="w-4 h-4 sm:w-5 sm:h-5" />
             {t('common.filters')}
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <Label htmlFor="period">{t('statistics.period')}</Label>
+        <CardContent className="padding-compact">
+          <div className="form-grid">
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="period" className="text-xs sm:text-sm">{t('statistics.period')}</Label>
               <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                <SelectTrigger>
+                <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -368,10 +368,10 @@ export const Statistics: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label htmlFor="vehicle">{t('reservations.vehicle')}</Label>
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="vehicle" className="text-xs sm:text-sm">{t('reservations.vehicle')}</Label>
               <Select value={selectedVehicle} onValueChange={setSelectedVehicle}>
-                <SelectTrigger>
+                <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
                   <SelectValue placeholder={t('statistics.allVehicles')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -384,52 +384,54 @@ export const Statistics: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label htmlFor="start-date">{t('statistics.startDate')}</Label>
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="start-date" className="text-xs sm:text-sm">{t('statistics.startDate')}</Label>
               <Input
                 id="start-date"
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
+                className="h-8 sm:h-10 text-xs sm:text-sm"
               />
             </div>
-            <div>
-              <Label htmlFor="end-date">{t('statistics.endDate')}</Label>
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="end-date" className="text-xs sm:text-sm">{t('statistics.endDate')}</Label>
               <Input
                 id="end-date"
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
+                className="h-8 sm:h-10 text-xs sm:text-sm"
               />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* Key Metrics with responsive grid */}
+      <div className="stats-grid mb-4 sm:mb-6 lg:mb-8">
         {/* Revenue Card */}
         <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-950 dark:to-emerald-900">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full -translate-y-16 translate-x-16"></div>
-          <CardContent className="p-6 relative">
+          <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-green-500/10 rounded-full -translate-y-12 translate-x-12 sm:-translate-y-16 sm:translate-x-16"></div>
+          <CardContent className="card-spacing relative">
             <div className="flex items-start justify-between">
-              <div className="space-y-3 w-full">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-green-500/20 rounded-lg">
-                    <DollarSign className="w-5 h-5 text-green-600" />
+              <div className="space-compact w-full">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="p-1.5 sm:p-2 bg-green-500/20 rounded-lg">
+                    <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
                   </div>
-                  <p className="text-sm font-semibold text-green-700 dark:text-green-400">
+                  <p className="text-xs sm:text-sm font-semibold text-green-700 dark:text-green-400">
                     {t('statistics.totalRevenue')}
                   </p>
                 </div>
                 <div>
-                  <p className="text-2xl lg:text-3xl font-bold text-green-700 dark:text-green-300 break-words">
+                  <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-green-700 dark:text-green-300 break-words">
                     {data.totalRevenue.toLocaleString('fr-FR')}
                   </p>
-                  <p className="text-sm text-green-600 dark:text-green-400 font-medium">MAD</p>
+                  <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 font-medium">MAD</p>
                 </div>
                 {data.revenueGrowth !== 0 && (
-                  <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium w-fit ${
+                  <div className={`flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-xs font-medium w-fit ${
                     data.revenueGrowth > 0 
                       ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200' 
                       : 'bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-200'
@@ -445,25 +447,25 @@ export const Statistics: React.FC = () => {
 
         {/* Profit Card */}
         <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950 dark:to-indigo-900">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full -translate-y-16 translate-x-16"></div>
-          <CardContent className="p-6 relative">
+          <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-blue-500/10 rounded-full -translate-y-12 translate-x-12 sm:-translate-y-16 sm:translate-x-16"></div>
+          <CardContent className="card-spacing relative">
             <div className="flex items-start justify-between">
-              <div className="space-y-3 w-full">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-blue-500/20 rounded-lg">
-                    <Target className="w-5 h-5 text-blue-600" />
+              <div className="space-compact w-full">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="p-1.5 sm:p-2 bg-blue-500/20 rounded-lg">
+                    <Target className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                   </div>
-                  <p className="text-sm font-semibold text-blue-700 dark:text-blue-400">
+                  <p className="text-xs sm:text-sm font-semibold text-blue-700 dark:text-blue-400">
                     {t('statistics.netProfit')}
                   </p>
                 </div>
                 <div>
-                  <p className={`text-2xl lg:text-3xl font-bold break-words ${data.profit >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-red-600 dark:text-red-400'}`}>
+                  <p className={`text-lg sm:text-2xl lg:text-3xl font-bold break-words ${data.profit >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-red-600 dark:text-red-400'}`}>
                     {data.profit.toLocaleString('fr-FR')}
                   </p>
-                  <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">MAD</p>
+                  <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 font-medium">MAD</p>
                 </div>
-                <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-200 dark:bg-blue-800 rounded-full text-xs font-medium text-blue-800 dark:text-blue-200 w-fit">
+                <div className="flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 bg-blue-200 dark:bg-blue-800 rounded-full text-xs font-medium text-blue-800 dark:text-blue-200 w-fit">
                   {t('statistics.margin')}: {data.totalRevenue > 0 ? ((data.profit / data.totalRevenue) * 100).toFixed(1) : 0}%
                 </div>
               </div>
@@ -473,27 +475,27 @@ export const Statistics: React.FC = () => {
 
         {/* Reservations Card */}
         <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-purple-50 to-violet-100 dark:from-purple-950 dark:to-violet-900">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full -translate-y-16 translate-x-16"></div>
-          <CardContent className="p-6 relative">
+          <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-purple-500/10 rounded-full -translate-y-12 translate-x-12 sm:-translate-y-16 sm:translate-x-16"></div>
+          <CardContent className="card-spacing relative">
             <div className="flex items-start justify-between">
-              <div className="space-y-3 w-full">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-purple-500/20 rounded-lg">
-                    <Calendar className="w-5 h-5 text-purple-600" />
+              <div className="space-compact w-full">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="p-1.5 sm:p-2 bg-purple-500/20 rounded-lg">
+                    <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
                   </div>
-                  <p className="text-sm font-semibold text-purple-700 dark:text-purple-400">
+                  <p className="text-xs sm:text-sm font-semibold text-purple-700 dark:text-purple-400">
                     {t('statistics.totalReservations')}
                   </p>
                 </div>
                 <div>
-                  <p className="text-2xl lg:text-3xl font-bold text-purple-700 dark:text-purple-300">
+                  <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-purple-700 dark:text-purple-300">
                     {data.totalReservations}
                   </p>
-                  <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">
+                  <p className="text-xs sm:text-sm text-purple-600 dark:text-purple-400 font-medium">
                     {t('common.total')}
                   </p>
                 </div>
-                <div className="flex items-center gap-1.5 px-2 py-1 bg-purple-200 dark:bg-purple-800 rounded-full text-xs font-medium text-purple-800 dark:text-purple-200 w-fit">
+                <div className="flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 bg-purple-200 dark:bg-purple-800 rounded-full text-xs font-medium text-purple-800 dark:text-purple-200 w-fit">
                   <Activity className="w-3 h-3" />
                   {data.activeReservations} {t('statistics.activeLabel')}
                 </div>
@@ -504,27 +506,27 @@ export const Statistics: React.FC = () => {
 
         {/* Vehicles Card */}
         <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-orange-50 to-amber-100 dark:from-orange-950 dark:to-amber-900">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full -translate-y-16 translate-x-16"></div>
-          <CardContent className="p-6 relative">
+          <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-orange-500/10 rounded-full -translate-y-12 translate-x-12 sm:-translate-y-16 sm:translate-x-16"></div>
+          <CardContent className="card-spacing relative">
             <div className="flex items-start justify-between">
-              <div className="space-y-3 w-full">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-orange-500/20 rounded-lg">
-                    <Car className="w-5 h-5 text-orange-600" />
+              <div className="space-compact w-full">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="p-1.5 sm:p-2 bg-orange-500/20 rounded-lg">
+                    <Car className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                   </div>
-                  <p className="text-sm font-semibold text-orange-700 dark:text-orange-400">
+                  <p className="text-xs sm:text-sm font-semibold text-orange-700 dark:text-orange-400">
                     {t('statistics.fleetSize')}
                   </p>
                 </div>
                 <div>
-                  <p className="text-2xl lg:text-3xl font-bold text-orange-700 dark:text-orange-300">
+                  <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-orange-700 dark:text-orange-300">
                     {data.totalVehicles}
                   </p>
-                  <p className="text-sm text-orange-600 dark:text-orange-400 font-medium">
+                  <p className="text-xs sm:text-sm text-orange-600 dark:text-orange-400 font-medium">
                     {t('statistics.vehiclesLabel')}
                   </p>
                 </div>
-                <div className="flex items-center gap-1.5 px-2 py-1 bg-orange-200 dark:bg-orange-800 rounded-full text-xs font-medium text-orange-800 dark:text-orange-200 w-fit">
+                <div className="flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 bg-orange-200 dark:bg-orange-800 rounded-full text-xs font-medium text-orange-800 dark:text-orange-200 w-fit">
                   <Users className="w-3 h-3" />
                   {data.totalClients} {t('statistics.clientsLabel')}
                 </div>
@@ -534,32 +536,32 @@ export const Statistics: React.FC = () => {
         </Card>
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Charts Section with responsive grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-responsive">
         {/* Monthly Revenue Trend */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-blue-600" />
+          <CardHeader className="padding-compact">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
               {t('statistics.revenueEvolution')}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+          <CardContent className="padding-compact">
+            <ResponsiveContainer width="100%" height={250}>
               <LineChart data={data.monthlyRevenue}>
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis dataKey="month" />
-                <YAxis />
+                <XAxis dataKey="month" fontSize={12} />
+                <YAxis fontSize={12} />
                 <Tooltip 
                   formatter={(value) => [`${value} MAD`, t('statistics.totalRevenue')]}
-                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '12px' }}
                 />
                 <Line 
                   type="monotone" 
                   dataKey="revenue" 
                   stroke="#3b82f6" 
-                  strokeWidth={3}
-                  dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                  strokeWidth={2}
+                  dot={{ fill: '#3b82f6', strokeWidth: 1, r: 3 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -568,14 +570,14 @@ export const Statistics: React.FC = () => {
 
         {/* Vehicle Performance */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Car className="w-5 h-5 text-green-600" />
+          <CardHeader className="padding-compact">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Car className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
               {t('statistics.vehiclePerformance')}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+          <CardContent className="padding-compact">
+            <ResponsiveContainer width="100%" height={250}>
               <BarChart data={data.vehicleRevenue.slice(0, 6)}>
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                 <XAxis 
@@ -583,12 +585,12 @@ export const Statistics: React.FC = () => {
                   angle={-45} 
                   textAnchor="end" 
                   height={80}
-                  fontSize={12}
+                  fontSize={10}
                 />
-                <YAxis />
+                <YAxis fontSize={12} />
                 <Tooltip 
                   formatter={(value) => [`${value} MAD`, t('statistics.totalRevenue')]}
-                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '12px' }}
                 />
                 <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -598,15 +600,15 @@ export const Statistics: React.FC = () => {
 
         {/* Expense Breakdown */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="w-5 h-5 text-red-600" />
+          <CardHeader className="padding-compact">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
               {t('statistics.expenseBreakdown')}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="padding-compact">
             {data.expensesByCategory.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
                   <Pie
                     data={data.expensesByCategory}
@@ -614,9 +616,10 @@ export const Statistics: React.FC = () => {
                     cy="50%"
                     labelLine={false}
                     label={({ category, percent }) => `${category} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={100}
+                    outerRadius={80}
                     fill="#8884d8"
                     dataKey="amount"
+                    fontSize={10}
                   >
                     {data.expensesByCategory.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -626,7 +629,7 @@ export const Statistics: React.FC = () => {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+              <div className="flex items-center justify-center h-[250px] text-muted-foreground text-sm">
                 {t('statistics.noExpenseData')}
               </div>
             )}
@@ -635,25 +638,25 @@ export const Statistics: React.FC = () => {
 
         {/* Reservation Status */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-purple-600" />
+          <CardHeader className="padding-compact">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
               {t('statistics.reservationStatus')}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="padding-compact">
             {data.reservationsByStatus.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={data.reservationsByStatus}>
                   <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                  <XAxis dataKey="status" />
-                  <YAxis />
-                  <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }} />
+                  <XAxis dataKey="status" fontSize={12} />
+                  <YAxis fontSize={12} />
+                  <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '12px' }} />
                   <Bar dataKey="count" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+              <div className="flex items-center justify-center h-[250px] text-muted-foreground text-sm">
                 {t('statistics.noReservationData')}
               </div>
             )}

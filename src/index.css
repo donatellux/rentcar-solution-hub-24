@@ -114,40 +114,108 @@ All colors MUST be HSL.
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* Optimized spacing system */
+  .page-container {
+    @apply min-h-screen w-full;
+  }
+
+  .page-content {
+    @apply flex-1 overflow-y-auto;
+    @apply px-3 py-4 sm:px-4 sm:py-6 lg:px-6 lg:py-8 xl:px-8 xl:py-10;
+  }
+
+  .page-header {
+    @apply mb-4 sm:mb-6 lg:mb-8;
+  }
+
+  .page-title {
+    @apply text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mb-1 sm:mb-2;
+  }
+
+  .page-subtitle {
+    @apply text-sm sm:text-base text-muted-foreground;
+  }
+
+  .content-wrapper {
+    @apply mx-auto max-w-7xl w-full;
+  }
+
+  .card-grid {
+    @apply grid gap-3 sm:gap-4 lg:gap-6;
+    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+
+  .stats-grid {
+    @apply grid gap-3 sm:gap-4 lg:gap-6;
+    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-4;
+  }
+
+  .form-grid {
+    @apply grid gap-3 sm:gap-4 lg:gap-6;
+    @apply grid-cols-1 md:grid-cols-2;
+  }
+
+  .button-group {
+    @apply flex flex-col sm:flex-row gap-2 sm:gap-3;
+  }
+
+  .section-spacing {
+    @apply space-y-4 sm:space-y-6 lg:space-y-8;
+  }
+
+  .card-spacing {
+    @apply p-3 sm:p-4 lg:p-6;
+  }
+
   /* Mobile optimizations */
-  @media (max-width: 768px) {
+  @media (max-width: 640px) {
     .dialog-content {
-      @apply max-h-[85vh] overflow-y-auto;
+      @apply max-h-[85vh] overflow-y-auto m-2;
     }
 
     .table-responsive {
-      @apply text-sm;
+      @apply text-xs sm:text-sm overflow-x-auto;
     }
 
-    .card-grid {
-      @apply grid-cols-1 sm:grid-cols-2 gap-4;
+    .mobile-stack {
+      @apply flex-col space-y-2 space-x-0;
     }
 
-    .stats-grid {
-      @apply grid-cols-1 sm:grid-cols-2 gap-4;
+    .mobile-full {
+      @apply w-full;
     }
-    
-    .page-spacing {
-      @apply p-4 space-y-4;
+
+    .mobile-compact {
+      @apply px-2 py-1 text-xs;
+    }
+
+    .mobile-hide {
+      @apply hidden;
+    }
+
+    .mobile-show {
+      @apply block;
+    }
+  }
+
+  /* Tablet optimizations */
+  @media (min-width: 640px) and (max-width: 1024px) {
+    .tablet-grid {
+      @apply grid-cols-2;
+    }
+
+    .tablet-compact {
+      @apply px-3 py-2 text-sm;
     }
   }
 
   /* Desktop optimizations */
   @media (min-width: 1024px) {
-    .card-grid {
-      @apply gap-6;
+    .desktop-grid {
+      @apply grid-cols-3 lg:grid-cols-4;
     }
 
-    .stats-grid {
-      @apply gap-8;
-    }
-    
-    .page-spacing {
+    .desktop-spacing {
       @apply space-y-8;
     }
   }
@@ -214,6 +282,10 @@ All colors MUST be HSL.
     [role="button"] {
       @apply min-h-[44px] min-w-[44px];
     }
+
+    .touch-target {
+      @apply min-h-[44px] min-w-[44px];
+    }
   }
 }
 
@@ -224,14 +296,14 @@ All colors MUST be HSL.
   }
 
   .gradient-text {
-    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(221 83% 60%));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
   }
 
   .gradient-primary {
-    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(221 83% 60%));
   }
 
   .gradient-success {
@@ -243,7 +315,7 @@ All colors MUST be HSL.
   }
 
   .gradient-info {
-    background: linear-gradient(135deg, hsl(var(--info)), hsl(var(--primary-glow)));
+    background: linear-gradient(135deg, hsl(var(--info)), hsl(221 83% 60%));
   }
 
   .glass-effect {
@@ -285,19 +357,46 @@ All colors MUST be HSL.
     text-align: left;
   }
 
-  /* Mobile improvements */
-  @media (max-width: 640px) {
-    .container {
-      padding-left: 1rem;
-      padding-right: 1rem;
-    }
-    
-    .stats-card {
-      min-height: 120px;
-    }
-    
-    .kpi-card {
-      padding: 1.5rem 1rem;
-    }
+  /* Responsive spacing utilities */
+  .space-responsive {
+    @apply space-y-3 sm:space-y-4 lg:space-y-6;
+  }
+
+  .gap-responsive {
+    @apply gap-3 sm:gap-4 lg:gap-6;
+  }
+
+  .padding-responsive {
+    @apply p-3 sm:p-4 lg:p-6;
+  }
+
+  .margin-responsive {
+    @apply m-3 sm:m-4 lg:m-6;
+  }
+
+  /* Compact spacing for dense layouts */
+  .space-compact {
+    @apply space-y-2 sm:space-y-3;
+  }
+
+  .gap-compact {
+    @apply gap-2 sm:gap-3;
+  }
+
+  .padding-compact {
+    @apply p-2 sm:p-3;
+  }
+
+  /* Generous spacing for important sections */
+  .space-generous {
+    @apply space-y-6 sm:space-y-8 lg:space-y-12;
+  }
+
+  .gap-generous {
+    @apply gap-6 sm:gap-8 lg:gap-12;
+  }
+
+  .padding-generous {
+    @apply p-6 sm:p-8 lg:p-12;
   }
 }
