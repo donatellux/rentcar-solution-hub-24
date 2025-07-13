@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,13 +23,14 @@ interface Vehicle {
 
 interface Document {
   id: string;
-  vehicule_id: string | null;
-  type_document: string | null;
-  numero_document: string | null;
-  date_emission: string | null;
-  date_expiration: string | null;
-  file_url: string | null;
-  created_at: string | null;
+  car_id: string;
+  title: string;
+  type: string;
+  description: string;
+  file_path: string;
+  agency_id: string;
+  uploaded_at: string;
+  created_at: string;
   vehicles?: {
     marque: string;
     modele: string;
@@ -47,17 +49,16 @@ export const Documents: React.FC = () => {
   const [uploading, setUploading] = useState(false);
 
   const [formData, setFormData] = useState({
-    vehicule_id: '',
-    type_document: '',
-    numero_document: '',
-    date_emission: '',
-    date_expiration: '',
+    car_id: '',
+    title: '',
+    type: '',
+    description: '',
     file: null as File | null,
   });
 
   // Filter documents first
   const filteredDocuments = documents.filter(document =>
-    `${document.type_document} ${document.numero_document} ${document.vehicles?.marque} ${document.vehicles?.modele}`
+    `${document.title} ${document.type} ${document.vehicles?.marque} ${document.vehicles?.modele}`
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
@@ -176,7 +177,7 @@ export const Documents: React.FC = () => {
     if (!user) return;
 
     // Validation
-    if (!formData.vehicule_id || !formData.type_document || !formData.numero_document || !formData.date_emission || !formData.date_expiration || !formData.file) {
+    if (!formData.car_id || !formData.title || !formData.type || !formData.file) {
       toast({
         title: "Erreur",
         description: "Veuillez remplir tous les champs",
@@ -202,13 +203,13 @@ export const Documents: React.FC = () => {
       }
 
       const documentData = {
-        vehicule_id: formData.vehicule_id,
-        type_document: formData.type_document,
-        numero_document: formData.numero_document,
-        date_emission: formData.date_emission,
-        date_expiration: formData.date_expiration,
-        file_url: fileUrl,
+        car_id: formData.car_id,
+        title: formData.title,
+        type: formData.type,
+        description: formData.description,
+        file_path: fileUrl,
         agency_id: user.id,
+        uploaded_at: new Date().toISOString(),
       };
 
       let error;
@@ -281,11 +282,10 @@ export const Documents: React.FC = () => {
   const handleEdit = (document: Document) => {
     setEditingDocument(document);
     setFormData({
-      vehicule_id: document.vehicule_id || '',
-      type_document: document.type_document || '',
-      numero_document: document.numero_document || '',
-      date_emission: document.date_emission || '',
-      date_expiration: document.date_expiration || '',
+      car_id: document.car_id || '',
+      title: document.title || '',
+      type: document.type || '',
+      description: document.description || '',
       file: null,
     });
     setIsDialogOpen(true);
@@ -293,11 +293,10 @@ export const Documents: React.FC = () => {
 
   const resetForm = () => {
     setFormData({
-      vehicule_id: '',
-      type_document: '',
-      numero_document: '',
-      date_emission: '',
-      date_expiration: '',
+      car_id: '',
+      title: '',
+      type: '',
+      description: '',
       file: null,
     });
   };
@@ -329,8 +328,8 @@ export const Documents: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <Label htmlFor="vehicule_id">Véhicule</Label>
-                  <Select value={formData.vehicule_id} onValueChange={(value) => setFormData({ ...formData, vehicule_id: value })}>
+                  <Label htmlFor="car_id">Véhicule</Label>
+                  <Select value={formData.car_id} onValueChange={(value) => setFormData({ ...formData, car_id: value })}>
                     <SelectTrigger className="mt-1">
                       <SelectValue placeholder="Sélectionner un véhicule" />
                     </SelectTrigger>
@@ -344,43 +343,33 @@ export const Documents: React.FC = () => {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="type_document">Type de document</Label>
+                  <Label htmlFor="title">Titre du document</Label>
                   <Input
-                    id="type_document"
-                    value={formData.type_document}
-                    onChange={(e) => setFormData({ ...formData, type_document: e.target.value })}
+                    id="title"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className="mt-1"
+                    placeholder="Titre du document"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="type">Type de document</Label>
+                  <Input
+                    id="type"
+                    value={formData.type}
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                     className="mt-1"
                     placeholder="Type de document"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="numero_document">Numéro de document</Label>
+                  <Label htmlFor="description">Description</Label>
                   <Input
-                    id="numero_document"
-                    value={formData.numero_document}
-                    onChange={(e) => setFormData({ ...formData, numero_document: e.target.value })}
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="mt-1"
-                    placeholder="Numéro de document"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="date_emission">Date d'émission</Label>
-                  <Input
-                    id="date_emission"
-                    type="date"
-                    value={formData.date_emission}
-                    onChange={(e) => setFormData({ ...formData, date_emission: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="date_expiration">Date d'expiration</Label>
-                  <Input
-                    id="date_expiration"
-                    type="date"
-                    value={formData.date_expiration}
-                    onChange={(e) => setFormData({ ...formData, date_expiration: e.target.value })}
-                    className="mt-1"
+                    placeholder="Description du document"
                   />
                 </div>
                 <div>
@@ -471,7 +460,7 @@ export const Documents: React.FC = () => {
                       <CardHeader className="p-4">
                         <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center space-x-2">
                           <FileText className="w-5 h-5 text-blue-500" />
-                          <span>{document.type_document}</span>
+                          <span>{document.title}</span>
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="p-4">
@@ -480,13 +469,10 @@ export const Documents: React.FC = () => {
                             <strong>Véhicule:</strong> {document.vehicles?.marque} {document.vehicles?.modele}
                           </p>
                           <p>
-                            <strong>Numéro:</strong> {document.numero_document}
+                            <strong>Type:</strong> {document.type}
                           </p>
                           <p>
-                            <strong>Émission:</strong> {document.date_emission}
-                          </p>
-                          <p>
-                            <strong>Expiration:</strong> {document.date_expiration}
+                            <strong>Description:</strong> {document.description}
                           </p>
                         </div>
                         <div className="flex justify-end mt-4 space-x-2">

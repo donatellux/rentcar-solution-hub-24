@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,9 +19,14 @@ interface Client {
   cin: string;
   telephone: string;
   adresse: string;
-  date_naissance: string | null;
-  agency_id: string | null;
-  created_at: string | null;
+  email: string;
+  nationalite: string;
+  sexe: string;
+  permis: string;
+  type: string;
+  date_delivrance: string;
+  agency_id: string;
+  created_at: string;
 }
 
 export const Clients: React.FC = () => {
@@ -38,7 +44,12 @@ export const Clients: React.FC = () => {
     cin: '',
     telephone: '',
     adresse: '',
-    date_naissance: '',
+    email: '',
+    nationalite: '',
+    sexe: '',
+    permis: '',
+    type: '',
+    date_delivrance: '',
   });
 
   // Filter clients first
@@ -188,7 +199,12 @@ export const Clients: React.FC = () => {
       cin: client.cin,
       telephone: client.telephone,
       adresse: client.adresse,
-      date_naissance: client.date_naissance || '',
+      email: client.email || '',
+      nationalite: client.nationalite || '',
+      sexe: client.sexe || '',
+      permis: client.permis || '',
+      type: client.type || '',
+      date_delivrance: client.date_delivrance || '',
     });
     setIsDialogOpen(true);
   };
@@ -200,7 +216,12 @@ export const Clients: React.FC = () => {
       cin: '',
       telephone: '',
       adresse: '',
-      date_naissance: '',
+      email: '',
+      nationalite: '',
+      sexe: '',
+      permis: '',
+      type: '',
+      date_delivrance: '',
     });
   };
 
@@ -276,12 +297,12 @@ export const Clients: React.FC = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="date_naissance">Date de naissance</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="date_naissance"
-                  type="date"
-                  value={formData.date_naissance}
-                  onChange={(e) => setFormData({ ...formData, date_naissance: e.target.value })}
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="mt-1"
                 />
               </div>

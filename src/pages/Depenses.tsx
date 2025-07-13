@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,19 +17,17 @@ import { PaginationControls } from '@/components/PaginationControls';
 
 interface Depense {
   id: string;
-  vehicule_id: string | null;
-  type_depense: string | null;
-  montant: number | null;
-  date_depense: string | null;
-  description: string | null;
-  facture_url: string | null;
-  created_at: string | null;
+  vehicule_id: string;
+  type: string;
+  cout: number;
+  date: string;
+  description: string;
+  agency_id: string;
+  created_at: string;
   vehicles?: {
     marque: string;
     modele: string;
     immatriculation: string;
-    annee: number;
-    couleur: string;
   };
 }
 
@@ -51,16 +50,15 @@ export const Depenses: React.FC = () => {
 
   const [formData, setFormData] = useState({
     vehicule_id: '',
-    type_depense: '',
-    montant: '',
-    date_depense: '',
+    type: '',
+    cout: '',
+    date: '',
     description: '',
-    facture_url: '',
   });
 
   // Filter depenses first
   const filteredDepenses = depenses.filter(depense =>
-    `${depense.type_depense} ${depense.description} ${depense.vehicles?.marque} ${depense.vehicles?.modele}`
+    `${depense.type} ${depense.description} ${depense.vehicles?.marque} ${depense.vehicles?.modele}`
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
@@ -96,15 +94,15 @@ export const Depenses: React.FC = () => {
     try {
       setLoading(true);
 
-      // Fetch depenses with related vehicle data
+      // Fetch vehicle_expenses with related vehicle data
       const { data: depensesData, error: depensesError } = await supabase
-        .from('depenses')
+        .from('vehicle_expenses')
         .select(`
           *,
           vehicles (marque, modele, immatriculation)
         `)
         .eq('agency_id', user.id)
-        .order('date_depense', { ascending: false });
+        .order('date', { ascending: false });
 
       if (depensesError) throw depensesError;
 
@@ -139,24 +137,23 @@ export const Depenses: React.FC = () => {
 
       const depenseData = {
         vehicule_id: formData.vehicule_id,
-        type_depense: formData.type_depense,
-        montant: parseFloat(formData.montant),
-        date_depense: formData.date_depense,
+        type: formData.type,
+        cout: parseFloat(formData.cout),
+        date: formData.date,
         description: formData.description,
-        facture_url: formData.facture_url,
         agency_id: user.id,
       };
 
       let error;
       if (editingDepense) {
         const { error: updateError } = await supabase
-          .from('depenses')
+          .from('vehicle_expenses')
           .update(depenseData)
           .eq('id', editingDepense.id);
         error = updateError;
       } else {
         const { error: insertError } = await supabase
-          .from('depenses')
+          .from('vehicle_expenses')
           .insert(depenseData);
         error = insertError;
       }
@@ -191,7 +188,7 @@ export const Depenses: React.FC = () => {
       setLoading(true);
 
       const { error } = await supabase
-        .from('depenses')
+        .from('vehicle_expenses')
         .delete()
         .eq('id', depenseId);
 
@@ -219,11 +216,10 @@ export const Depenses: React.FC = () => {
     setEditingDepense(depense);
     setFormData({
       vehicule_id: depense.vehicule_id || '',
-      type_depense: depense.type_depense || '',
-      montant: depense.montant?.toString() || '',
-      date_depense: depense.date_depense || '',
+      type: depense.type || '',
+      cout: depense.cout?.toString() || '',
+      date: depense.date || '',
       description: depense.description || '',
-      facture_url: depense.facture_url || '',
     });
     setIsDialogOpen(true);
   };
@@ -231,11 +227,10 @@ export const Depenses: React.FC = () => {
   const resetForm = () => {
     setFormData({
       vehicule_id: '',
-      type_depense: '',
-      montant: '',
-      date_depense: '',
+      type: '',
+      cout: '',
+      date: '',
       description: '',
-      facture_url: '',
     });
   };
 
@@ -280,35 +275,35 @@ export const Depenses: React.FC = () => {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="type_depense">Type de dépense</Label>
+                <Label htmlFor="type">Type de dépense</Label>
                 <Input
-                  id="type_depense"
-                  value={formData.type_depense}
-                  onChange={(e) => setFormData({ ...formData, type_depense: e.target.value })}
+                  id="type"
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                   className="mt-1"
                   placeholder="Entrez le type de dépense"
                 />
               </div>
               <div>
-                <Label htmlFor="montant">Montant</Label>
+                <Label htmlFor="cout">Coût</Label>
                 <Input
-                  id="montant"
+                  id="cout"
                   type="number"
                   min="0"
                   step="0.01"
-                  value={formData.montant}
-                  onChange={(e) => setFormData({ ...formData, montant: e.target.value })}
+                  value={formData.cout}
+                  onChange={(e) => setFormData({ ...formData, cout: e.target.value })}
                   className="mt-1"
                   placeholder="0.00"
                 />
               </div>
               <div>
-                <Label htmlFor="date_depense">Date de la dépense</Label>
+                <Label htmlFor="date">Date de la dépense</Label>
                 <Input
-                  id="date_depense"
+                  id="date"
                   type="date"
-                  value={formData.date_depense}
-                  onChange={(e) => setFormData({ ...formData, date_depense: e.target.value })}
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                   className="mt-1"
                 />
               </div>
@@ -320,17 +315,6 @@ export const Depenses: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="mt-1"
                   placeholder="Entrez une description"
-                />
-              </div>
-              <div>
-                <Label htmlFor="facture_url">URL de la facture</Label>
-                <Input
-                  id="facture_url"
-                  type="url"
-                  value={formData.facture_url}
-                  onChange={(e) => setFormData({ ...formData, facture_url: e.target.value })}
-                  className="mt-1"
-                  placeholder="Entrez l'URL de la facture"
                 />
               </div>
               <div className="flex justify-end space-x-2">
@@ -405,7 +389,7 @@ export const Depenses: React.FC = () => {
                     <Card key={depense.id} className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
                       <CardHeader className="p-4">
                         <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white truncate">
-                          {depense.type_depense}
+                          {depense.type}
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="p-4">
@@ -416,11 +400,11 @@ export const Depenses: React.FC = () => {
                           </p>
                           <p>
                             <Calendar className="inline-block w-4 h-4 mr-1 align-middle text-gray-400" />
-                            <span className="font-medium">Date:</span> {new Date(depense.date_depense || '').toLocaleDateString()}
+                            <span className="font-medium">Date:</span> {new Date(depense.date || '').toLocaleDateString()}
                           </p>
                           <p>
                             <Receipt className="inline-block w-4 h-4 mr-1 align-middle text-gray-400" />
-                            <span className="font-medium">Montant:</span> {depense.montant} MAD
+                            <span className="font-medium">Coût:</span> {depense.cout} MAD
                           </p>
                           <p className="truncate">
                             <span className="font-medium">Description:</span> {depense.description}

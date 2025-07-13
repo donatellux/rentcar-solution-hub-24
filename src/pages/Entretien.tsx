@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,16 +24,13 @@ interface Vehicle {
 
 interface Entretien {
   id: string;
-  vehicule_id: string | null;
-  type_entretien: string | null;
-  date_entretien: string | null;
-  prochaine_date: string | null;
-  km_entretien: number | null;
-  cout: number | null;
-  garage: string | null;
-  description: string | null;
-  statut: string | null;
-  created_at: string | null;
+  vehicule_id: string;
+  type: string;
+  date: string;
+  cout: number;
+  description: string;
+  agency_id: string;
+  created_at: string;
   vehicles?: {
     marque: string;
     modele: string;
@@ -52,14 +50,10 @@ export const Entretien: React.FC = () => {
 
   const [formData, setFormData] = useState({
     vehicule_id: '',
-    type_entretien: '',
-    date_entretien: '',
-    prochaine_date: '',
-    km_entretien: '',
+    type: '',
+    date: '',
     cout: '',
-    garage: '',
     description: '',
-    statut: 'planifie',
   });
 
   useEffect(() => {
@@ -117,14 +111,10 @@ export const Entretien: React.FC = () => {
 
       const entretienData = {
         vehicule_id: formData.vehicule_id,
-        type_entretien: formData.type_entretien,
-        date_entretien: formData.date_entretien,
-        prochaine_date: formData.prochaine_date,
-        km_entretien: formData.km_entretien ? parseInt(formData.km_entretien) : null,
+        type: formData.type,
+        date: formData.date,
         cout: formData.cout ? parseFloat(formData.cout) : null,
-        garage: formData.garage,
         description: formData.description,
-        statut: formData.statut,
         agency_id: user.id,
       };
 
@@ -196,14 +186,10 @@ export const Entretien: React.FC = () => {
     setEditingEntretien(entretien);
     setFormData({
       vehicule_id: entretien.vehicule_id || '',
-      type_entretien: entretien.type_entretien || '',
-      date_entretien: entretien.date_entretien || '',
-      prochaine_date: entretien.prochaine_date || '',
-      km_entretien: entretien.km_entretien?.toString() || '',
+      type: entretien.type || '',
+      date: entretien.date || '',
       cout: entretien.cout?.toString() || '',
-      garage: entretien.garage || '',
       description: entretien.description || '',
-      statut: entretien.statut || 'planifie',
     });
     setIsDialogOpen(true);
   };
@@ -211,35 +197,16 @@ export const Entretien: React.FC = () => {
   const resetForm = () => {
     setFormData({
       vehicule_id: '',
-      type_entretien: '',
-      date_entretien: '',
-      prochaine_date: '',
-      km_entretien: '',
+      type: '',
+      date: '',
       cout: '',
-      garage: '',
       description: '',
-      statut: 'planifie',
     });
-  };
-
-  const getStatusColor = (statut: string | null) => {
-    switch (statut) {
-      case 'planifie':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'en_cours':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      case 'termine':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'annule':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-    }
   };
 
   // Filter entretiens first
   const filteredEntretiens = entretiens.filter(entretien =>
-    `${entretien.type_entretien} ${entretien.garage} ${entretien.vehicles?.marque} ${entretien.vehicles?.modele}`
+    `${entretien.type} ${entretien.description} ${entretien.vehicles?.marque} ${entretien.vehicles?.modele}`
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
@@ -304,64 +271,31 @@ export const Entretien: React.FC = () => {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="type_entretien">Type d'entretien</Label>
+                <Label htmlFor="type">Type d'entretien</Label>
                 <Input
-                  id="type_entretien"
-                  value={formData.type_entretien}
-                  onChange={(e) => setFormData({ ...formData, type_entretien: e.target.value })}
+                  id="type"
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                   className="mt-1"
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="date_entretien">Date d'entretien</Label>
-                  <Input
-                    type="date"
-                    id="date_entretien"
-                    value={formData.date_entretien}
-                    onChange={(e) => setFormData({ ...formData, date_entretien: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="prochaine_date">Prochaine date</Label>
-                  <Input
-                    type="date"
-                    id="prochaine_date"
-                    value={formData.prochaine_date}
-                    onChange={(e) => setFormData({ ...formData, prochaine_date: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="km_entretien">Kilométrage</Label>
-                  <Input
-                    type="number"
-                    id="km_entretien"
-                    value={formData.km_entretien}
-                    onChange={(e) => setFormData({ ...formData, km_entretien: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="cout">Coût</Label>
-                  <Input
-                    type="number"
-                    id="cout"
-                    value={formData.cout}
-                    onChange={(e) => setFormData({ ...formData, cout: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
+              <div>
+                <Label htmlFor="date">Date d'entretien</Label>
+                <Input
+                  type="date"
+                  id="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  className="mt-1"
+                />
               </div>
               <div>
-                <Label htmlFor="garage">Garage</Label>
+                <Label htmlFor="cout">Coût</Label>
                 <Input
-                  id="garage"
-                  value={formData.garage}
-                  onChange={(e) => setFormData({ ...formData, garage: e.target.value })}
+                  type="number"
+                  id="cout"
+                  value={formData.cout}
+                  onChange={(e) => setFormData({ ...formData, cout: e.target.value })}
                   className="mt-1"
                 />
               </div>
@@ -373,20 +307,6 @@ export const Entretien: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="mt-1"
                 />
-              </div>
-              <div>
-                <Label htmlFor="statut">Statut</Label>
-                <Select value={formData.statut} onValueChange={(value) => setFormData({ ...formData, statut: value })}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="planifie">Planifié</SelectItem>
-                    <SelectItem value="en_cours">En cours</SelectItem>
-                    <SelectItem value="termine">Terminé</SelectItem>
-                    <SelectItem value="annule">Annulé</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
               <div className="flex justify-end space-x-2">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -457,7 +377,7 @@ export const Entretien: React.FC = () => {
                       <CardHeader className="p-4">
                         <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center space-x-2">
                           <Wrench className="w-5 h-5 text-blue-500" />
-                          <span>{entretien.type_entretien || 'Type non défini'}</span>
+                          <span>{entretien.type || 'Type non défini'}</span>
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="p-4">
@@ -468,13 +388,10 @@ export const Entretien: React.FC = () => {
                           </div>
                           <div className="flex items-center space-x-2">
                             <Calendar className="w-4 h-4 text-gray-400" />
-                            <span>{entretien.date_entretien ? new Date(entretien.date_entretien).toLocaleDateString() : 'Date non définie'}</span>
+                            <span>{entretien.date ? new Date(entretien.date).toLocaleDateString() : 'Date non définie'}</span>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <AlertTriangle className="w-4 h-4 text-gray-400" />
-                            <Badge className={`text-xs ${getStatusColor(entretien.statut)}`}>
-                              {entretien.statut || 'Statut non défini'}
-                            </Badge>
+                            <span className="font-medium">Coût:</span> {entretien.cout} MAD
                           </div>
                         </div>
                         <div className="mt-4 flex justify-end space-x-2">
