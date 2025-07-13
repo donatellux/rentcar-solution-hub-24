@@ -312,95 +312,103 @@ export const Entretien: React.FC = () => {
                 {editingEntretien ? 'Modifier l\'entretien' : 'Nouvel entretien'}
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="vehicule_id">Véhicule *</Label>
-                  <Select value={formData.vehicule_id} onValueChange={(value) => setFormData({ ...formData, vehicule_id: value })}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Sélectionner un véhicule" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {vehicles.map((vehicle) => (
-                        <SelectItem key={vehicle.id} value={vehicle.id}>
-                          {vehicle.marque} {vehicle.modele} - {vehicle.immatriculation}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="vehicule_id">Véhicule *</Label>
+                      <Select value={formData.vehicule_id} onValueChange={(value) => setFormData({ ...formData, vehicule_id: value })}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Sélectionner un véhicule" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {vehicles.map((vehicle) => (
+                            <SelectItem key={vehicle.id} value={vehicle.id}>
+                              {vehicle.marque} {vehicle.modele} - {vehicle.immatriculation}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="type">Type d'entretien *</Label>
+                      <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Sélectionner le type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="vidange">Vidange</SelectItem>
+                          <SelectItem value="revision">Révision</SelectItem>
+                          <SelectItem value="reparation">Réparation</SelectItem>
+                          <SelectItem value="controle_technique">Contrôle technique</SelectItem>
+                          <SelectItem value="autre">Autre</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="date">Date</Label>
+                      <Input
+                        id="date"
+                        type="date"
+                        value={formData.date}
+                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="cout">Coût (MAD)</Label>
+                      <Input
+                        id="cout"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={formData.cout}
+                        onChange={(e) => setFormData({ ...formData, cout: e.target.value })}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="km_last_vidange">Km dernière vidange</Label>
+                      <Input
+                        id="km_last_vidange"
+                        type="number"
+                        min="0"
+                        value={formData.km_last_vidange}
+                        onChange={(e) => setFormData({ ...formData, km_last_vidange: e.target.value })}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="vidange_periodicite_km">Périodicité vidange (Km)</Label>
+                      <Input
+                        id="vidange_periodicite_km"
+                        type="number"
+                        min="0"
+                        value={formData.vidange_periodicite_km}
+                        onChange={(e) => setFormData({ ...formData, vidange_periodicite_km: e.target.value })}
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="type">Type d'entretien *</Label>
-                  <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Sélectionner le type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="vidange">Vidange</SelectItem>
-                      <SelectItem value="revision">Révision</SelectItem>
-                      <SelectItem value="reparation">Réparation</SelectItem>
-                      <SelectItem value="controle_technique">Contrôle technique</SelectItem>
-                      <SelectItem value="autre">Autre</SelectItem>
-                    </SelectContent>
-                  </Select>
+                
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="mt-1"
+                      rows={8}
+                      placeholder="Détails de l'entretien..."
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="date">Date</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="cout">Coût (MAD)</Label>
-                  <Input
-                    id="cout"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.cout}
-                    onChange={(e) => setFormData({ ...formData, cout: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="km_last_vidange">Km dernière vidange</Label>
-                  <Input
-                    id="km_last_vidange"
-                    type="number"
-                    min="0"
-                    value={formData.km_last_vidange}
-                    onChange={(e) => setFormData({ ...formData, km_last_vidange: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="vidange_periodicite_km">Périodicité vidange (Km)</Label>
-                  <Input
-                    id="vidange_periodicite_km"
-                    type="number"
-                    min="0"
-                    value={formData.vidange_periodicite_km}
-                    onChange={(e) => setFormData({ ...formData, vidange_periodicite_km: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="mt-1"
-                  rows={3}
-                />
               </div>
               
-              <div className="flex justify-end space-x-3 pt-4 border-t">
+              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 border-t">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Annuler
                 </Button>

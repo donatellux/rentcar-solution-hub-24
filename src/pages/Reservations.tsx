@@ -629,244 +629,253 @@ export const Reservations: React.FC = () => {
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Date Selection First */}
-              <Card className="border-blue-200 dark:border-blue-800">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-blue-600">
-                    <CalendarDays className="w-5 h-5" />
-                    <span>Période de location</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  {/* Date Selection First */}
+                  <Card className="border-blue-200 dark:border-blue-800">
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-2 text-blue-600">
+                        <CalendarDays className="w-5 h-5" />
+                        <span>Période de location</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <Label>Date de début *</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full justify-start text-left font-normal mt-1",
+                                  !dateRange.debut && "text-muted-foreground"
+                                )}
+                              >
+                                <Calendar className="mr-2 h-4 w-4" />
+                                {dateRange.debut ? format(dateRange.debut, "PPP", { locale: fr }) : "Choisir une date"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <CalendarComponent
+                                mode="single"
+                                selected={dateRange.debut || undefined}
+                                onSelect={handleDateSelect('debut')}
+                                initialFocus
+                                className="pointer-events-auto"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <div>
+                          <Label>Date de fin *</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full justify-start text-left font-normal mt-1",
+                                  !dateRange.fin && "text-muted-foreground"
+                                )}
+                              >
+                                <Calendar className="mr-2 h-4 w-4" />
+                                {dateRange.fin ? format(dateRange.fin, "PPP", { locale: fr }) : "Choisir une date"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <CalendarComponent
+                                mode="single"
+                                selected={dateRange.fin || undefined}
+                                onSelect={handleDateSelect('fin')}
+                                disabled={(date) => dateRange.debut && date < dateRange.debut}
+                                initialFocus
+                                className="pointer-events-auto"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </div>
+                      {dateRange.debut && dateRange.fin && (
+                        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                          <p className="text-sm text-blue-600 dark:text-blue-400">
+                            <strong>{availableVehicles.length}</strong> véhicule(s) disponible(s) pour cette période
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label>Date de début *</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal mt-1",
-                              !dateRange.debut && "text-muted-foreground"
-                            )}
-                          >
-                            <Calendar className="mr-2 h-4 w-4" />
-                            {dateRange.debut ? format(dateRange.debut, "PPP", { locale: fr }) : "Choisir une date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <CalendarComponent
-                            mode="single"
-                            selected={dateRange.debut || undefined}
-                            onSelect={handleDateSelect('debut')}
-                            initialFocus
-                            className="pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <Label htmlFor="client_id">Client *</Label>
+                      <Select value={formData.client_id} onValueChange={(value) => setFormData({ ...formData, client_id: value })}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Sélectionner un client" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {clients.map((client) => (
+                            <SelectItem key={client.id} value={client.id}>
+                              {client.prenom} {client.nom}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
-                      <Label>Date de fin *</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal mt-1",
-                              !dateRange.fin && "text-muted-foreground"
-                            )}
-                          >
-                            <Calendar className="mr-2 h-4 w-4" />
-                            {dateRange.fin ? format(dateRange.fin, "PPP", { locale: fr }) : "Choisir une date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <CalendarComponent
-                            mode="single"
-                            selected={dateRange.fin || undefined}
-                            onSelect={handleDateSelect('fin')}
-                            disabled={(date) => dateRange.debut && date < dateRange.debut}
-                            initialFocus
-                            className="pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <Label htmlFor="vehicule_id">Véhicule *</Label>
+                      <Select 
+                        value={formData.vehicule_id} 
+                        onValueChange={(value) => setFormData({ ...formData, vehicule_id: value })}
+                        disabled={!dateRange.debut || !dateRange.fin}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder={
+                            !dateRange.debut || !dateRange.fin 
+                              ? "Choisissez d'abord les dates" 
+                              : "Sélectionner un véhicule disponible"
+                          } />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableVehicles.map((vehicle) => (
+                            <SelectItem key={vehicle.id} value={vehicle.id}>
+                              <div className="flex items-center space-x-2">
+                                <Car className="w-4 h-4 text-green-600" />
+                                <span>{vehicle.marque} {vehicle.modele} - {vehicle.immatriculation}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {dateRange.debut && dateRange.fin && availableVehicles.length === 0 && (
+                        <p className="text-sm text-red-600 mt-1">
+                          Aucun véhicule disponible pour cette période
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="prix_par_jour">Prix par jour (MAD)</Label>
+                      <Input
+                        id="prix_par_jour"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={formData.prix_par_jour}
+                        onChange={(e) => setFormData({ ...formData, prix_par_jour: e.target.value })}
+                        className="mt-1"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="statut">Statut</Label>
+                      <Select value={formData.statut} onValueChange={(value) => setFormData({ ...formData, statut: value })}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="en_attente">En attente</SelectItem>
+                          <SelectItem value="confirmee">Confirmée</SelectItem>
+                          <SelectItem value="en_cours">En cours</SelectItem>
+                          <SelectItem value="terminee">Terminée</SelectItem>
+                          <SelectItem value="annulee">Annulée</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
-                  {dateRange.debut && dateRange.fin && (
-                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                      <p className="text-sm text-blue-600 dark:text-blue-400">
-                        <strong>{availableVehicles.length}</strong> véhicule(s) disponible(s) pour cette période
-                      </p>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="km_depart">Kilométrage départ</Label>
+                      <Input
+                        id="km_depart"
+                        type="number"
+                        min="0"
+                        value={formData.km_depart}
+                        onChange={(e) => setFormData({ ...formData, km_depart: e.target.value })}
+                        className="mt-1"
+                        placeholder="0"
+                      />
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="client_id">Client *</Label>
-                  <Select value={formData.client_id} onValueChange={(value) => setFormData({ ...formData, client_id: value })}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Sélectionner un client" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.prenom} {client.nom}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="vehicule_id">Véhicule *</Label>
-                  <Select 
-                    value={formData.vehicule_id} 
-                    onValueChange={(value) => setFormData({ ...formData, vehicule_id: value })}
-                    disabled={!dateRange.debut || !dateRange.fin}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder={
-                        !dateRange.debut || !dateRange.fin 
-                          ? "Choisissez d'abord les dates" 
-                          : "Sélectionner un véhicule disponible"
-                      } />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableVehicles.map((vehicle) => (
-                        <SelectItem key={vehicle.id} value={vehicle.id}>
-                          <div className="flex items-center space-x-2">
-                            <Car className="w-4 h-4 text-green-600" />
-                            <span>{vehicle.marque} {vehicle.modele} - {vehicle.immatriculation}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {dateRange.debut && dateRange.fin && availableVehicles.length === 0 && (
-                    <p className="text-sm text-red-600 mt-1">
-                      Aucun véhicule disponible pour cette période
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="prix_par_jour">Prix par jour (MAD)</Label>
-                  <Input
-                    id="prix_par_jour"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.prix_par_jour}
-                    onChange={(e) => setFormData({ ...formData, prix_par_jour: e.target.value })}
-                    className="mt-1"
-                    placeholder="0.00"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="statut">Statut</Label>
-                  <Select value={formData.statut} onValueChange={(value) => setFormData({ ...formData, statut: value })}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en_attente">En attente</SelectItem>
-                      <SelectItem value="confirmee">Confirmée</SelectItem>
-                      <SelectItem value="en_cours">En cours</SelectItem>
-                      <SelectItem value="terminee">Terminée</SelectItem>
-                      <SelectItem value="annulee">Annulée</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="km_depart">Kilométrage départ</Label>
-                  <Input
-                    id="km_depart"
-                    type="number"
-                    min="0"
-                    value={formData.km_depart}
-                    onChange={(e) => setFormData({ ...formData, km_depart: e.target.value })}
-                    className="mt-1"
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="km_retour">Kilométrage retour</Label>
-                  <Input
-                    id="km_retour"
-                    type="number"
-                    min="0"
-                    value={formData.km_retour}
-                    onChange={(e) => setFormData({ ...formData, km_retour: e.target.value })}
-                    className="mt-1"
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="lieu_delivrance">Lieu de délivrance</Label>
-                  <Input
-                    id="lieu_delivrance"
-                    value={formData.lieu_delivrance}
-                    onChange={(e) => setFormData({ ...formData, lieu_delivrance: e.target.value })}
-                    className="mt-1"
-                    placeholder="Adresse de délivrance"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="lieu_recuperation">Lieu de récupération</Label>
-                  <Input
-                    id="lieu_recuperation"
-                    value={formData.lieu_recuperation}
-                    onChange={(e) => setFormData({ ...formData, lieu_recuperation: e.target.value })}
-                    className="mt-1"
-                    placeholder="Adresse de récupération"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="cin_file">Photo CIN</Label>
-                  <Input
-                    id="cin_file"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setFormData({ ...formData, cin_file: e.target.files?.[0] || null })}
-                    className="mt-1"
-                  />
-                  {editingReservation?.cin_scan_url && (
-                    <div className="mt-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePreviewImage(editingReservation.cin_scan_url!)}
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        Voir CIN actuelle
-                      </Button>
+                    <div>
+                      <Label htmlFor="km_retour">Kilométrage retour</Label>
+                      <Input
+                        id="km_retour"
+                        type="number"
+                        min="0"
+                        value={formData.km_retour}
+                        onChange={(e) => setFormData({ ...formData, km_retour: e.target.value })}
+                        className="mt-1"
+                        placeholder="0"
+                      />
                     </div>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="permis_file">Photo Permis</Label>
-                  <Input
-                    id="permis_file"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setFormData({ ...formData, permis_file: e.target.files?.[0] || null })}
-                    className="mt-1"
-                  />
-                  {editingReservation?.permis_scan_url && (
-                    <div className="mt-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePreviewImage(editingReservation.permis_scan_url!)}
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        Voir Permis actuel
-                      </Button>
+                    <div>
+                      <Label htmlFor="lieu_delivrance">Lieu de délivrance</Label>
+                      <Input
+                        id="lieu_delivrance"
+                        value={formData.lieu_delivrance}
+                        onChange={(e) => setFormData({ ...formData, lieu_delivrance: e.target.value })}
+                        className="mt-1"
+                        placeholder="Adresse de délivrance"
+                      />
                     </div>
-                  )}
+                    <div>
+                      <Label htmlFor="lieu_recuperation">Lieu de récupération</Label>
+                      <Input
+                        id="lieu_recuperation"
+                        value={formData.lieu_recuperation}
+                        onChange={(e) => setFormData({ ...formData, lieu_recuperation: e.target.value })}
+                        className="mt-1"
+                        placeholder="Adresse de récupération"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="cin_file">Photo CIN</Label>
+                      <Input
+                        id="cin_file"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setFormData({ ...formData, cin_file: e.target.files?.[0] || null })}
+                        className="mt-1"
+                      />
+                      {editingReservation?.cin_scan_url && (
+                        <div className="mt-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePreviewImage(editingReservation.cin_scan_url!)}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            Voir CIN actuelle
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="permis_file">Photo Permis</Label>
+                      <Input
+                        id="permis_file"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setFormData({ ...formData, permis_file: e.target.files?.[0] || null })}
+                        className="mt-1"
+                      />
+                      {editingReservation?.permis_scan_url && (
+                        <div className="mt-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePreviewImage(editingReservation.permis_scan_url!)}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            Voir Permis actuel
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
               
