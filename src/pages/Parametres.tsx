@@ -92,11 +92,20 @@ export const Parametres: React.FC = () => {
         });
         
         if (data.logo_path) {
-          // Get the public URL from the storage bucket
-          const { data: { publicUrl } } = supabase.storage
-            .from('logos')
-            .getPublicUrl(data.logo_path.split('/').pop() || '');
-          setPreviewUrl(publicUrl);
+          console.log('Logo path from database:', data.logo_path);
+          
+          // Check if it's already a full URL or just a filename
+          if (data.logo_path.startsWith('http')) {
+            // It's a full URL, use it directly
+            setPreviewUrl(data.logo_path);
+          } else {
+            // It's a filename, get the public URL from storage
+            const { data: { publicUrl } } = supabase.storage
+              .from('logos')
+              .getPublicUrl(data.logo_path);
+            console.log('Generated public URL:', publicUrl);
+            setPreviewUrl(publicUrl);
+          }
         }
       }
     } catch (error) {
@@ -126,8 +135,19 @@ export const Parametres: React.FC = () => {
 
       // Delete old logo if exists
       if (formData.logo_path) {
-        const oldFileName = formData.logo_path.split('/').pop();
+        console.log('Deleting old logo:', formData.logo_path);
+        let oldFileName;
+        
+        if (formData.logo_path.startsWith('http')) {
+          // Extract filename from URL
+          oldFileName = formData.logo_path.split('/').pop();
+        } else {
+          // It's already a filename
+          oldFileName = formData.logo_path;
+        }
+        
         if (oldFileName) {
+          console.log('Removing old file:', oldFileName);
           await supabase.storage
             .from('logos')
             .remove([oldFileName]);

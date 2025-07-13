@@ -56,10 +56,15 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
               <div className="w-8 h-8 rounded-full overflow-hidden bg-white border-2 border-gray-200">
                 <img
                   src={(() => {
-                    const { data: { publicUrl } } = supabase.storage
-                      .from('logos')
-                      .getPublicUrl(agency.logo_path);
-                    return publicUrl;
+                    // Check if it's already a full URL or just a filename
+                    if (agency.logo_path.startsWith('http')) {
+                      return agency.logo_path;
+                    } else {
+                      const { data: { publicUrl } } = supabase.storage
+                        .from('logos')
+                        .getPublicUrl(agency.logo_path);
+                      return publicUrl;
+                    }
                   })()}
                   alt="Agency logo"
                   className="w-full h-full object-contain"
