@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
@@ -11,7 +10,6 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  Legend, 
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -24,14 +22,11 @@ import {
   TrendingDown, 
   Car, 
   Users, 
-  Calendar, 
   DollarSign,
-  BarChart3,
   Filter,
-  Clock,
   Target,
   Activity,
-  PieChart as PieChartIcon
+  Calendar
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -45,13 +40,12 @@ interface StatisticsData {
   totalClients: number;
   profit: number;
   averageRevenuePerReservation: number;
-  occupancyRate: number;
+  activeReservations: number;
   monthlyRevenue: any[];
   vehicleRevenue: any[];
   expensesByCategory: any[];
   reservationsByStatus: any[];
   revenueGrowth: number;
-  activeReservations: number;
 }
 
 interface Vehicle {
@@ -72,13 +66,12 @@ export const Statistics: React.FC = () => {
     totalClients: 0,
     profit: 0,
     averageRevenuePerReservation: 0,
-    occupancyRate: 0,
+    activeReservations: 0,
     monthlyRevenue: [],
     vehicleRevenue: [],
     expensesByCategory: [],
     reservationsByStatus: [],
-    revenueGrowth: 0,
-    activeReservations: 0
+    revenueGrowth: 0
   });
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,7 +80,7 @@ export const Statistics: React.FC = () => {
   const [selectedVehicle, setSelectedVehicle] = useState<string>('all');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('this_year');
 
   useEffect(() => {
     if (user) {
@@ -309,13 +302,12 @@ export const Statistics: React.FC = () => {
         totalClients: clients?.length || 0,
         profit: totalRevenue - totalExpenses,
         averageRevenuePerReservation,
-        occupancyRate,
+        activeReservations,
         monthlyRevenue,
         vehicleRevenue,
         expensesByCategory,
         reservationsByStatus,
-        revenueGrowth,
-        activeReservations
+        revenueGrowth
       });
 
     } catch (error) {
@@ -330,37 +322,50 @@ export const Statistics: React.FC = () => {
     }
   };
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
+  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Statistiques
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Analysez les performances de votre agence</p>
-        </div>
+    <div className="space-y-8 p-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-bold text-foreground">
+          Tableau de Bord
+        </h1>
+        <p className="text-muted-foreground">Vue d'ensemble de votre agence de location</p>
       </div>
 
       {/* Filters */}
-      <Card className="shadow-md">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Filter className="w-5 h-5 text-blue-600" />
+            <Filter className="w-5 h-5" />
             Filtres
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <Label htmlFor="period">Période</Label>
+              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="this_year">Cette année</SelectItem>
+                  <SelectItem value="this_month">Ce mois</SelectItem>
+                  <SelectItem value="last_month">Mois dernier</SelectItem>
+                  <SelectItem value="all">Toutes les périodes</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label htmlFor="vehicle">Véhicule</Label>
               <Select value={selectedVehicle} onValueChange={setSelectedVehicle}>
@@ -371,23 +376,9 @@ export const Statistics: React.FC = () => {
                   <SelectItem value="all">Tous les véhicules</SelectItem>
                   {vehicles.map(vehicle => (
                     <SelectItem key={vehicle.id} value={vehicle.id}>
-                      {vehicle.marque} {vehicle.modele} - {vehicle.immatriculation}
+                      {vehicle.marque} {vehicle.modele}
                     </SelectItem>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="period">Période</Label>
-              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Toutes les périodes" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toutes les périodes</SelectItem>
-                  <SelectItem value="this_month">Ce mois</SelectItem>
-                  <SelectItem value="last_month">Mois dernier</SelectItem>
-                  <SelectItem value="this_year">Cette année</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -413,242 +404,207 @@ export const Statistics: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-700">
-          <CardContent className="p-4 sm:p-6">
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="relative overflow-hidden">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-green-600 dark:text-green-400">Revenus Totaux</p>
-                <p className="text-xl sm:text-2xl font-bold text-green-700 dark:text-green-300">
-                  {data.totalRevenue.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} MAD
+                <p className="text-sm font-medium text-muted-foreground">Revenus Totaux</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {data.totalRevenue.toLocaleString('fr-FR')} MAD
                 </p>
                 {data.revenueGrowth !== 0 && (
                   <p className={`text-xs flex items-center gap-1 ${data.revenueGrowth > 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {data.revenueGrowth > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                    {Math.abs(data.revenueGrowth).toFixed(1)}% vs mois précédent
+                    {Math.abs(data.revenueGrowth).toFixed(1)}%
                   </p>
                 )}
               </div>
-              <div className="p-3 bg-green-200 dark:bg-green-800 rounded-full">
-                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 dark:text-green-300" />
+              <div className="p-3 bg-green-100 rounded-full">
+                <DollarSign className="w-6 h-6 text-green-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-700">
-          <CardContent className="p-4 sm:p-6">
+        <Card className="relative overflow-hidden">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-red-600 dark:text-red-400">Dépenses Totales</p>
-                <p className="text-xl sm:text-2xl font-bold text-red-700 dark:text-red-300">
-                  {data.totalExpenses.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} MAD
+                <p className="text-sm font-medium text-muted-foreground">Bénéfice Net</p>
+                <p className={`text-2xl font-bold ${data.profit >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                  {data.profit.toLocaleString('fr-FR')} MAD
                 </p>
-              </div>
-              <div className="p-3 bg-red-200 dark:bg-red-800 rounded-full">
-                <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8 text-red-600 dark:text-red-300" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-700">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Bénéfice Net</p>
-                <p className={`text-xl sm:text-2xl font-bold ${data.profit >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-red-700 dark:text-red-300'}`}>
-                  {data.profit.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} MAD
-                </p>
-                <p className="text-xs text-blue-600 dark:text-blue-400">
+                <p className="text-xs text-muted-foreground">
                   Marge: {data.totalRevenue > 0 ? ((data.profit / data.totalRevenue) * 100).toFixed(1) : 0}%
                 </p>
               </div>
-              <div className="p-3 bg-blue-200 dark:bg-blue-800 rounded-full">
-                <Target className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-300" />
+              <div className="p-3 bg-blue-100 rounded-full">
+                <Target className="w-6 h-6 text-blue-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200 dark:border-purple-700">
-          <CardContent className="p-4 sm:p-6">
+        <Card className="relative overflow-hidden">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Réservations Actives</p>
-                <p className="text-xl sm:text-2xl font-bold text-purple-700 dark:text-purple-300">{data.activeReservations}</p>
-                <p className="text-xs text-purple-600 dark:text-purple-400">
-                  Total: {data.totalReservations}
+                <p className="text-sm font-medium text-muted-foreground">Réservations</p>
+                <p className="text-2xl font-bold text-purple-600">{data.totalReservations}</p>
+                <p className="text-xs text-muted-foreground">
+                  {data.activeReservations} actives
                 </p>
               </div>
-              <div className="p-3 bg-purple-200 dark:bg-purple-800 rounded-full">
-                <Activity className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 dark:text-purple-300" />
+              <div className="p-3 bg-purple-100 rounded-full">
+                <Calendar className="w-6 h-6 text-purple-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-200 dark:border-orange-700">
-          <CardContent className="p-4 sm:p-6">
+        <Card className="relative overflow-hidden">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Revenus Moyens</p>
-                <p className="text-xl sm:text-2xl font-bold text-orange-700 dark:text-orange-300">
-                  {data.averageRevenuePerReservation.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} MAD
-                </p>
-                <p className="text-xs text-orange-600 dark:text-orange-400">
-                  Par réservation
+                <p className="text-sm font-medium text-muted-foreground">Parc Automobile</p>
+                <p className="text-2xl font-bold text-orange-600">{data.totalVehicles}</p>
+                <p className="text-xs text-muted-foreground">
+                  {data.totalClients} clients
                 </p>
               </div>
-              <div className="p-3 bg-orange-200 dark:bg-orange-800 rounded-full">
-                <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600 dark:text-orange-300" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-r from-teal-50 to-teal-100 dark:from-teal-900/20 dark:to-teal-800/20 border-teal-200 dark:border-teal-700">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-teal-600 dark:text-teal-400">Taux d'Occupation</p>
-                <p className="text-xl sm:text-2xl font-bold text-teal-700 dark:text-teal-300">
-                  {data.occupancyRate.toFixed(1)}%
-                </p>
-                <p className="text-xs text-teal-600 dark:text-teal-400">
-                  Véhicules actifs
-                </p>
-              </div>
-              <div className="p-3 bg-teal-200 dark:bg-teal-800 rounded-full">
-                <PieChartIcon className="w-6 h-6 sm:w-8 sm:h-8 text-teal-600 dark:text-teal-300" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 border-indigo-200 dark:border-indigo-700">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400">Véhicules</p>
-                <p className="text-xl sm:text-2xl font-bold text-indigo-700 dark:text-indigo-300">{data.totalVehicles}</p>
-              </div>
-              <div className="p-3 bg-indigo-200 dark:bg-indigo-800 rounded-full">
-                <Car className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-600 dark:text-indigo-300" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-r from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20 border-pink-200 dark:border-pink-700">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-pink-600 dark:text-pink-400">Clients</p>
-                <p className="text-xl sm:text-2xl font-bold text-pink-700 dark:text-pink-300">{data.totalClients}</p>
-              </div>
-              <div className="p-3 bg-pink-200 dark:bg-pink-800 rounded-full">
-                <Users className="w-6 h-6 sm:w-8 sm:h-8 text-pink-600 dark:text-pink-300" />
+              <div className="p-3 bg-orange-100 rounded-full">
+                <Car className="w-6 h-6 text-orange-600" />
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Monthly Revenue */}
-        <Card className="shadow-md">
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Monthly Revenue Trend */}
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-blue-600" />
-              Revenus Mensuels
+              Évolution des Revenus
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={data.monthlyRevenue}>
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                 <XAxis dataKey="month" />
                 <YAxis />
-                <Tooltip formatter={(value) => [`${value} MAD`, 'Revenus']} />
-                <Line type="monotone" dataKey="revenue" stroke="#0088FE" strokeWidth={3} />
+                <Tooltip 
+                  formatter={(value) => [`${value} MAD`, 'Revenus']}
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="revenue" 
+                  stroke="#3b82f6" 
+                  strokeWidth={3}
+                  dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Vehicle Revenue */}
-        <Card className="shadow-md">
+        {/* Vehicle Performance */}
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Car className="w-5 h-5 text-green-600" />
-              Revenus par Véhicule
+              Performance des Véhicules
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={data.vehicleRevenue}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
+              <BarChart data={data.vehicleRevenue.slice(0, 6)}>
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis 
+                  dataKey="name" 
+                  angle={-45} 
+                  textAnchor="end" 
+                  height={80}
+                  fontSize={12}
+                />
                 <YAxis />
-                <Tooltip formatter={(value) => [`${value} MAD`, 'Revenus']} />
-                <Bar dataKey="revenue" fill="#00C49F" />
+                <Tooltip 
+                  formatter={(value) => [`${value} MAD`, 'Revenus']}
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                />
+                <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Expenses by Category */}
-        <Card className="shadow-md">
+        {/* Expense Breakdown */}
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <PieChartIcon className="w-5 h-5 text-red-600" />
-              Dépenses par Catégorie
+              <Activity className="w-5 h-5 text-red-600" />
+              Répartition des Dépenses
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={data.expensesByCategory}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ category, percent }) => `${category} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="amount"
-                >
-                  {data.expensesByCategory.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => [`${value} MAD`]} />
-              </PieChart>
-            </ResponsiveContainer>
+            {data.expensesByCategory.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={data.expensesByCategory}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ category, percent }) => `${category} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="amount"
+                  >
+                    {data.expensesByCategory.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => [`${value} MAD`]} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                Aucune dépense enregistrée
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Reservations by Status */}
-        <Card className="shadow-md">
+        {/* Reservation Status */}
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-purple-600" />
-              Réservations par Statut
+              <Users className="w-5 h-5 text-purple-600" />
+              Statut des Réservations
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={data.reservationsByStatus}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="status" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#FFBB28" />
-              </BarChart>
-            </ResponsiveContainer>
+            {data.reservationsByStatus.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={data.reservationsByStatus}>
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                  <XAxis dataKey="status" />
+                  <YAxis />
+                  <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }} />
+                  <Bar dataKey="count" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                Aucune réservation trouvée
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
