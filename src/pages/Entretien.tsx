@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/PaginationControls';
 
 interface Entretien {
   id: string;
@@ -281,6 +283,27 @@ export const Entretien: React.FC = () => {
       .includes(searchTerm.toLowerCase())
   );
 
+  const {
+    currentPage,
+    totalPages,
+    totalItems,
+    paginatedData: paginatedEntretiens,
+    goToPage,
+    nextPage,
+    prevPage,
+    hasNext,
+    hasPrev,
+    reset
+  } = usePagination({
+    data: filteredEntretiens,
+    itemsPerPage: 10
+  });
+
+  // Reset pagination when search term changes
+  useEffect(() => {
+    reset();
+  }, [searchTerm, reset]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -443,7 +466,7 @@ export const Entretien: React.FC = () => {
           }`}
         >
           <Calendar className="w-4 h-4 mr-2 inline" />
-          Historique ({filteredEntretiens.length})
+          Historique ({totalItems})
         </button>
       </div>
 
@@ -531,10 +554,10 @@ export const Entretien: React.FC = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Historique des entretiens ({filteredEntretiens.length})</CardTitle>
+              <CardTitle>Historique des entretiens ({totalItems})</CardTitle>
             </CardHeader>
             <CardContent>
-              {filteredEntretiens.length === 0 ? (
+              {paginatedEntretiens.length === 0 ? (
                 <div className="text-center py-8">
                   <Wrench className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
@@ -551,66 +574,80 @@ export const Entretien: React.FC = () => {
                   )}
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Véhicule</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Coût</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredEntretiens.map((entretien) => (
-                      <TableRow key={entretien.id}>
-                        <TableCell>
-                          {entretien.vehicles ? 
-                            `${entretien.vehicles.marque} ${entretien.vehicles.modele} - ${entretien.vehicles.immatriculation}` : 
-                            'Véhicule inconnu'
-                          }
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getTypeColor(entretien.type)}>
-                            {entretien.type || 'N/A'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {entretien.date ? new Date(entretien.date).toLocaleDateString('fr-FR') : 'Non définie'}
-                        </TableCell>
-                        <TableCell>
-                          {entretien.cout ? `${entretien.cout} MAD` : 'Non défini'}
-                        </TableCell>
-                        <TableCell>
-                          <div className="max-w-xs truncate">
-                            {entretien.description || 'Aucune description'}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEdit(entretien)}
-                              className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDelete(entretien.id)}
-                              className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Véhicule</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Coût</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedEntretiens.map((entretien) => (
+                        <TableRow key={entretien.id}>
+                          <TableCell>
+                            {entretien.vehicles ? 
+                              `${entretien.vehicles.marque} ${entretien.vehicles.modele} - ${entretien.vehicles.immatriculation}` : 
+                              'Véhicule inconnu'
+                            }
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getTypeColor(entretien.type)}>
+                              {entretien.type || 'N/A'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {entretien.date ? new Date(entretien.date).toLocaleDateString('fr-FR') : 'Non définie'}
+                          </TableCell>
+                          <TableCell>
+                            {entretien.cout ? `${entretien.cout} MAD` : 'Non défini'}
+                          </TableCell>
+                          <TableCell>
+                            <div className="max-w-xs truncate">
+                              {entretien.description || 'Aucune description'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEdit(entretien)}
+                                className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDelete(entretien.id)}
+                                className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  <PaginationControls
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    itemsPerPage={10}
+                    onPageChange={goToPage}
+                    onNext={nextPage}
+                    onPrev={prevPage}
+                    hasNext={hasNext}
+                    hasPrev={hasPrev}
+                  />
+                </>
               )}
             </CardContent>
           </Card>

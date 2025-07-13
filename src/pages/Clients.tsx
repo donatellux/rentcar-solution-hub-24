@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/PaginationControls';
 import {
   Table,
   TableBody,
@@ -213,6 +215,27 @@ export const Clients: React.FC = () => {
       .includes(searchTerm.toLowerCase())
   );
 
+  const {
+    currentPage,
+    totalPages,
+    totalItems,
+    paginatedData: paginatedClients,
+    goToPage,
+    nextPage,
+    prevPage,
+    hasNext,
+    hasPrev,
+    reset
+  } = usePagination({
+    data: filteredClients,
+    itemsPerPage: 10
+  });
+
+  // Reset pagination when search term changes
+  useEffect(() => {
+    reset();
+  }, [searchTerm, reset]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -398,10 +421,10 @@ export const Clients: React.FC = () => {
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle>Liste des clients ({filteredClients.length})</CardTitle>
+            <CardTitle>Liste des clients ({totalItems})</CardTitle>
           </CardHeader>
           <CardContent>
-            {filteredClients.length === 0 ? (
+            {paginatedClients.length === 0 ? (
               <div className="text-center py-8">
                 <User className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
@@ -418,72 +441,86 @@ export const Clients: React.FC = () => {
                 )}
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nom & Prénom</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>CIN</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Nationalité</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredClients.map((client) => (
-                    <TableRow key={client.id}>
-                      <TableCell>
-                        <div className="font-medium">
-                          {client.prenom} {client.nom}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          {client.telephone && (
-                            <div className="flex items-center space-x-1 text-sm">
-                              <Phone className="w-3 h-3 text-gray-400" />
-                              <span>{client.telephone}</span>
-                            </div>
-                          )}
-                          {client.email && (
-                            <div className="flex items-center space-x-1 text-sm">
-                              <Mail className="w-3 h-3 text-gray-400" />
-                              <span>{client.email}</span>
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>{client.cin}</TableCell>
-                      <TableCell>
-                        <Badge className={getClientTypeColor(client.type)}>
-                          {client.type || 'N/A'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{client.nationalite}</TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEdit(client)}
-                            className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDelete(client.id)}
-                            className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nom & Prénom</TableHead>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>CIN</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Nationalité</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedClients.map((client) => (
+                      <TableRow key={client.id}>
+                        <TableCell>
+                          <div className="font-medium">
+                            {client.prenom} {client.nom}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            {client.telephone && (
+                              <div className="flex items-center space-x-1 text-sm">
+                                <Phone className="w-3 h-3 text-gray-400" />
+                                <span>{client.telephone}</span>
+                              </div>
+                            )}
+                            {client.email && (
+                              <div className="flex items-center space-x-1 text-sm">
+                                <Mail className="w-3 h-3 text-gray-400" />
+                                <span>{client.email}</span>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{client.cin}</TableCell>
+                        <TableCell>
+                          <Badge className={getClientTypeColor(client.type)}>
+                            {client.type || 'N/A'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{client.nationalite}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEdit(client)}
+                              className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDelete(client.id)}
+                              className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                
+                <PaginationControls
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  itemsPerPage={10}
+                  onPageChange={goToPage}
+                  onNext={nextPage}
+                  onPrev={prevPage}
+                  hasNext={hasNext}
+                  hasPrev={hasPrev}
+                />
+              </>
             )}
           </CardContent>
         </Card>

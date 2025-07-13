@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/PaginationControls';
 import {
   Table,
   TableBody,
@@ -273,6 +274,22 @@ export const Depenses: React.FC = () => {
       .includes(searchTerm.toLowerCase())
   );
 
+  const globalPagination = usePagination({
+    data: filteredGlobalExpenses,
+    itemsPerPage: 10
+  });
+
+  const vehiclePagination = usePagination({
+    data: filteredVehicleExpenses,
+    itemsPerPage: 10
+  });
+
+  // Reset pagination when search term changes
+  useEffect(() => {
+    globalPagination.reset();
+    vehiclePagination.reset();
+  }, [searchTerm]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -420,11 +437,11 @@ export const Depenses: React.FC = () => {
         <TabsList>
           <TabsTrigger value="global" className="flex items-center space-x-2">
             <Building className="w-4 h-4" />
-            <span>Dépenses Globales ({filteredGlobalExpenses.length})</span>
+            <span>Dépenses Globales ({globalPagination.totalItems})</span>
           </TabsTrigger>
           <TabsTrigger value="vehicle" className="flex items-center space-x-2">
             <Car className="w-4 h-4" />
-            <span>Dépenses Véhicules ({filteredVehicleExpenses.length})</span>
+            <span>Dépenses Véhicules ({vehiclePagination.totalItems})</span>
           </TabsTrigger>
         </TabsList>
 
@@ -434,7 +451,7 @@ export const Depenses: React.FC = () => {
               <CardTitle>Dépenses Globales</CardTitle>
             </CardHeader>
             <CardContent>
-              {filteredGlobalExpenses.length === 0 ? (
+              {globalPagination.paginatedData.length === 0 ? (
                 <div className="text-center py-8">
                   <Receipt className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
@@ -445,59 +462,73 @@ export const Depenses: React.FC = () => {
                   </p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Catégorie</TableHead>
-                      <TableHead>Montant</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredGlobalExpenses.map((expense) => (
-                      <TableRow key={expense.id}>
-                        <TableCell>
-                          <Badge className={getCategoryColor(expense.category)}>
-                            {expense.category || 'N/A'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {expense.amount ? `${expense.amount} MAD` : 'Non défini'}
-                        </TableCell>
-                        <TableCell>
-                          {expense.date ? new Date(expense.date).toLocaleDateString('fr-FR') : 'Non définie'}
-                        </TableCell>
-                        <TableCell>
-                          <div className="max-w-xs truncate">
-                            {expense.description || 'Aucune description'}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEdit(expense, 'global')}
-                              className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDelete(expense.id, 'global')}
-                              className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Catégorie</TableHead>
+                        <TableHead>Montant</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {globalPagination.paginatedData.map((expense) => (
+                        <TableRow key={expense.id}>
+                          <TableCell>
+                            <Badge className={getCategoryColor(expense.category)}>
+                              {expense.category || 'N/A'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {expense.amount ? `${expense.amount} MAD` : 'Non défini'}
+                          </TableCell>
+                          <TableCell>
+                            {expense.date ? new Date(expense.date).toLocaleDateString('fr-FR') : 'Non définie'}
+                          </TableCell>
+                          <TableCell>
+                            <div className="max-w-xs truncate">
+                              {expense.description || 'Aucune description'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEdit(expense, 'global')}
+                                className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDelete(expense.id, 'global')}
+                                className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  <PaginationControls
+                    currentPage={globalPagination.currentPage}
+                    totalPages={globalPagination.totalPages}
+                    totalItems={globalPagination.totalItems}
+                    itemsPerPage={10}
+                    onPageChange={globalPagination.goToPage}
+                    onNext={globalPagination.nextPage}
+                    onPrev={globalPagination.prevPage}
+                    hasNext={globalPagination.hasNext}
+                    hasPrev={globalPagination.hasPrev}
+                  />
+                </>
               )}
             </CardContent>
           </Card>
@@ -509,7 +540,7 @@ export const Depenses: React.FC = () => {
               <CardTitle>Dépenses Véhicules</CardTitle>
             </CardHeader>
             <CardContent>
-              {filteredVehicleExpenses.length === 0 ? (
+              {vehiclePagination.paginatedData.length === 0 ? (
                 <div className="text-center py-8">
                   <Car className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
@@ -520,66 +551,80 @@ export const Depenses: React.FC = () => {
                   </p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Véhicule</TableHead>
-                      <TableHead>Catégorie</TableHead>
-                      <TableHead>Montant</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredVehicleExpenses.map((expense) => (
-                      <TableRow key={expense.id}>
-                        <TableCell>
-                          {expense.vehicles ? 
-                            `${expense.vehicles.marque} ${expense.vehicles.modele} - ${expense.vehicles.immatriculation}` : 
-                            'Véhicule inconnu'
-                          }
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getCategoryColor(expense.category)}>
-                            {expense.category || 'N/A'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {expense.amount ? `${expense.amount} MAD` : 'Non défini'}
-                        </TableCell>
-                        <TableCell>
-                          {expense.date ? new Date(expense.date).toLocaleDateString('fr-FR') : 'Non définie'}
-                        </TableCell>
-                        <TableCell>
-                          <div className="max-w-xs truncate">
-                            {expense.description || 'Aucune description'}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEdit(expense, 'vehicle')}
-                              className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDelete(expense.id, 'vehicle')}
-                              className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Véhicule</TableHead>
+                        <TableHead>Catégorie</TableHead>
+                        <TableHead>Montant</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {vehiclePagination.paginatedData.map((expense) => (
+                        <TableRow key={expense.id}>
+                          <TableCell>
+                            {expense.vehicles ? 
+                              `${expense.vehicles.marque} ${expense.vehicles.modele} - ${expense.vehicles.immatriculation}` : 
+                              'Véhicule inconnu'
+                            }
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getCategoryColor(expense.category)}>
+                              {expense.category || 'N/A'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {expense.amount ? `${expense.amount} MAD` : 'Non défini'}
+                          </TableCell>
+                          <TableCell>
+                            {expense.date ? new Date(expense.date).toLocaleDateString('fr-FR') : 'Non définie'}
+                          </TableCell>
+                          <TableCell>
+                            <div className="max-w-xs truncate">
+                              {expense.description || 'Aucune description'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEdit(expense, 'vehicle')}
+                                className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDelete(expense.id, 'vehicle')}
+                                className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  <PaginationControls
+                    currentPage={vehiclePagination.currentPage}
+                    totalPages={vehiclePagination.totalPages}
+                    totalItems={vehiclePagination.totalItems}
+                    itemsPerPage={10}
+                    onPageChange={vehiclePagination.goToPage}
+                    onNext={vehiclePagination.nextPage}
+                    onPrev={vehiclePagination.prevPage}
+                    hasNext={vehiclePagination.hasNext}
+                    hasPrev={vehiclePagination.hasPrev}
+                  />
+                </>
               )}
             </CardContent>
           </Card>

@@ -11,6 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/PaginationControls';
 import {
   Table,
   TableBody,
@@ -316,6 +318,27 @@ export const Documents: React.FC = () => {
       .includes(searchTerm.toLowerCase())
   );
 
+  const {
+    currentPage,
+    totalPages,
+    totalItems,
+    paginatedData: paginatedDocuments,
+    goToPage,
+    nextPage,
+    prevPage,
+    hasNext,
+    hasPrev,
+    reset
+  } = usePagination({
+    data: filteredDocuments,
+    itemsPerPage: 10
+  });
+
+  // Reset pagination when search term changes
+  useEffect(() => {
+    reset();
+  }, [searchTerm, reset]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -446,10 +469,10 @@ export const Documents: React.FC = () => {
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle>Liste des documents ({filteredDocuments.length})</CardTitle>
+            <CardTitle>Liste des documents ({totalItems})</CardTitle>
           </CardHeader>
           <CardContent>
-            {filteredDocuments.length === 0 ? (
+            {paginatedDocuments.length === 0 ? (
               <div className="text-center py-8">
                 <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
@@ -466,88 +489,102 @@ export const Documents: React.FC = () => {
                 )}
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Titre</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Véhicule</TableHead>
-                    <TableHead>Date d'ajout</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredDocuments.map((document) => (
-                    <TableRow key={document.id}>
-                      <TableCell>
-                        <div className="font-medium">{document.title}</div>
-                        {document.description && (
-                          <div className="text-sm text-gray-500 mt-1 truncate max-w-xs">
-                            {document.description}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getTypeColor(document.type)}>
-                          {document.type || 'N/A'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {document.vehicles ? 
-                          `${document.vehicles.marque} ${document.vehicles.modele}` : 
-                          'Document général'
-                        }
-                      </TableCell>
-                      <TableCell>
-                        {document.uploaded_at ? 
-                          new Date(document.uploaded_at).toLocaleDateString('fr-FR') : 
-                          'Date non définie'
-                        }
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          {document.file_path && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handlePreview(document.file_path!)}
-                                className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleDownload(document.file_path!, document.title!)}
-                                className="hover:bg-green-50 hover:border-green-200 hover:text-green-700"
-                              >
-                                <Download className="w-4 h-4" />
-                              </Button>
-                            </>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEdit(document)}
-                            className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDelete(document.id, document.file_path)}
-                            className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Titre</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Véhicule</TableHead>
+                      <TableHead>Date d'ajout</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedDocuments.map((document) => (
+                      <TableRow key={document.id}>
+                        <TableCell>
+                          <div className="font-medium">{document.title}</div>
+                          {document.description && (
+                            <div className="text-sm text-gray-500 mt-1 truncate max-w-xs">
+                              {document.description}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getTypeColor(document.type)}>
+                            {document.type || 'N/A'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {document.vehicles ? 
+                            `${document.vehicles.marque} ${document.vehicles.modele}` : 
+                            'Document général'
+                          }
+                        </TableCell>
+                        <TableCell>
+                          {document.uploaded_at ? 
+                            new Date(document.uploaded_at).toLocaleDateString('fr-FR') : 
+                            'Date non définie'
+                          }
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            {document.file_path && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handlePreview(document.file_path!)}
+                                  className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleDownload(document.file_path!, document.title!)}
+                                  className="hover:bg-green-50 hover:border-green-200 hover:text-green-700"
+                                >
+                                  <Download className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEdit(document)}
+                              className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDelete(document.id, document.file_path)}
+                              className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                <PaginationControls
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  itemsPerPage={10}
+                  onPageChange={goToPage}
+                  onNext={nextPage}
+                  onPrev={prevPage}
+                  hasNext={hasNext}
+                  hasPrev={hasPrev}
+                />
+              </>
             )}
           </CardContent>
         </Card>
