@@ -17,9 +17,9 @@ import { PaginationControls } from '@/components/PaginationControls';
 
 interface Depense {
   id: string;
-  vehicule_id: string;
-  type: string;
-  cout: number;
+  vehicle_id: string;
+  category: string;
+  amount: number;
   date: string;
   description: string;
   agency_id: string;
@@ -49,16 +49,16 @@ export const Depenses: React.FC = () => {
   const [editingDepense, setEditingDepense] = useState<Depense | null>(null);
 
   const [formData, setFormData] = useState({
-    vehicule_id: '',
-    type: '',
-    cout: '',
+    vehicle_id: '',
+    category: '',
+    amount: '',
     date: '',
     description: '',
   });
 
   // Filter depenses first
   const filteredDepenses = depenses.filter(depense =>
-    `${depense.type} ${depense.description} ${depense.vehicles?.marque} ${depense.vehicles?.modele}`
+    `${depense.category} ${depense.description} ${depense.vehicles?.marque} ${depense.vehicles?.modele}`
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
@@ -136,9 +136,9 @@ export const Depenses: React.FC = () => {
       setLoading(true);
 
       const depenseData = {
-        vehicule_id: formData.vehicule_id,
-        type: formData.type,
-        cout: parseFloat(formData.cout),
+        vehicle_id: formData.vehicle_id,
+        category: formData.category,
+        amount: parseFloat(formData.amount),
         date: formData.date,
         description: formData.description,
         agency_id: user.id,
@@ -215,9 +215,9 @@ export const Depenses: React.FC = () => {
   const handleEdit = (depense: Depense) => {
     setEditingDepense(depense);
     setFormData({
-      vehicule_id: depense.vehicule_id || '',
-      type: depense.type || '',
-      cout: depense.cout?.toString() || '',
+      vehicle_id: depense.vehicle_id || '',
+      category: depense.category || '',
+      amount: depense.amount?.toString() || '',
       date: depense.date || '',
       description: depense.description || '',
     });
@@ -226,9 +226,9 @@ export const Depenses: React.FC = () => {
 
   const resetForm = () => {
     setFormData({
-      vehicule_id: '',
-      type: '',
-      cout: '',
+      vehicle_id: '',
+      category: '',
+      amount: '',
       date: '',
       description: '',
     });
@@ -260,8 +260,8 @@ export const Depenses: React.FC = () => {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="vehicule_id">Véhicule</Label>
-                <Select value={formData.vehicule_id} onValueChange={(value) => setFormData({ ...formData, vehicule_id: value })}>
+                <Label htmlFor="vehicle_id">Véhicule</Label>
+                <Select value={formData.vehicle_id} onValueChange={(value) => setFormData({ ...formData, vehicle_id: value })}>
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Sélectionner un véhicule" />
                   </SelectTrigger>
@@ -275,24 +275,24 @@ export const Depenses: React.FC = () => {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="type">Type de dépense</Label>
+                <Label htmlFor="category">Type de dépense</Label>
                 <Input
-                  id="type"
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  id="category"
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   className="mt-1"
                   placeholder="Entrez le type de dépense"
                 />
               </div>
               <div>
-                <Label htmlFor="cout">Coût</Label>
+                <Label htmlFor="amount">Coût</Label>
                 <Input
-                  id="cout"
+                  id="amount"
                   type="number"
                   min="0"
                   step="0.01"
-                  value={formData.cout}
-                  onChange={(e) => setFormData({ ...formData, cout: e.target.value })}
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                   className="mt-1"
                   placeholder="0.00"
                 />
@@ -389,7 +389,7 @@ export const Depenses: React.FC = () => {
                     <Card key={depense.id} className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
                       <CardHeader className="p-4">
                         <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white truncate">
-                          {depense.type}
+                          {depense.category}
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="p-4">
@@ -404,7 +404,7 @@ export const Depenses: React.FC = () => {
                           </p>
                           <p>
                             <Receipt className="inline-block w-4 h-4 mr-1 align-middle text-gray-400" />
-                            <span className="font-medium">Coût:</span> {depense.cout} MAD
+                            <span className="font-medium">Coût:</span> {depense.amount} MAD
                           </p>
                           <p className="truncate">
                             <span className="font-medium">Description:</span> {depense.description}
