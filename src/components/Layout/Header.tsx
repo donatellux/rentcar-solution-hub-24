@@ -4,6 +4,7 @@ import { Menu, Search, Bell, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -51,6 +52,26 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
           </Button>
 
           <div className="flex items-center space-x-3">
+            {agency?.logo_path ? (
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-white border-2 border-gray-200">
+                <img
+                  src={(() => {
+                    const { data: { publicUrl } } = supabase.storage
+                      .from('logos')
+                      .getPublicUrl(agency.logo_path);
+                    return publicUrl;
+                  })()}
+                  alt="Agency logo"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+            ) : (
+              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                <span className="text-sm font-medium text-white">
+                  {agency?.agency_name?.charAt(0) || 'A'}
+                </span>
+              </div>
+            )}
             <div className="text-right">
               <p className="text-sm font-medium text-gray-900 dark:text-white">
                 {agency?.agency_name || 'Agence'}
@@ -58,11 +79,6 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {agency?.email}
               </p>
-            </div>
-            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-              <span className="text-sm font-medium text-white">
-                {agency?.agency_name?.charAt(0) || 'A'}
-              </span>
             </div>
           </div>
         </div>

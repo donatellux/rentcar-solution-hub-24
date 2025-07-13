@@ -92,7 +92,11 @@ export const Parametres: React.FC = () => {
         });
         
         if (data.logo_path) {
-          setPreviewUrl(data.logo_path);
+          // Get the public URL from the storage bucket
+          const { data: { publicUrl } } = supabase.storage
+            .from('logos')
+            .getPublicUrl(data.logo_path.split('/').pop() || '');
+          setPreviewUrl(publicUrl);
         }
       }
     } catch (error) {
@@ -144,13 +148,9 @@ export const Parametres: React.FC = () => {
 
       console.log('Upload successful:', data);
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('logos')
-        .getPublicUrl(fileName);
-
-      console.log('Public URL:', publicUrl);
-      return publicUrl;
+      // Return just the filename for database storage
+      console.log('Logo filename:', fileName);
+      return fileName;
     } catch (error) {
       console.error('Error uploading logo:', error);
       throw error;
