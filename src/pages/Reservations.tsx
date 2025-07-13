@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -351,10 +352,10 @@ export const Reservations: React.FC = () => {
     const revenue = days * reservationData.prix_par_jour;
 
     try {
-      const { error } = await supabase.from('depenses').insert({
+      const { error } = await supabase.from('global_expenses').insert({
         description: `Revenus - Réservation ${reservationData.client_id}`,
-        montant: revenue,
-        type: 'revenus',
+        amount: revenue,
+        category: 'revenus',
         date: new Date().toISOString().split('T')[0],
         agency_id: user?.id,
       });
