@@ -115,11 +115,30 @@ All colors MUST be HSL.
     }
 
     .card-grid {
-      @apply grid-cols-1 sm:grid-cols-2;
+      @apply grid-cols-1 sm:grid-cols-2 gap-4;
     }
 
     .stats-grid {
-      @apply grid-cols-1 sm:grid-cols-2;
+      @apply grid-cols-1 sm:grid-cols-2 gap-4;
+    }
+    
+    .page-spacing {
+      @apply p-4 space-y-4;
+    }
+  }
+
+  /* Desktop optimizations */
+  @media (min-width: 1024px) {
+    .card-grid {
+      @apply gap-6;
+    }
+
+    .stats-grid {
+      @apply gap-8;
+    }
+    
+    .page-spacing {
+      @apply space-y-8;
     }
   }
 

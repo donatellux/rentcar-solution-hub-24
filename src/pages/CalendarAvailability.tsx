@@ -22,6 +22,7 @@ interface Vehicle {
   marque: string;
   modele: string;
   immatriculation: string;
+  photo_path?: string;
 }
 
 interface Reservation {
@@ -56,15 +57,15 @@ const CalendarAvailability: React.FC = () => {
     }
   }, [user, currentDate]);
 
-  const fetchData = async () => {
+const fetchData = async () => {
     if (!user) return;
     setLoading(true);
 
     try {
-      // Fetch vehicles
+      // Fetch vehicles with photo
       const { data: vehiclesData, error: vehiclesError } = await supabase
         .from('vehicles')
-        .select('id, marque, modele, immatriculation')
+        .select('id, marque, modele, immatriculation, photo_path')
         .eq('agency_id', user.id);
       
       if (vehiclesError) throw vehiclesError;
@@ -175,7 +176,7 @@ const CalendarAvailability: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 p-6 max-w-7xl mx-auto">
+    <div className="page-spacing">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -238,77 +239,122 @@ const CalendarAvailability: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Calendar Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Vehicle List */}
-        <div className="space-y-4">
-          <h3 className="font-semibold text-foreground">Véhicules ({filteredVehicles.length})</h3>
-          <div className="space-y-3">
-            {filteredVehicles.map(vehicle => (
-              <Card key={vehicle.id} className="p-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
-                    <Car className="w-6 h-6 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{vehicle.marque} {vehicle.modele}</p>
-                    <p className="text-xs text-muted-foreground">{vehicle.immatriculation}</p>
+      {/* Calendar Grid - Each Vehicle with its Calendar */}
+      <div className="space-y-8">
+        {filteredVehicles.map(vehicle => (
+          <Card key={vehicle.id} className="overflow-hidden">
+            <CardContent className="p-8">
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                {/* Vehicle Card */}
+                <div className="lg:col-span-1">
+                  <div className="space-y-6">
+                    {/* Vehicle Photo */}
+                    <div className="relative group">
+                      <div className="aspect-[4/3] rounded-xl overflow-hidden bg-gradient-to-br from-muted to-muted/60">
+                        {vehicle.photo_path ? (
+                          <img
+                            src={vehicle.photo_path}
+                            alt={`${vehicle.marque} ${vehicle.modele}`}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              target.nextElementSibling?.classList.remove('hidden');
+                            }}
+                          />
+                        ) : null}
+                        <div className={`${vehicle.photo_path ? 'hidden' : 'flex'} absolute inset-0 items-center justify-center`}>
+                          <Car className="w-16 h-16 text-muted-foreground/50" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Vehicle Info */}
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-xl font-bold text-foreground">
+                          {vehicle.marque} {vehicle.modele}
+                        </h3>
+                        <p className="text-muted-foreground font-medium">
+                          {vehicle.immatriculation}
+                        </p>
+                      </div>
+
+                      {/* Quick Stats */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Réservations ce mois</span>
+                          <Badge variant="secondary">
+                            {reservations.filter(r => r.vehicule_id === vehicle.id).length}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Disponibilité</span>
+                          <Badge variant={
+                            reservations.filter(r => r.vehicule_id === vehicle.id).length > 15 
+                              ? "destructive" 
+                              : "default"
+                          }>
+                            {Math.round((1 - reservations.filter(r => r.vehicule_id === vehicle.id).length / daysInMonth) * 100)}%
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </Card>
-            ))}
-          </div>
-        </div>
 
-        {/* Calendar */}
-        <div className="lg:col-span-3">
-          <Card>
-            <CardHeader>
-              <div className="grid grid-cols-7 gap-2 text-center">
-                {['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'].map(day => (
-                  <div key={day} className="p-2 text-sm font-medium text-muted-foreground">
-                    {day}
-                  </div>
-                ))}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {filteredVehicles.map(vehicle => (
-                  <div key={vehicle.id} className="space-y-2">
-                    <div className="text-sm font-medium text-foreground">
-                      {vehicle.marque} {vehicle.modele}
+                {/* Calendar */}
+                <div className="lg:col-span-3">
+                  <div className="space-y-6">
+                    {/* Calendar Header */}
+                    <div className="grid grid-cols-7 gap-2">
+                      {['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'].map(day => (
+                        <div key={day} className="p-3 text-center">
+                          <span className="text-sm font-semibold text-muted-foreground">{day}</span>
+                        </div>
+                      ))}
                     </div>
-                    <div className="grid grid-cols-7 gap-1">
+
+                    {/* Calendar Body */}
+                    <div className="grid grid-cols-7 gap-2">
                       {/* Empty cells for days before month starts */}
                       {Array.from({ length: firstDayOfMonth }, (_, index) => (
-                        <div key={`empty-${index}`} className="h-8"></div>
+                        <div key={`empty-${index}`} className="aspect-square"></div>
                       ))}
                       
                       {/* Days of the month */}
                       {Array.from({ length: daysInMonth }, (_, index) => {
                         const day = index + 1;
                         const reservation = getReservationForDay(vehicle.id, day);
+                        const isToday = new Date().toDateString() === new Date(currentYear, currentMonth, day).toDateString();
                         
                         return (
                           <div 
                             key={day} 
-                            className="h-8 border rounded text-xs flex items-center justify-center relative group cursor-pointer hover:border-primary"
+                            className={`aspect-square border rounded-lg flex items-center justify-center relative group cursor-pointer transition-all duration-200 hover:border-primary hover:shadow-md ${
+                              isToday ? 'ring-2 ring-primary ring-offset-2' : ''
+                            }`}
                           >
-                            <span className="text-muted-foreground">{day}</span>
+                            <span className={`text-sm font-medium ${isToday ? 'text-primary' : 'text-foreground'}`}>
+                              {day}
+                            </span>
+                            
                             {reservation && (
                               <>
                                 <div 
-                                  className={`absolute inset-0 rounded opacity-80 ${getStatusColor(reservation.statut)}`}
+                                  className={`absolute inset-1 rounded opacity-90 ${getStatusColor(reservation.statut)}`}
                                 ></div>
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                  <span className="text-white text-xs font-medium">{day}</span>
+                                  <span className="text-white text-sm font-semibold">{day}</span>
                                 </div>
                                 
-                                {/* Tooltip */}
-                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-lg border opacity-0 group-hover:opacity-100 transition-opacity z-10 min-w-max">
-                                  <div className="font-medium">{reservation.client_name}</div>
+                                {/* Enhanced Tooltip */}
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 px-3 py-2 bg-popover text-popover-foreground text-sm rounded-lg shadow-xl border opacity-0 group-hover:opacity-100 transition-opacity z-20 min-w-max">
+                                  <div className="font-semibold">{reservation.client_name}</div>
                                   <div className="text-muted-foreground">{getStatusLabel(reservation.statut)}</div>
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    {new Date(reservation.date_debut).toLocaleDateString('fr-FR')} - {new Date(reservation.date_fin).toLocaleDateString('fr-FR')}
+                                  </div>
                                 </div>
                               </>
                             )}
@@ -317,11 +363,21 @@ const CalendarAvailability: React.FC = () => {
                       })}
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
             </CardContent>
           </Card>
-        </div>
+        ))}
+
+        {filteredVehicles.length === 0 && (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <Car className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">Aucun véhicule trouvé</h3>
+              <p className="text-muted-foreground">Essayez de modifier vos critères de recherche</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

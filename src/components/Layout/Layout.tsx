@@ -16,7 +16,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-background">
       <div className="flex">
         {/* Sidebar */}
         <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
@@ -25,8 +25,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="flex-1 lg:ml-[280px]">
           <Header onMenuToggle={toggleSidebar} />
           
-          <main className="p-4 pb-20 lg:pb-4">
-            {children}
+          <main className="p-6 pb-24 lg:pb-8 lg:px-8 xl:px-12">
+            <div className="mx-auto max-w-7xl">
+              {children}
+            </div>
           </main>
         </div>
       </div>
