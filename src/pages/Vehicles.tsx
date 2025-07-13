@@ -280,13 +280,7 @@ export const Vehicles: React.FC = () => {
     prevPage,
     hasNext,
     hasPrev,
-    reset
   } = usePagination({ data: filteredVehicles, itemsPerPage: 10 });
-
-  // Reset pagination when search term changes
-  useEffect(() => {
-    reset();
-  }, [searchTerm, reset]);
 
   return (
     <div className="page-spacing animate-fade-in">
@@ -507,7 +501,7 @@ export const Vehicles: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
+        <>
           <div className="card-grid">
             {paginatedData.map((vehicle) => {
               const imageUrl = getVehicleImageUrl(vehicle.photo_path);
@@ -569,22 +563,18 @@ export const Vehicles: React.FC = () => {
             })}
           </div>
           
-          {totalPages > 1 && (
-            <div className="mt-8">
-              <PaginationControls
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={totalItems}
-                itemsPerPage={10}
-                onPageChange={goToPage}
-                onNext={nextPage}
-                onPrev={prevPage}
-                hasNext={hasNext}
-                hasPrev={hasPrev}
-              />
-            </div>
-          )}
-        </div>
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={10}
+            onPageChange={goToPage}
+            onNext={nextPage}
+            onPrev={prevPage}
+            hasNext={hasNext}
+            hasPrev={hasPrev}
+          />
+        </>
       )}
     </div>
   );
