@@ -502,60 +502,63 @@ export const Vehicles: React.FC = () => {
         </Card>
       ) : (
         <>
-          <div className="card-grid">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {paginatedData.map((vehicle) => {
               const imageUrl = getVehicleImageUrl(vehicle.photo_path);
               
               return (
-                <Card key={vehicle.id} className="hover:shadow-elegant transition-all-smooth hover:scale-[1.02] border-border/50">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="p-2 gradient-primary rounded-lg">
-                          <Car className="w-5 h-5 text-primary-foreground" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-lg">
-                            {vehicle.marque} {vehicle.modele}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            {vehicle.annee} • {vehicle.immatriculation}
-                          </p>
-                        </div>
+                <Card key={vehicle.id} className="overflow-hidden hover:shadow-elegant transition-all-smooth hover:scale-[1.02] border-border/50 h-fit">
+                  <div className="aspect-video relative bg-muted">
+                    {imageUrl ? (
+                      <img
+                        src={imageUrl}
+                        alt={`${vehicle.marque} ${vehicle.modele}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Car className="w-12 h-12 text-muted-foreground" />
                       </div>
+                    )}
+                    <div className="absolute top-2 right-2">
                       <Badge className={getStatusColor(vehicle.etat)}>
                         {vehicle.etat}
                       </Badge>
                     </div>
-
-                    {imageUrl && (
-                      <div className="mb-4">
-                        <img
-                          src={imageUrl}
-                          alt={`${vehicle.marque} ${vehicle.modele}`}
-                          className="w-full h-32 object-cover rounded-lg border border-border"
-                        />
+                  </div>
+                  
+                  <CardContent className="p-4">
+                    <div className="space-y-3">
+                      <div>
+                        <h3 className="font-semibold text-lg leading-tight">
+                          {vehicle.marque} {vehicle.modele}
+                        </h3>
+                        <div className="text-sm text-muted-foreground space-y-1 mt-1">
+                          <div>{vehicle.annee} • {vehicle.immatriculation}</div>
+                          {vehicle.couleur && <div>Couleur: {vehicle.couleur}</div>}
+                          {vehicle.kilometrage && <div>{vehicle.kilometrage.toLocaleString()} km</div>}
+                        </div>
                       </div>
-                    )}
 
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEdit(vehicle)}
-                        className="flex-1 hover:bg-primary/10 hover:border-primary/20 hover:text-primary transition-colors"
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        {t('common.edit')}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDelete(vehicle.id)}
-                        className="hover:bg-destructive/10 hover:border-destructive/20 hover:text-destructive transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(vehicle)}
+                          className="flex-1 hover:bg-primary/10 hover:border-primary/20 hover:text-primary transition-colors"
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          {t('common.edit')}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDelete(vehicle.id)}
+                          className="hover:bg-destructive/10 hover:border-destructive/20 hover:text-destructive transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
