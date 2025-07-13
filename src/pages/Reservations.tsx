@@ -659,7 +659,6 @@ export const Reservations: React.FC = () => {
                             mode="single"
                             selected={dateRange.debut || undefined}
                             onSelect={handleDateSelect('debut')}
-                            disabled={(date) => date < new Date()}
                             initialFocus
                             className="pointer-events-auto"
                           />
@@ -686,7 +685,7 @@ export const Reservations: React.FC = () => {
                             mode="single"
                             selected={dateRange.fin || undefined}
                             onSelect={handleDateSelect('fin')}
-                            disabled={(date) => date < (dateRange.debut || new Date())}
+                            disabled={(date) => dateRange.debut && date < dateRange.debut}
                             initialFocus
                             className="pointer-events-auto"
                           />
