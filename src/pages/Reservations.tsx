@@ -23,7 +23,6 @@ interface Reservation {
   date_fin: string | null;
   prix_par_jour: number | null;
   statut: string | null;
-  notes: string | null;
   km_depart: number | null;
   km_retour: number | null;
   agency_id: string | null;
@@ -91,7 +90,6 @@ export const Reservations: React.FC = () => {
     date_fin: '',
     prix_par_jour: '',
     statut: 'confirmee',
-    notes: '',
     km_depart: '',
     km_retour: '',
   });
@@ -111,7 +109,21 @@ export const Reservations: React.FC = () => {
       const { data, error } = await supabase
         .from('reservations')
         .select(`
-          *,
+          id,
+          client_id,
+          vehicule_id,
+          date_debut,
+          date_fin,
+          prix_par_jour,
+          statut,
+          km_depart,
+          km_retour,
+          agency_id,
+          cin_scan_url,
+          created_at,
+          lieu_delivrance,
+          lieu_recuperation,
+          permis_scan_url,
           clients(nom, prenom, telephone),
           vehicles(marque, modele, immatriculation)
         `)
@@ -281,7 +293,6 @@ export const Reservations: React.FC = () => {
       date_fin: reservation.date_fin || '',
       prix_par_jour: reservation.prix_par_jour?.toString() || '',
       statut: reservation.statut || 'confirmee',
-      notes: reservation.notes || '',
       km_depart: reservation.km_depart?.toString() || '',
       km_retour: reservation.km_retour?.toString() || '',
     });
@@ -296,7 +307,6 @@ export const Reservations: React.FC = () => {
       date_fin: '',
       prix_par_jour: '',
       statut: 'confirmee',
-      notes: '',
       km_depart: '',
       km_retour: '',
     });
@@ -443,15 +453,6 @@ export const Reservations: React.FC = () => {
                     className="mt-1"
                   />
                 </div>
-              </div>
-              <div>
-                <Label htmlFor="notes">{t('reservations.notes')}</Label>
-                <Input
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="mt-1"
-                />
               </div>
               <div className="flex justify-end space-x-3 pt-4 border-t">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
