@@ -117,15 +117,16 @@ All colors MUST be HSL.
   /* Optimized spacing system */
   .page-container {
     @apply min-h-screen w-full;
+    @apply p-2 sm:p-4 lg:p-6;
   }
 
   .page-content {
     @apply flex-1 overflow-y-auto;
-    @apply px-3 py-4 sm:px-4 sm:py-6 lg:px-6 lg:py-8 xl:px-8 xl:py-10;
+    @apply space-y-4 sm:space-y-6;
   }
 
   .page-header {
-    @apply mb-4 sm:mb-6 lg:mb-8;
+    @apply mb-4 sm:mb-6;
   }
 
   .page-title {
@@ -160,7 +161,7 @@ All colors MUST be HSL.
   }
 
   .section-spacing {
-    @apply space-y-4 sm:space-y-6 lg:space-y-8;
+    @apply space-y-4 sm:space-y-6;
   }
 
   .card-spacing {
@@ -170,7 +171,7 @@ All colors MUST be HSL.
   /* Mobile optimizations */
   @media (max-width: 640px) {
     .dialog-content {
-      @apply max-h-[85vh] overflow-y-auto m-2;
+      @apply max-h-[85vh] overflow-y-auto m-2 max-w-[95vw];
     }
 
     .table-responsive {
@@ -195,6 +196,23 @@ All colors MUST be HSL.
 
     .mobile-show {
       @apply block;
+    }
+
+    .mobile-card {
+      @apply border border-border rounded-lg shadow-sm hover:shadow-md transition-shadow;
+      @apply bg-card text-card-foreground;
+    }
+
+    .mobile-card-header {
+      @apply p-3 pb-2;
+    }
+
+    .mobile-card-content {
+      @apply p-3 pt-0 space-y-2;
+    }
+
+    .mobile-grid {
+      @apply grid-cols-1 gap-3;
     }
   }
 
@@ -332,6 +350,25 @@ All colors MUST be HSL.
 
   .transition-all-smooth {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Mobile Card Styles */
+  .mobile-card {
+    @apply bg-card text-card-foreground rounded-lg border shadow-sm;
+    @apply hover:shadow-md transition-shadow duration-200;
+    @apply p-0 overflow-hidden;
+  }
+
+  .mobile-card-actions {
+    @apply flex justify-between items-center pt-3 border-t border-border;
+  }
+
+  .mobile-card-badge {
+    @apply inline-flex items-center rounded-full px-2 py-1 text-xs font-medium;
+  }
+
+  .mobile-card-info {
+    @Apply flex items-center space-x-2 text-sm text-muted-foreground;
   }
 
   /* RTL Support */
