@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Edit, Trash2, Calendar, Car, User, MapPin, Upload, Eye, FileText, Download, CalendarDays } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Calendar, Car, User, Eye, FileText, CalendarDays } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -16,6 +16,8 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/PaginationControls';
 
 interface Reservation {
   id: string;
@@ -108,6 +110,32 @@ export const Reservations: React.FC = () => {
     cin_file: null as File | null,
     permis_file: null as File | null,
   });
+
+  // Filter reservations first
+  const filteredReservations = reservations.filter(reservation =>
+    `${reservation.clients?.nom} ${reservation.clients?.prenom} ${reservation.vehicles?.marque} ${reservation.vehicles?.modele}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
+
+  // Add pagination
+  const {
+    currentPage,
+    totalPages,
+    totalItems,
+    paginatedData,
+    goToPage,
+    nextPage,
+    prevPage,
+    hasNext,
+    hasPrev,
+    reset
+  } = usePagination({ data: filteredReservations, itemsPerPage: 10 });
+
+  // Reset pagination when search term changes
+  useEffect(() => {
+    reset();
+  }, [searchTerm, reset]);
 
   useEffect(() => {
     if (user) {
@@ -598,12 +626,6 @@ export const Reservations: React.FC = () => {
     }
   };
 
-  const filteredReservations = reservations.filter(reservation =>
-    `${reservation.clients?.nom} ${reservation.clients?.prenom} ${reservation.vehicles?.marque} ${reservation.vehicles?.modele}`
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase())
-  );
-
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -631,7 +653,6 @@ export const Reservations: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  {/* Date Selection First */}
                   <Card className="border-blue-200 dark:border-blue-800">
                     <CardHeader>
                       <CardTitle className="flex items-center space-x-2 text-blue-600">
@@ -927,163 +948,179 @@ export const Reservations: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Calendar className="w-5 h-5 text-blue-600" />
-              <span>Liste des réservations ({filteredReservations.length})</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {filteredReservations.length === 0 ? (
-              <div className="text-center py-8">
-                <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
-                  Aucune réservation trouvée
-                </h3>
-                <p className="text-gray-500 dark:text-gray-400 mb-4">
-                  {searchTerm ? 'Aucune réservation ne correspond à votre recherche.' : 'Commencez par ajouter votre première réservation.'}
-                </p>
-                {!searchTerm && (
-                  <Button onClick={() => { resetForm(); setEditingReservation(null); setIsDialogOpen(true); }} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Nouvelle réservation
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Client</TableHead>
-                      <TableHead>Véhicule</TableHead>
-                      <TableHead>Période</TableHead>
-                      <TableHead>Prix/jour</TableHead>
-                      <TableHead>Statut</TableHead>
-                      <TableHead>Documents</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredReservations.map((reservation) => (
-                      <TableRow key={reservation.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <User className="w-4 h-4 text-gray-400" />
-                            <div>
-                              <div className="font-medium">
-                                {reservation.clients?.prenom} {reservation.clients?.nom}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {reservation.clients?.telephone}
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <Car className="w-4 h-4 text-gray-400" />
-                            <div>
-                              <div className="font-medium">
-                                {reservation.vehicles?.marque} {reservation.vehicles?.modele}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {reservation.vehicles?.immatriculation}
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            {reservation.date_debut && reservation.date_fin ? (
-                              <>
-                                <div>{new Date(reservation.date_debut).toLocaleDateString('fr-FR')}</div>
-                                <div className="text-gray-500">au {new Date(reservation.date_fin).toLocaleDateString('fr-FR')}</div>
-                              </>
-                            ) : (
-                              'Dates non définies'
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium">
-                            {reservation.prix_par_jour ? `${reservation.prix_par_jour} MAD` : 'N/A'}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(reservation.statut)}>
-                            {reservation.statut || 'N/A'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {reservation.cin_scan_url && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handlePreviewImage(reservation.cin_scan_url!)}
-                                className="text-xs hover:bg-blue-50 hover:border-blue-200"
-                              >
-                                <Eye className="w-3 h-3 mr-1" />
-                                CIN
-                              </Button>
-                            )}
-                            {reservation.permis_scan_url && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handlePreviewImage(reservation.permis_scan_url!)}
-                                className="text-xs hover:bg-blue-50 hover:border-blue-200"
-                              >
-                                <Eye className="w-3 h-3 mr-1" />
-                                Permis
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => generateContractPDF(reservation)}
-                              disabled={generatingPDF === reservation.id}
-                              className="hover:bg-green-50 hover:border-green-200 hover:text-green-700"
-                            >
-                              {generatingPDF === reservation.id ? (
-                                <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin mr-1" />
-                              ) : (
-                                <FileText className="w-4 h-4 mr-1" />
-                              )}
-                              <span className="hidden sm:inline">Contrat</span>
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEdit(reservation)}
-                              className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDelete(reservation.id)}
-                              className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+        <div className="space-y-6">
+          <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Calendar className="w-5 h-5 text-blue-600" />
+                <span>Liste des réservations ({totalItems})</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {paginatedData.length === 0 ? (
+                <div className="text-center py-8">
+                  <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
+                    Aucune réservation trouvée
+                  </h3>
+                  <p className="text-gray-500 dark:text-gray-400 mb-4">
+                    {searchTerm ? 'Aucune réservation ne correspond à votre recherche.' : 'Commencez par ajouter votre première réservation.'}
+                  </p>
+                  {!searchTerm && (
+                    <Button onClick={() => { resetForm(); setEditingReservation(null); setIsDialogOpen(true); }} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Nouvelle réservation
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Client</TableHead>
+                        <TableHead>Véhicule</TableHead>
+                        <TableHead>Période</TableHead>
+                        <TableHead>Prix/jour</TableHead>
+                        <TableHead>Statut</TableHead>
+                        <TableHead>Documents</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedData.map((reservation) => (
+                        <TableRow key={reservation.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <User className="w-4 h-4 text-gray-400" />
+                              <div>
+                                <div className="font-medium">
+                                  {reservation.clients?.prenom} {reservation.clients?.nom}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {reservation.clients?.telephone}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <Car className="w-4 h-4 text-gray-400" />
+                              <div>
+                                <div className="font-medium">
+                                  {reservation.vehicles?.marque} {reservation.vehicles?.modele}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {reservation.vehicles?.immatriculation}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              {reservation.date_debut && reservation.date_fin ? (
+                                <>
+                                  <div>{new Date(reservation.date_debut).toLocaleDateString('fr-FR')}</div>
+                                  <div className="text-gray-500">au {new Date(reservation.date_fin).toLocaleDateString('fr-FR')}</div>
+                                </>
+                              ) : (
+                                'Dates non définies'
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">
+                              {reservation.prix_par_jour ? `${reservation.prix_par_jour} MAD` : 'N/A'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(reservation.statut)}>
+                              {reservation.statut || 'N/A'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {reservation.cin_scan_url && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handlePreviewImage(reservation.cin_scan_url!)}
+                                  className="text-xs hover:bg-blue-50 hover:border-blue-200"
+                                >
+                                  <Eye className="w-3 h-3 mr-1" />
+                                  CIN
+                                </Button>
+                              )}
+                              {reservation.permis_scan_url && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handlePreviewImage(reservation.permis_scan_url!)}
+                                  className="text-xs hover:bg-blue-50 hover:border-blue-200"
+                                >
+                                  <Eye className="w-3 h-3 mr-1" />
+                                  Permis
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => generateContractPDF(reservation)}
+                                disabled={generatingPDF === reservation.id}
+                                className="hover:bg-green-50 hover:border-green-200 hover:text-green-700"
+                              >
+                                {generatingPDF === reservation.id ? (
+                                  <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin mr-1" />
+                                ) : (
+                                  <FileText className="w-4 h-4 mr-1" />
+                                )}
+                                <span className="hidden sm:inline">Contrat</span>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEdit(reservation)}
+                                className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDelete(reservation.id)}
+                                className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {totalPages > 1 && (
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              itemsPerPage={10}
+              onPageChange={goToPage}
+              onNext={nextPage}
+              onPrev={prevPage}
+              hasNext={hasNext}
+              hasPrev={hasPrev}
+            />
+          )}
+        </div>
       )}
 
       {/* Image Preview Dialog */}
