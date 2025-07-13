@@ -26,6 +26,12 @@ interface Reservation {
   notes: string | null;
   km_depart: number | null;
   km_retour: number | null;
+  agency_id: string | null;
+  cin_scan_url: string | null;
+  created_at: string | null;
+  lieu_delivrance: string | null;
+  lieu_recuperation: string | null;
+  permis_scan_url: string | null;
   clients?: {
     nom: string;
     prenom: string;
