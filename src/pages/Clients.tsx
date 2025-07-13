@@ -228,14 +228,14 @@ export const Clients: React.FC = () => {
               Ajouter un client
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold">
                 {editingClient ? 'Modifier le client' : 'Ajouter un client'}
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="nom">Nom *</Label>
                   <Input
@@ -276,7 +276,7 @@ export const Clients: React.FC = () => {
                     className="mt-1"
                   />
                 </div>
-                <div className="md:col-span-2">
+                <div className="sm:col-span-2">
                   <Label htmlFor="adresse">Adresse</Label>
                   <Input
                     id="adresse"
@@ -355,7 +355,7 @@ export const Clients: React.FC = () => {
                   </Select>
                 </div>
               </div>
-              <div className="flex justify-end space-x-3 pt-4 border-t">
+              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 border-t">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Annuler
                 </Button>

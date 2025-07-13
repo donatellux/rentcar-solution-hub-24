@@ -331,14 +331,14 @@ export const Documents: React.FC = () => {
               Nouveau document
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold">
                 {editingDocument ? 'Modifier le document' : 'Nouveau document'}
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="title">Titre *</Label>
                   <Input
@@ -365,7 +365,7 @@ export const Documents: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="md:col-span-2">
+                <div className="sm:col-span-2">
                   <Label htmlFor="car_id">Véhicule (optionnel)</Label>
                   <Select value={formData.car_id} onValueChange={(value) => setFormData({ ...formData, car_id: value })}>
                     <SelectTrigger className="mt-1">
@@ -381,7 +381,7 @@ export const Documents: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="md:col-span-2">
+                <div className="sm:col-span-2">
                   <Label htmlFor="file">Fichier</Label>
                   <Input
                     id="file"
@@ -406,7 +406,7 @@ export const Documents: React.FC = () => {
                 />
               </div>
               
-              <div className="flex justify-end space-x-3 pt-4 border-t">
+              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 border-t">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Annuler
                 </Button>

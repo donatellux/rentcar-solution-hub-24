@@ -296,13 +296,13 @@ export const Depenses: React.FC = () => {
               Nouvelle dépense
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold">
                 {editingExpense ? 'Modifier la dépense' : 'Nouvelle dépense'}
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <Label>Type de dépense</Label>
                 <Tabs value={expenseType} onValueChange={(value) => setExpenseType(value as 'global' | 'vehicle')} className="mt-1">
@@ -313,7 +313,7 @@ export const Depenses: React.FC = () => {
                 </Tabs>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="category">Catégorie *</Label>
                   <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
@@ -382,7 +382,7 @@ export const Depenses: React.FC = () => {
                 />
               </div>
               
-              <div className="flex justify-end space-x-3 pt-4 border-t">
+              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 border-t">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Annuler
                 </Button>
