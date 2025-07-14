@@ -16,6 +16,8 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/PaginationControls';
 
 interface Reservation {
   id: string;
@@ -598,11 +600,25 @@ export const Reservations: React.FC = () => {
     }
   };
 
+  // Filter reservations first
   const filteredReservations = reservations.filter(reservation =>
     `${reservation.clients?.nom} ${reservation.clients?.prenom} ${reservation.vehicles?.marque} ${reservation.vehicles?.modele}`
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
+
+  // Add pagination hook
+  const {
+    currentPage,
+    totalPages,
+    totalItems,
+    paginatedData: paginatedReservations,
+    goToPage,
+    nextPage,
+    prevPage,
+    hasNext,
+    hasPrev,
+  } = usePagination({ data: filteredReservations, itemsPerPage: 10 });
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
@@ -922,7 +938,7 @@ export const Reservations: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Calendar className="w-5 h-5 text-blue-600" />
-              <span>Liste des réservations ({filteredReservations.length})</span>
+              <span>Liste des réservations ({totalItems})</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -943,135 +959,151 @@ export const Reservations: React.FC = () => {
                 )}
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Client</TableHead>
-                      <TableHead>Véhicule</TableHead>
-                      <TableHead>Période</TableHead>
-                      <TableHead>Prix/jour</TableHead>
-                      <TableHead>Statut</TableHead>
-                      <TableHead>Documents</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredReservations.map((reservation) => (
-                      <TableRow key={reservation.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <User className="w-4 h-4 text-gray-400" />
-                            <div>
-                              <div className="font-medium">
-                                {reservation.clients?.prenom} {reservation.clients?.nom}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {reservation.clients?.telephone}
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <Car className="w-4 h-4 text-gray-400" />
-                            <div>
-                              <div className="font-medium">
-                                {reservation.vehicles?.marque} {reservation.vehicles?.modele}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {reservation.vehicles?.immatriculation}
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            {reservation.date_debut && reservation.date_fin ? (
-                              <>
-                                <div>{new Date(reservation.date_debut).toLocaleDateString('fr-FR')}</div>
-                                <div className="text-gray-500">au {new Date(reservation.date_fin).toLocaleDateString('fr-FR')}</div>
-                              </>
-                            ) : (
-                              'Dates non définies'
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium">
-                            {reservation.prix_par_jour ? `${reservation.prix_par_jour} MAD` : 'N/A'}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(reservation.statut)}>
-                            {reservation.statut || 'N/A'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {reservation.cin_scan_url && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handlePreviewImage(reservation.cin_scan_url!)}
-                                className="text-xs hover:bg-blue-50 hover:border-blue-200"
-                              >
-                                <Eye className="w-3 h-3 mr-1" />
-                                CIN
-                              </Button>
-                            )}
-                            {reservation.permis_scan_url && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handlePreviewImage(reservation.permis_scan_url!)}
-                                className="text-xs hover:bg-blue-50 hover:border-blue-200"
-                              >
-                                <Eye className="w-3 h-3 mr-1" />
-                                Permis
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => generateContractPDF(reservation)}
-                              disabled={generatingPDF === reservation.id}
-                              className="hover:bg-green-50 hover:border-green-200 hover:text-green-700"
-                            >
-                              {generatingPDF === reservation.id ? (
-                                <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin mr-1" />
-                              ) : (
-                                <FileText className="w-4 h-4 mr-1" />
-                              )}
-                              <span className="hidden sm:inline">Contrat</span>
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEdit(reservation)}
-                              className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDelete(reservation.id)}
-                              className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+              <>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Client</TableHead>
+                        <TableHead>Véhicule</TableHead>
+                        <TableHead>Période</TableHead>
+                        <TableHead>Prix/jour</TableHead>
+                        <TableHead>Statut</TableHead>
+                        <TableHead>Documents</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedReservations.map((reservation) => (
+                        <TableRow key={reservation.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <User className="w-4 h-4 text-gray-400" />
+                              <div>
+                                <div className="font-medium">
+                                  {reservation.clients?.prenom} {reservation.clients?.nom}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {reservation.clients?.telephone}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <Car className="w-4 h-4 text-gray-400" />
+                              <div>
+                                <div className="font-medium">
+                                  {reservation.vehicles?.marque} {reservation.vehicles?.modele}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {reservation.vehicles?.immatriculation}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              {reservation.date_debut && reservation.date_fin ? (
+                                <>
+                                  <div>{new Date(reservation.date_debut).toLocaleDateString('fr-FR')}</div>
+                                  <div className="text-gray-500">au {new Date(reservation.date_fin).toLocaleDateString('fr-FR')}</div>
+                                </>
+                              ) : (
+                                'Dates non définies'
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">
+                              {reservation.prix_par_jour ? `${reservation.prix_par_jour} MAD` : 'N/A'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(reservation.statut)}>
+                              {reservation.statut || 'N/A'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {reservation.cin_scan_url && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handlePreviewImage(reservation.cin_scan_url!)}
+                                  className="text-xs hover:bg-blue-50 hover:border-blue-200"
+                                >
+                                  <Eye className="w-3 h-3 mr-1" />
+                                  CIN
+                                </Button>
+                              )}
+                              {reservation.permis_scan_url && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handlePreviewImage(reservation.permis_scan_url!)}
+                                  className="text-xs hover:bg-blue-50 hover:border-blue-200"
+                                >
+                                  <Eye className="w-3 h-3 mr-1" />
+                                  Permis
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => generateContractPDF(reservation)}
+                                disabled={generatingPDF === reservation.id}
+                                className="hover:bg-green-50 hover:border-green-200 hover:text-green-700"
+                              >
+                                {generatingPDF === reservation.id ? (
+                                  <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin mr-1" />
+                                ) : (
+                                  <FileText className="w-4 h-4 mr-1" />
+                                )}
+                                <span className="hidden sm:inline">Contrat</span>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEdit(reservation)}
+                                className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDelete(reservation.id)}
+                                className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                
+                {totalPages > 1 && (
+                  <PaginationControls
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    itemsPerPage={10}
+                    onPageChange={goToPage}
+                    onNext={nextPage}
+                    onPrev={prevPage}
+                    hasNext={hasNext}
+                    hasPrev={hasPrev}
+                  />
+                )}
+              </>
             )}
           </CardContent>
         </Card>
