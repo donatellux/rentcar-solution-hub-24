@@ -327,7 +327,7 @@ export const Depenses: React.FC = () => {
               Nouvelle dépense
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold">
                 {editingExpense ? 'Modifier la dépense' : 'Nouvelle dépense'}

@@ -638,7 +638,7 @@ export const Reservations: React.FC = () => {
               <span className="sm:hidden">Nouveau</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto mx-4">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold">
                 {editingReservation ? 'Modifier la réservation' : 'Nouvelle réservation'}
