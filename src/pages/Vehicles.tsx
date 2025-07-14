@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -280,7 +281,7 @@ export const Vehicles: React.FC = () => {
     prevPage,
     hasNext,
     hasPrev,
-  } = usePagination({ data: filteredVehicles, itemsPerPage: 10 });
+  } = usePagination({ data: filteredVehicles, itemsPerPage: 8 });
 
   return (
     <div className="page-spacing animate-fade-in">
@@ -470,8 +471,8 @@ export const Vehicles: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="card-grid">
-          {[...Array(6)].map((_, i) => (
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+          {[...Array(4)].map((_, i) => (
             <Card key={i} className="animate-pulse">
               <CardContent className="p-6">
                 <div className="h-48 bg-muted rounded-lg"></div>
@@ -502,93 +503,97 @@ export const Vehicles: React.FC = () => {
         </Card>
       ) : (
         <>
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
             {paginatedData.map((vehicle) => {
               const imageUrl = getVehicleImageUrl(vehicle.photo_path);
               
               return (
                 <Card key={vehicle.id} className="group overflow-hidden hover:shadow-elegant transition-all-smooth hover:scale-[1.02] border-border/50 bg-card">
-                  {/* Vehicle Image Section */}
-                  <div className="aspect-[4/3] relative bg-muted overflow-hidden">
-                    {imageUrl ? (
-                      <img
-                        src={imageUrl}
-                        alt={`${vehicle.marque} ${vehicle.modele}`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
-                        <Car className="w-16 h-16 text-muted-foreground/50" />
+                  <div className="flex h-64">
+                    {/* Vehicle Image Section - Left Side */}
+                    <div className="w-2/5 relative bg-muted overflow-hidden">
+                      {imageUrl ? (
+                        <img
+                          src={imageUrl}
+                          alt={`${vehicle.marque} ${vehicle.modele}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+                          <Car className="w-12 h-12 text-muted-foreground/50" />
+                        </div>
+                      )}
+                      
+                      {/* Status Badge */}
+                      <div className="absolute top-3 right-3">
+                        <Badge className={`${getStatusColor(vehicle.etat)} font-medium px-2.5 py-1 text-xs`}>
+                          {vehicle.etat}
+                        </Badge>
                       </div>
-                    )}
-                    
-                    {/* Status Badge */}
-                    <div className="absolute top-3 right-3">
-                      <Badge className={`${getStatusColor(vehicle.etat)} font-medium px-2.5 py-1 text-xs`}>
-                        {vehicle.etat}
-                      </Badge>
                     </div>
-                  </div>
-                  
-                  {/* Card Content */}
-                  <CardContent className="p-5">
-                    <div className="space-y-4">
-                      {/* Vehicle Title & Basic Info */}
-                      <div className="space-y-2">
-                        <h3 className="font-bold text-lg leading-tight text-foreground group-hover:text-primary transition-colors">
-                          {vehicle.marque} {vehicle.modele}
-                        </h3>
-                        
-                        {/* Key Details Row */}
-                        <div className="flex items-center justify-between text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5" />
-                            {vehicle.annee}
-                          </span>
-                          <span className="font-medium text-foreground">
-                            {vehicle.immatriculation}
-                          </span>
+                    
+                    {/* Card Content - Right Side */}
+                    <div className="w-3/5 p-6 flex flex-col justify-between">
+                      <div className="space-y-4">
+                        {/* Vehicle Title & Basic Info */}
+                        <div className="space-y-2">
+                          <h3 className="font-bold text-xl leading-tight text-foreground group-hover:text-primary transition-colors">
+                            {vehicle.marque} {vehicle.modele}
+                          </h3>
+                          
+                          {/* Key Details Row */}
+                          <div className="flex items-center justify-between text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5" />
+                              {vehicle.annee}
+                            </span>
+                            <span className="font-medium text-foreground text-base">
+                              {vehicle.immatriculation}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Vehicle Specifications */}
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            {vehicle.couleur && (
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="w-3 h-3 rounded-full border border-border flex-shrink-0"
+                                  style={{ backgroundColor: vehicle.couleur.toLowerCase() }}
+                                />
+                                <span className="text-muted-foreground truncate">{vehicle.couleur}</span>
+                              </div>
+                            )}
+                            
+                            {vehicle.carburant && (
+                              <div className="flex items-center gap-2">
+                                <Fuel className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                                <span className="text-muted-foreground truncate">{vehicle.carburant}</span>
+                              </div>
+                            )}
+                            
+                            {vehicle.boite_vitesse && (
+                              <div className="flex items-center gap-2">
+                                <Settings className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                                <span className="text-muted-foreground truncate">{vehicle.boite_vitesse}</span>
+                              </div>
+                            )}
+                            
+                            {vehicle.kilometrage && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-primary flex-shrink-0">KM</span>
+                                <span className="text-muted-foreground">
+                                  {vehicle.kilometrage.toLocaleString()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
 
-                      {/* Vehicle Specifications */}
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        {vehicle.couleur && (
-                          <div className="flex items-center gap-2">
-                            <div 
-                              className="w-3 h-3 rounded-full border border-border"
-                              style={{ backgroundColor: vehicle.couleur.toLowerCase() }}
-                            />
-                            <span className="text-muted-foreground truncate">{vehicle.couleur}</span>
-                          </div>
-                        )}
-                        
-                        {vehicle.carburant && (
-                          <div className="flex items-center gap-2">
-                            <Fuel className="w-3.5 h-3.5 text-muted-foreground" />
-                            <span className="text-muted-foreground truncate">{vehicle.carburant}</span>
-                          </div>
-                        )}
-                        
-                        {vehicle.boite_vitesse && (
-                          <div className="flex items-center gap-2">
-                            <Settings className="w-3.5 h-3.5 text-muted-foreground" />
-                            <span className="text-muted-foreground truncate">{vehicle.boite_vitesse}</span>
-                          </div>
-                        )}
-                        
-                        {vehicle.kilometrage && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium text-primary">KM</span>
-                            <span className="text-muted-foreground">
-                              {vehicle.kilometrage.toLocaleString()}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
                       {/* Action Buttons */}
-                      <div className="flex gap-2 pt-2 border-t border-border/50">
+                      <div className="flex gap-2 pt-4 border-t border-border/50">
                         <Button
                           size="sm"
                           variant="outline"
@@ -608,7 +613,7 @@ export const Vehicles: React.FC = () => {
                         </Button>
                       </div>
                     </div>
-                  </CardContent>
+                  </div>
                 </Card>
               );
             })}
@@ -618,7 +623,7 @@ export const Vehicles: React.FC = () => {
             currentPage={currentPage}
             totalPages={totalPages}
             totalItems={totalItems}
-            itemsPerPage={10}
+            itemsPerPage={8}
             onPageChange={goToPage}
             onNext={nextPage}
             onPrev={prevPage}
