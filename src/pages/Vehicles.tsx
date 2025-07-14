@@ -502,59 +502,107 @@ export const Vehicles: React.FC = () => {
         </Card>
       ) : (
         <>
-          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {paginatedData.map((vehicle) => {
               const imageUrl = getVehicleImageUrl(vehicle.photo_path);
               
               return (
-                <Card key={vehicle.id} className="overflow-hidden hover:shadow-elegant transition-all-smooth hover:scale-[1.02] border-border/50 h-fit">
-                  <div className="aspect-video relative bg-muted">
+                <Card key={vehicle.id} className="group overflow-hidden hover:shadow-elegant transition-all-smooth hover:scale-[1.02] border-border/50 bg-card">
+                  {/* Vehicle Image Section */}
+                  <div className="aspect-[4/3] relative bg-muted overflow-hidden">
                     {imageUrl ? (
                       <img
                         src={imageUrl}
                         alt={`${vehicle.marque} ${vehicle.modele}`}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Car className="w-12 h-12 text-muted-foreground" />
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+                        <Car className="w-16 h-16 text-muted-foreground/50" />
                       </div>
                     )}
-                    <div className="absolute top-2 right-2">
-                      <Badge className={getStatusColor(vehicle.etat)}>
+                    
+                    {/* Status Badge */}
+                    <div className="absolute top-3 right-3">
+                      <Badge className={`${getStatusColor(vehicle.etat)} font-medium px-2.5 py-1 text-xs`}>
                         {vehicle.etat}
                       </Badge>
                     </div>
                   </div>
                   
-                  <CardContent className="p-4">
-                    <div className="space-y-3">
-                      <div>
-                        <h3 className="font-semibold text-lg leading-tight">
+                  {/* Card Content */}
+                  <CardContent className="p-5">
+                    <div className="space-y-4">
+                      {/* Vehicle Title & Basic Info */}
+                      <div className="space-y-2">
+                        <h3 className="font-bold text-lg leading-tight text-foreground group-hover:text-primary transition-colors">
                           {vehicle.marque} {vehicle.modele}
                         </h3>
-                        <div className="text-sm text-muted-foreground space-y-1 mt-1">
-                          <div>{vehicle.annee} • {vehicle.immatriculation}</div>
-                          {vehicle.couleur && <div>Couleur: {vehicle.couleur}</div>}
-                          {vehicle.kilometrage && <div>{vehicle.kilometrage.toLocaleString()} km</div>}
+                        
+                        {/* Key Details Row */}
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5" />
+                            {vehicle.annee}
+                          </span>
+                          <span className="font-medium text-foreground">
+                            {vehicle.immatriculation}
+                          </span>
                         </div>
                       </div>
 
-                      <div className="flex gap-2 pt-2">
+                      {/* Vehicle Specifications */}
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        {vehicle.couleur && (
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full border border-border"
+                              style={{ backgroundColor: vehicle.couleur.toLowerCase() }}
+                            />
+                            <span className="text-muted-foreground truncate">{vehicle.couleur}</span>
+                          </div>
+                        )}
+                        
+                        {vehicle.carburant && (
+                          <div className="flex items-center gap-2">
+                            <Fuel className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span className="text-muted-foreground truncate">{vehicle.carburant}</span>
+                          </div>
+                        )}
+                        
+                        {vehicle.boite_vitesse && (
+                          <div className="flex items-center gap-2">
+                            <Settings className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span className="text-muted-foreground truncate">{vehicle.boite_vitesse}</span>
+                          </div>
+                        )}
+                        
+                        {vehicle.kilometrage && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-primary">KM</span>
+                            <span className="text-muted-foreground">
+                              {vehicle.kilometrage.toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2 pt-2 border-t border-border/50">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleEdit(vehicle)}
-                          className="flex-1 hover:bg-primary/10 hover:border-primary/20 hover:text-primary transition-colors"
+                          className="flex-1 hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-all-smooth"
                         >
-                          <Edit className="w-4 h-4 mr-1" />
+                          <Edit className="w-4 h-4 mr-2" />
                           {t('common.edit')}
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleDelete(vehicle.id)}
-                          className="hover:bg-destructive/10 hover:border-destructive/20 hover:text-destructive transition-colors"
+                          className="px-3 hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive transition-all-smooth"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
