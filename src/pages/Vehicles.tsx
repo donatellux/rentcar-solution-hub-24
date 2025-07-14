@@ -509,17 +509,19 @@ export const Vehicles: React.FC = () => {
               
               return (
                 <Card key={vehicle.id} className="group overflow-hidden hover:shadow-elegant transition-all-smooth hover:scale-[1.02] border-border/50 bg-card">
-                  <div className="flex h-64">
-                    {/* Vehicle Image Section - Left Side */}
-                    <div className="w-2/5 relative bg-muted overflow-hidden">
+                  <div className="p-6">
+                    {/* Vehicle Image Section - Top */}
+                    <div className="relative mb-4">
                       {imageUrl ? (
-                        <img
-                          src={imageUrl}
-                          alt={`${vehicle.marque} ${vehicle.modele}`}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
+                        <div className="w-full h-48 relative bg-muted overflow-hidden rounded-lg">
+                          <img
+                            src={imageUrl}
+                            alt={`${vehicle.marque} ${vehicle.modele}`}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        </div>
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+                        <div className="w-full h-48 flex items-center justify-center bg-gradient-to-br from-muted to-muted/50 rounded-lg">
                           <Car className="w-12 h-12 text-muted-foreground/50" />
                         </div>
                       )}
@@ -532,63 +534,61 @@ export const Vehicles: React.FC = () => {
                       </div>
                     </div>
                     
-                    {/* Card Content - Right Side */}
-                    <div className="w-3/5 p-6 flex flex-col justify-between">
-                      <div className="space-y-4">
-                        {/* Vehicle Title & Basic Info */}
-                        <div className="space-y-2">
-                          <h3 className="font-bold text-xl leading-tight text-foreground group-hover:text-primary transition-colors">
-                            {vehicle.marque} {vehicle.modele}
-                          </h3>
-                          
-                          {/* Key Details Row */}
-                          <div className="flex items-center justify-between text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3.5 h-3.5" />
-                              {vehicle.annee}
-                            </span>
-                            <span className="font-medium text-foreground text-base">
-                              {vehicle.immatriculation}
-                            </span>
-                          </div>
+                    {/* Card Content - Bottom */}
+                    <div className="space-y-4">
+                      {/* Vehicle Title & Basic Info */}
+                      <div className="space-y-2">
+                        <h3 className="font-bold text-xl leading-tight text-foreground group-hover:text-primary transition-colors">
+                          {vehicle.marque} {vehicle.modele}
+                        </h3>
+                        
+                        {/* Key Details Row */}
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5" />
+                            {vehicle.annee}
+                          </span>
+                          <span className="font-medium text-foreground text-base">
+                            {vehicle.immatriculation}
+                          </span>
                         </div>
+                      </div>
 
-                        {/* Vehicle Specifications */}
-                        <div className="space-y-3">
-                          <div className="grid grid-cols-2 gap-3 text-sm">
-                            {vehicle.couleur && (
-                              <div className="flex items-center gap-2">
-                                <div 
-                                  className="w-3 h-3 rounded-full border border-border flex-shrink-0"
-                                  style={{ backgroundColor: vehicle.couleur.toLowerCase() }}
-                                />
-                                <span className="text-muted-foreground truncate">{vehicle.couleur}</span>
-                              </div>
-                            )}
-                            
-                            {vehicle.carburant && (
-                              <div className="flex items-center gap-2">
-                                <Fuel className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                                <span className="text-muted-foreground truncate">{vehicle.carburant}</span>
-                              </div>
-                            )}
-                            
-                            {vehicle.boite_vitesse && (
-                              <div className="flex items-center gap-2">
-                                <Settings className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                                <span className="text-muted-foreground truncate">{vehicle.boite_vitesse}</span>
-                              </div>
-                            )}
-                            
-                            {vehicle.kilometrage && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-medium text-primary flex-shrink-0">KM</span>
-                                <span className="text-muted-foreground">
-                                  {vehicle.kilometrage.toLocaleString()}
-                                </span>
-                              </div>
-                            )}
-                          </div>
+                      {/* Vehicle Specifications */}
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          {vehicle.couleur && (
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-3 h-3 rounded-full border border-border flex-shrink-0"
+                                style={{ backgroundColor: vehicle.couleur.toLowerCase() }}
+                              />
+                              <span className="text-muted-foreground truncate">{vehicle.couleur}</span>
+                            </div>
+                          )}
+                          
+                          {vehicle.carburant && (
+                            <div className="flex items-center gap-2">
+                              <Fuel className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                              <span className="text-muted-foreground truncate">{vehicle.carburant}</span>
+                            </div>
+                          )}
+                          
+                          {vehicle.boite_vitesse && (
+                            <div className="flex items-center gap-2">
+                              <Settings className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                              <span className="text-muted-foreground truncate">{vehicle.boite_vitesse}</span>
+                            </div>
+                          )}
+                          
+                          {vehicle.kilometrage && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-medium text-primary flex-shrink-0">KM</span>
+                              <span className="text-muted-foreground">
+                                {vehicle.kilometrage.toLocaleString()}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
