@@ -67,8 +67,35 @@ export const Dashboard: React.FC = () => {
         .in('statut', ['en_cours', 'confirmee']);
 
       const totalVehicles = vehicles?.length || 0;
-      const availableVehicles = vehicles?.filter(v => v.etat === 'disponible').length || 0;
       const totalClients = clients?.length || 0;
+      
+      // Calculate available vehicles by checking both status and current reservations
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Start of today
+      
+      const availableVehicles = vehicles?.filter(vehicle => {
+        // First check if vehicle status is available
+        if (vehicle.etat !== 'disponible') {
+          return false;
+        }
+        
+        // Then check if vehicle is currently reserved
+        const currentReservations = reservations?.filter(reservation => {
+          if (reservation.vehicule_id !== vehicle.id) return false;
+          if (reservation.statut !== 'en_cours' && reservation.statut !== 'confirmee') return false;
+          
+          const startDate = new Date(reservation.date_debut);
+          const endDate = new Date(reservation.date_fin);
+          startDate.setHours(0, 0, 0, 0);
+          endDate.setHours(23, 59, 59, 999);
+          
+          // Check if today falls within the reservation period
+          return today >= startDate && today <= endDate;
+        }) || [];
+        
+        // Vehicle is available if it has no current reservations
+        return currentReservations.length === 0;
+      }).length || 0;
       
       // Count active reservations (en_cours)
       const activeReservations = reservations?.filter(r => r.statut === 'en_cours').length || 0;
