@@ -1,12 +1,12 @@
 
 import React from 'react';
-import { Menu, Search, Bell, Sun, Moon, Languages, LogOut } from 'lucide-react';
+import { Menu, Sun, Moon, Languages, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
+import { NotificationDropdown } from '@/components/NotificationDropdown';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -35,14 +35,6 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
             <Menu className="w-5 h-5" />
           </Button>
           
-          <div className="relative max-w-md hidden sm:block">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder={t('common.search')}
-              className="pl-10 pr-4 py-2 w-full transition-all-smooth focus:shadow-glow"
-            />
-          </div>
         </div>
 
         <div className="flex items-center space-x-2 md:space-x-4">
@@ -80,13 +72,9 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
             {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </Button>
           
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="hover:bg-accent transition-colors hidden sm:flex"
-          >
-            <Bell className="w-4 h-4" />
-          </Button>
+          <div className="hidden sm:block">
+            <NotificationDropdown />
+          </div>
 
           <div className="flex items-center space-x-3">
             {agency?.logo_path ? (

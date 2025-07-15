@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export const Auth: React.FC = () => {
   const navigate = useNavigate();
-  const { user, signIn, signUp, signInWithGoogle } = useAuth();
+  const { user, signIn, signUp } = useAuth();
   const { toast } = useToast();
   
   const [loading, setLoading] = useState(false);
@@ -122,67 +121,49 @@ export const Auth: React.FC = () => {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    setLoading(true);
-    try {
-      const { error } = await signInWithGoogle();
-      if (error) {
-        toast({
-          title: "Erreur de connexion Google",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Google sign in error:', error);
-      toast({
-        title: "Erreur",
-        description: "Une erreur inattendue s'est produite",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4 sm:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-md mx-auto">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center space-x-2 mb-4">
-            <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
-              <Car className="w-7 h-7 text-white" />
+          <div className="inline-flex items-center justify-center space-x-3 mb-6">
+            <div className="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center shadow-elegant">
+              <Car className="w-8 h-8 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Rentcar Solution
-            </h1>
+            <div className="text-left">
+              <h1 className="text-3xl font-bold gradient-text">
+                Rentcar Solution
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                Luxury Car Rental Management
+              </p>
+            </div>
           </div>
-          <p className="text-gray-600 dark:text-gray-400">
-            Gestion d'agences de location de voitures
+          <p className="text-muted-foreground">
+            Gestion d'agences de location de voitures premium
           </p>
         </div>
 
-        <Card className="shadow-xl">
+        <Card className="shadow-elegant border-0">
           <CardContent className="p-4 sm:p-6">
             <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Connexion</TabsTrigger>
-                <TabsTrigger value="signup">Inscription</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 bg-muted">
+                <TabsTrigger value="login" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Connexion</TabsTrigger>
+                <TabsTrigger value="signup" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Inscription</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="login" className="space-y-4">
+              <TabsContent value="login" className="space-y-4 mt-6">
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="login-email">Email</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         id="login-email"
                         type="email"
                         placeholder="votre@email.com"
                         value={loginForm.email}
                         onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
-                        className="pl-10"
+                        className="pl-10 transition-all-smooth focus:shadow-glow"
                         required
                       />
                     </div>
@@ -191,59 +172,38 @@ export const Auth: React.FC = () => {
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Mot de passe</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         id="login-password"
                         type="password"
                         placeholder="Votre mot de passe"
                         value={loginForm.password}
                         onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                        className="pl-10"
+                        className="pl-10 transition-all-smooth focus:shadow-glow"
                         required
                       />
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button type="submit" className="w-full gradient-primary border-0 shadow-elegant hover:shadow-glow transition-all-smooth" disabled={loading}>
                     {loading ? "Connexion..." : "Se connecter"}
                   </Button>
                 </form>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-white dark:bg-gray-900 px-2 text-gray-500">
-                      Ou
-                    </span>
-                  </div>
-                </div>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleGoogleSignIn}
-                  className="w-full"
-                  disabled={loading}
-                >
-                  Continuer avec Google
-                </Button>
               </TabsContent>
 
-              <TabsContent value="signup" className="space-y-4">
+              <TabsContent value="signup" className="space-y-4 mt-6">
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="signup-agency">Nom de l'agence</Label>
                     <div className="relative">
-                      <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         id="signup-agency"
                         type="text"
                         placeholder="Nom de votre agence"
                         value={signupForm.agencyName}
                         onChange={(e) => setSignupForm({ ...signupForm, agencyName: e.target.value })}
-                        className="pl-10"
+                        className="pl-10 transition-all-smooth focus:shadow-glow"
                         required
                       />
                     </div>
@@ -252,14 +212,14 @@ export const Auth: React.FC = () => {
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         id="signup-email"
                         type="email"
                         placeholder="votre@email.com"
                         value={signupForm.email}
                         onChange={(e) => setSignupForm({ ...signupForm, email: e.target.value })}
-                        className="pl-10"
+                        className="pl-10 transition-all-smooth focus:shadow-glow"
                         required
                       />
                     </div>
@@ -268,14 +228,14 @@ export const Auth: React.FC = () => {
                   <div className="space-y-2">
                     <Label htmlFor="signup-phone">Téléphone</Label>
                     <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         id="signup-phone"
                         type="tel"
                         placeholder="Numéro de téléphone"
                         value={signupForm.phone}
                         onChange={(e) => setSignupForm({ ...signupForm, phone: e.target.value })}
-                        className="pl-10"
+                        className="pl-10 transition-all-smooth focus:shadow-glow"
                       />
                     </div>
                   </div>
@@ -283,14 +243,14 @@ export const Auth: React.FC = () => {
                   <div className="space-y-2">
                     <Label htmlFor="signup-address">Adresse</Label>
                     <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         id="signup-address"
                         type="text"
                         placeholder="Adresse de l'agence"
                         value={signupForm.address}
                         onChange={(e) => setSignupForm({ ...signupForm, address: e.target.value })}
-                        className="pl-10"
+                        className="pl-10 transition-all-smooth focus:shadow-glow"
                       />
                     </div>
                   </div>
@@ -298,14 +258,14 @@ export const Auth: React.FC = () => {
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Mot de passe</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         id="signup-password"
                         type="password"
                         placeholder="Mot de passe (min 6 caractères)"
                         value={signupForm.password}
                         onChange={(e) => setSignupForm({ ...signupForm, password: e.target.value })}
-                        className="pl-10"
+                        className="pl-10 transition-all-smooth focus:shadow-glow"
                         required
                       />
                     </div>
@@ -314,20 +274,20 @@ export const Auth: React.FC = () => {
                   <div className="space-y-2">
                     <Label htmlFor="signup-confirm">Confirmer le mot de passe</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         id="signup-confirm"
                         type="password"
                         placeholder="Confirmer le mot de passe"
                         value={signupForm.confirmPassword}
                         onChange={(e) => setSignupForm({ ...signupForm, confirmPassword: e.target.value })}
-                        className="pl-10"
+                        className="pl-10 transition-all-smooth focus:shadow-glow"
                         required
                       />
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button type="submit" className="w-full gradient-primary border-0 shadow-elegant hover:shadow-glow transition-all-smooth" disabled={loading}>
                     {loading ? "Inscription..." : "S'inscrire"}
                   </Button>
                 </form>

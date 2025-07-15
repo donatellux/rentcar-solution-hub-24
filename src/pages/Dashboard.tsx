@@ -12,6 +12,9 @@ interface DashboardStats {
   totalClients: number;
   activeReservations: number;
   monthlyRevenue: number;
+  totalExpenses: number;
+  netProfit: number;
+  averageRevenuePerVehicle: number;
   maintenanceAlerts: number;
   vehiclesNeedingMaintenance: Array<{
     id: string;
@@ -32,6 +35,9 @@ export const Dashboard: React.FC = () => {
     totalClients: 0,
     activeReservations: 0,
     monthlyRevenue: 0,
+    totalExpenses: 0,
+    netProfit: 0,
+    averageRevenuePerVehicle: 0,
     maintenanceAlerts: 0,
     vehiclesNeedingMaintenance: [],
   });
@@ -116,6 +122,11 @@ export const Dashboard: React.FC = () => {
         return sum;
       }, 0) || 0;
 
+      // Calculate total expenses (mock data for now - you can replace with real data)
+      const totalExpenses = monthlyRevenue * 0.3; // Assuming 30% of revenue as expenses
+      const netProfit = monthlyRevenue - totalExpenses;
+      const averageRevenuePerVehicle = totalVehicles > 0 ? monthlyRevenue / totalVehicles : 0;
+
       // Get detailed info about vehicles needing maintenance and update kilometrage
       const vehiclesNeedingMaintenance = [];
       
@@ -160,6 +171,9 @@ export const Dashboard: React.FC = () => {
         totalClients,
         activeReservations,
         monthlyRevenue,
+        totalExpenses,
+        netProfit,
+        averageRevenuePerVehicle,
         maintenanceAlerts,
         vehiclesNeedingMaintenance,
       });
@@ -192,43 +206,55 @@ export const Dashboard: React.FC = () => {
       title: 'Total Véhicules',
       value: stats.totalVehicles,
       icon: Car,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100 dark:bg-blue-900',
+      gradient: 'gradient-primary',
     },
     {
       title: 'Véhicules Disponibles',
       value: stats.availableVehicles,
       icon: Car,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100 dark:bg-green-900',
+      gradient: 'gradient-success',
     },
     {
       title: 'Total Clients',
       value: stats.totalClients,
       icon: Users,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100 dark:bg-purple-900',
+      gradient: 'gradient-info',
     },
     {
       title: 'Réservations Actives',
       value: stats.activeReservations,
       icon: Calendar,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-100 dark:bg-orange-900',
+      gradient: 'gradient-warning',
     },
     {
       title: 'Revenus du Mois',
       value: `${stats.monthlyRevenue.toLocaleString()} MAD`,
       icon: DollarSign,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100 dark:bg-green-900',
+      gradient: 'gradient-success',
+    },
+    {
+      title: 'Dépenses Totales',
+      value: `${stats.totalExpenses.toLocaleString()} MAD`,
+      icon: TrendingUp,
+      gradient: 'gradient-warning',
+    },
+    {
+      title: 'Bénéfice Net',
+      value: `${stats.netProfit.toLocaleString()} MAD`,
+      icon: DollarSign,
+      gradient: stats.netProfit >= 0 ? 'gradient-success' : 'bg-destructive',
+    },
+    {
+      title: 'Revenus par Véhicule',
+      value: `${stats.averageRevenuePerVehicle.toLocaleString()} MAD`,
+      icon: TrendingUp,
+      gradient: 'gradient-info',
     },
     {
       title: 'Alertes Entretien',
       value: stats.maintenanceAlerts,
       icon: AlertTriangle,
-      color: 'text-red-600',
-      bgColor: 'bg-red-100 dark:bg-red-900',
+      gradient: stats.maintenanceAlerts > 0 ? 'bg-destructive' : 'gradient-success',
     },
   ];
 
@@ -248,21 +274,22 @@ export const Dashboard: React.FC = () => {
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={index} className="hover:shadow-lg transition-all duration-200 hover:scale-105 border-l-4 border-l-blue-500">
-              <CardContent className="p-6">
+            <Card key={index} className="hover:shadow-elegant transition-all-smooth hover:scale-105 border-0 overflow-hidden">
+              <CardContent className="p-6 relative">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <div className="z-10 relative">
+                    <p className="text-sm font-medium text-muted-foreground mb-2">
                       {stat.title}
                     </p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
+                    <p className="text-3xl font-bold text-foreground">
                       {stat.value}
                     </p>
                   </div>
-                  <div className={`p-3 rounded-full ${stat.bgColor} shadow-lg`}>
-                    <Icon className={`w-6 h-6 ${stat.color}`} />
+                  <div className={`p-4 rounded-2xl ${stat.gradient} shadow-elegant z-10 relative`}>
+                    <Icon className="w-6 h-6 text-primary-foreground" />
                   </div>
                 </div>
+                <div className={`absolute top-0 right-0 w-24 h-24 ${stat.gradient} opacity-10 rounded-full transform translate-x-8 -translate-y-8`}></div>
               </CardContent>
             </Card>
           );
