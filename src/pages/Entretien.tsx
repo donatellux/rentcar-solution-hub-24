@@ -3,7 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Edit, Trash2, Wrench, AlertTriangle, Calendar, Car } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Wrench, AlertTriangle, Calendar, Car, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -56,6 +58,10 @@ export const Entretien: React.FC = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEntretien, setEditingEntretien] = useState<Entretien | null>(null);
   const [activeTab, setActiveTab] = useState<'alerts' | 'history'>('alerts');
+  const [pdfDateRange, setPdfDateRange] = useState({
+    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0]
+  });
 
   const [formData, setFormData] = useState({
     vehicule_id: '',
@@ -260,6 +266,70 @@ export const Entretien: React.FC = () => {
     });
   };
 
+  const generatePDF = async () => {
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.width;
+    
+    // Header with logo space
+    pdf.setFontSize(20);
+    pdf.setTextColor(37, 99, 235);
+    pdf.text('Rapport des Entretiens', pageWidth / 2, 30, { align: 'center' });
+    
+    pdf.setFontSize(12);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text(`Période: ${new Date(pdfDateRange.startDate).toLocaleDateString('fr-FR')} - ${new Date(pdfDateRange.endDate).toLocaleDateString('fr-FR')}`, pageWidth / 2, 40, { align: 'center' });
+
+    // Filter entretiens by date range
+    const startDate = new Date(pdfDateRange.startDate);
+    const endDate = new Date(pdfDateRange.endDate);
+    endDate.setHours(23, 59, 59, 999);
+
+    const filteredEntretiens = entretiens.filter(entretien => {
+      if (!entretien.date) return false;
+      const entretienDate = new Date(entretien.date);
+      return entretienDate >= startDate && entretienDate <= endDate;
+    });
+
+    if (filteredEntretiens.length > 0) {
+      const tableData = [
+        ['Date', 'Véhicule', 'Type', 'Coût (MAD)'],
+        ...filteredEntretiens.map(entretien => [
+          entretien.date ? new Date(entretien.date).toLocaleDateString('fr-FR') : '',
+          entretien.vehicles ? `${entretien.vehicles.marque} ${entretien.vehicles.modele} (${entretien.vehicles.immatriculation})` : '',
+          entretien.type || '',
+          `${(entretien.cout || 0).toLocaleString()}`
+        ])
+      ];
+
+      (pdf as any).autoTable({
+        head: [tableData[0]],
+        body: tableData.slice(1),
+        startY: 60,
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235], textColor: 255 },
+        alternateRowStyles: { fillColor: [248, 250, 252] }
+      });
+
+      // Total
+      const totalCost = filteredEntretiens.reduce((sum, entretien) => sum + (entretien.cout || 0), 0);
+      const finalY = (pdf as any).lastAutoTable.finalY;
+      
+      pdf.setFontSize(14);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(`Coût Total des Entretiens: ${totalCost.toLocaleString()} MAD`, pageWidth - 20, finalY + 20, { align: 'right' });
+    } else {
+      pdf.setFontSize(12);
+      pdf.text('Aucun entretien trouvé pour cette période', pageWidth / 2, 60, { align: 'center' });
+    }
+
+    pdf.save(`entretiens-${pdfDateRange.startDate}-${pdfDateRange.endDate}.pdf`);
+
+    toast({
+      title: "Succès",
+      description: "Rapport PDF généré avec succès",
+    });
+  };
+
   const getTypeColor = (type: string | null) => {
     switch (type) {
       case 'vidange':
@@ -299,13 +369,14 @@ export const Entretien: React.FC = () => {
           <p className="text-gray-600 dark:text-gray-400 mt-1">Gérez l'entretien de vos véhicules</p>
         </div>
         
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => { resetForm(); setEditingEntretien(null); }} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg">
-              <Plus className="w-4 h-4 mr-2" />
-              Nouvel entretien
-            </Button>
-          </DialogTrigger>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => { resetForm(); setEditingEntretien(null); }} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg">
+                <Plus className="w-4 h-4 mr-2" />
+                Nouvel entretien
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 dialog-mobile">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold">
@@ -411,6 +482,47 @@ export const Entretien: React.FC = () => {
             </form>
           </DialogContent>
         </Dialog>
+        
+        <Button 
+          onClick={generatePDF}
+          variant="outline" 
+          className="border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Rapport PDF
+        </Button>
+        </div>
+      </div>
+
+      {/* PDF Date Range and Search */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            type="text"
+            placeholder="Rechercher un entretien..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        
+        <div className="flex space-x-2">
+          <Input
+            type="date"
+            value={pdfDateRange.startDate}
+            onChange={(e) => setPdfDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+            className="w-auto"
+            placeholder="Date début"
+          />
+          <Input
+            type="date"
+            value={pdfDateRange.endDate}
+            onChange={(e) => setPdfDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+            className="w-auto"
+            placeholder="Date fin"
+          />
+        </div>
       </div>
 
       {/* Tab Navigation */}

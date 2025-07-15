@@ -3,7 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Edit, Trash2, Receipt, Car, Building } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Receipt, Car, Building, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -65,6 +67,10 @@ export const Depenses: React.FC = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [expenseType, setExpenseType] = useState<'global' | 'vehicle'>('global');
   const [editingExpense, setEditingExpense] = useState<GlobalExpense | VehicleExpense | null>(null);
+  const [pdfDateRange, setPdfDateRange] = useState({
+    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0]
+  });
 
   const [formData, setFormData] = useState({
     category: '',
@@ -245,6 +251,107 @@ export const Depenses: React.FC = () => {
     });
   };
 
+  const generatePDF = async () => {
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.width;
+    
+    // Header with logo space
+    pdf.setFontSize(20);
+    pdf.setTextColor(37, 99, 235);
+    pdf.text('Rapport des Dépenses', pageWidth / 2, 30, { align: 'center' });
+    
+    pdf.setFontSize(12);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text(`Période: ${new Date(pdfDateRange.startDate).toLocaleDateString('fr-FR')} - ${new Date(pdfDateRange.endDate).toLocaleDateString('fr-FR')}`, pageWidth / 2, 40, { align: 'center' });
+
+    // Filter expenses by date range
+    const startDate = new Date(pdfDateRange.startDate);
+    const endDate = new Date(pdfDateRange.endDate);
+    endDate.setHours(23, 59, 59, 999);
+
+    const filteredGlobal = globalExpenses.filter(expense => {
+      if (!expense.date) return false;
+      const expenseDate = new Date(expense.date);
+      return expenseDate >= startDate && expenseDate <= endDate;
+    });
+
+    const filteredVehicle = vehicleExpenses.filter(expense => {
+      if (!expense.date) return false;
+      const expenseDate = new Date(expense.date);
+      return expenseDate >= startDate && expenseDate <= endDate;
+    });
+
+    // Global expenses table
+    if (filteredGlobal.length > 0) {
+      pdf.setFontSize(16);
+      pdf.setTextColor(37, 99, 235);
+      pdf.text('Dépenses Globales', 20, 60);
+
+      const globalData = [
+        ['Date', 'Type', 'Description', 'Montant'],
+        ...filteredGlobal.map(expense => [
+          expense.date ? new Date(expense.date).toLocaleDateString('fr-FR') : '',
+          expense.category || '',
+          expense.description || '',
+          `${(expense.amount || 0).toLocaleString()} MAD`
+        ])
+      ];
+
+      (pdf as any).autoTable({
+        head: [globalData[0]],
+        body: globalData.slice(1),
+        startY: 70,
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235], textColor: 255 },
+        alternateRowStyles: { fillColor: [248, 250, 252] }
+      });
+    }
+
+    // Vehicle expenses table
+    if (filteredVehicle.length > 0) {
+      const startY = filteredGlobal.length > 0 ? (pdf as any).lastAutoTable.finalY + 20 : 70;
+      
+      pdf.setFontSize(16);
+      pdf.setTextColor(37, 99, 235);
+      pdf.text('Dépenses Véhicules', 20, startY - 10);
+
+      const vehicleData = [
+        ['Date', 'Véhicule', 'Type', 'Description', 'Montant'],
+        ...filteredVehicle.map(expense => [
+          expense.date ? new Date(expense.date).toLocaleDateString('fr-FR') : '',
+          expense.vehicles ? `${expense.vehicles.marque} ${expense.vehicles.modele}` : '',
+          expense.category || '',
+          expense.description || '',
+          `${(expense.amount || 0).toLocaleString()} MAD`
+        ])
+      ];
+
+      (pdf as any).autoTable({
+        head: [vehicleData[0]],
+        body: vehicleData.slice(1),
+        startY: startY,
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235], textColor: 255 },
+        alternateRowStyles: { fillColor: [248, 250, 252] }
+      });
+    }
+
+    // Total
+    const totalAmount = [...filteredGlobal, ...filteredVehicle].reduce((sum, expense) => sum + (expense.amount || 0), 0);
+    const finalY = (pdf as any).lastAutoTable?.finalY || 100;
+    
+    pdf.setFontSize(14);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text(`Total des Dépenses: ${totalAmount.toLocaleString()} MAD`, pageWidth - 20, finalY + 20, { align: 'right' });
+
+    pdf.save(`depenses-${pdfDateRange.startDate}-${pdfDateRange.endDate}.pdf`);
+
+    toast({
+      title: "Succès",
+      description: "Rapport PDF généré avec succès",
+    });
+  };
+
   const getCategoryColor = (category: string | null) => {
     switch (category) {
       case 'carburant':
@@ -320,13 +427,14 @@ export const Depenses: React.FC = () => {
           <p className="text-gray-600 dark:text-gray-400 mt-1">Gérez vos dépenses globales et véhicules</p>
         </div>
         
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => { resetForm(); setEditingExpense(null); }} className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="w-4 h-4 mr-2" />
-              Nouvelle dépense
-            </Button>
-          </DialogTrigger>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => { resetForm(); setEditingExpense(null); }} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg">
+                <Plus className="w-4 h-4 mr-2" />
+                Nouvelle dépense
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 dialog-mobile">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold">
@@ -424,9 +532,19 @@ export const Depenses: React.FC = () => {
             </form>
           </DialogContent>
         </Dialog>
+        
+        <Button 
+          onClick={generatePDF}
+          variant="outline" 
+          className="border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Rapport PDF
+        </Button>
+        </div>
       </div>
 
-      <div className="flex items-center space-x-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
@@ -435,6 +553,21 @@ export const Depenses: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
+          />
+        </div>
+        
+        <div className="flex space-x-2">
+          <Input
+            type="date"
+            value={pdfDateRange.startDate}
+            onChange={(e) => setPdfDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+            className="w-auto"
+          />
+          <Input
+            type="date"
+            value={pdfDateRange.endDate}
+            onChange={(e) => setPdfDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+            className="w-auto"
           />
         </div>
       </div>

@@ -122,8 +122,36 @@ export const Dashboard: React.FC = () => {
         return sum;
       }, 0) || 0;
 
-      // Calculate total expenses (mock data for now - you can replace with real data)
-      const totalExpenses = monthlyRevenue * 0.3; // Assuming 30% of revenue as expenses
+      // Calculate total expenses from actual data
+      // Get current month's expenses from depenses and entretiens
+      const { data: globalExpenses } = await supabase
+        .from('global_expenses')
+        .select('amount, date')
+        .eq('agency_id', user.id);
+
+      const { data: vehicleExpenses } = await supabase
+        .from('vehicle_expenses')
+        .select('amount, date')
+        .eq('agency_id', user.id);
+
+      const { data: maintenanceExpenses } = await supabase
+        .from('entretiens')
+        .select('cout, date')
+        .eq('agency_id', user.id);
+
+      const totalExpenses = [
+        ...(globalExpenses || []).map(e => ({ amount: e.amount, date: e.date })),
+        ...(vehicleExpenses || []).map(e => ({ amount: e.amount, date: e.date })),
+        ...(maintenanceExpenses || []).map(e => ({ amount: e.cout, date: e.date }))
+      ].reduce((sum, expense) => {
+        if (expense.amount && expense.date) {
+          const expenseDate = new Date(expense.date);
+          if (expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear) {
+            return sum + expense.amount;
+          }
+        }
+        return sum;
+      }, 0);
       const netProfit = monthlyRevenue - totalExpenses;
       const averageRevenuePerVehicle = totalVehicles > 0 ? monthlyRevenue / totalVehicles : 0;
 

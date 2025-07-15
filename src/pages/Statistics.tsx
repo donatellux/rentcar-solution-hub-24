@@ -1,321 +1,132 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line
-} from 'recharts';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Car, 
-  Users, 
-  DollarSign,
-  Filter,
-  Target,
-  Activity,
-  Calendar
-} from 'lucide-react';
+import { Calendar, Download, FileText, TrendingUp, TrendingDown, DollarSign, Car, Wrench } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
-interface StatisticsData {
+interface StatsPeriod {
   totalRevenue: number;
   totalExpenses: number;
-  totalReservations: number;
+  totalMaintenanceCosts: number;
+  netProfit: number;
+  reservationsCount: number;
+  averageRevenuePerVehicle: number;
   totalVehicles: number;
-  totalClients: number;
-  profit: number;
-  averageRevenuePerReservation: number;
-  activeReservations: number;
-  monthlyRevenue: any[];
-  vehicleRevenue: any[];
-  expensesByCategory: any[];
-  reservationsByStatus: any[];
-  revenueGrowth: number;
-}
-
-interface Vehicle {
-  id: string;
-  marque: string;
-  modele: string;
-  immatriculation: string;
 }
 
 export const Statistics: React.FC = () => {
   const { user } = useAuth();
-  const { t } = useLanguage();
   const { toast } = useToast();
-  const [data, setData] = useState<StatisticsData>({
+  const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState<StatsPeriod>({
     totalRevenue: 0,
     totalExpenses: 0,
-    totalReservations: 0,
+    totalMaintenanceCosts: 0,
+    netProfit: 0,
+    reservationsCount: 0,
+    averageRevenuePerVehicle: 0,
     totalVehicles: 0,
-    totalClients: 0,
-    profit: 0,
-    averageRevenuePerReservation: 0,
-    activeReservations: 0,
-    monthlyRevenue: [],
-    vehicleRevenue: [],
-    expensesByCategory: [],
-    reservationsByStatus: [],
-    revenueGrowth: 0
   });
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [loading, setLoading] = useState(true);
   
-  // Filters
-  const [selectedVehicle, setSelectedVehicle] = useState<string>('all');
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('this_year');
+  const [dateRange, setDateRange] = useState({
+    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0]
+  });
 
   useEffect(() => {
     if (user) {
-      // Set default dates to current year
-      const currentYear = new Date().getFullYear();
-      setStartDate(`${currentYear}-01-01`);
-      setEndDate(`${currentYear}-12-31`);
-      fetchData();
+      fetchStatistics();
     }
-  }, [user]);
+  }, [user, dateRange]);
 
-  useEffect(() => {
-    if (user && (startDate || endDate || selectedVehicle !== 'all' || selectedPeriod !== 'all')) {
-      fetchData();
-    }
-  }, [startDate, endDate, selectedVehicle, selectedPeriod]);
-
-  const fetchData = async () => {
+  const fetchStatistics = async () => {
     if (!user) return;
     setLoading(true);
 
     try {
-      // Build date filter
-      let dateFilter = '';
-      if (startDate && endDate) {
-        dateFilter = `date_debut.gte.${startDate},date_debut.lte.${endDate}`;
-      } else if (selectedPeriod !== 'all') {
-        const now = new Date();
-        let startPeriod = new Date();
-        
-        switch (selectedPeriod) {
-          case 'this_month':
-            startPeriod = new Date(now.getFullYear(), now.getMonth(), 1);
-            break;
-          case 'last_month':
-            startPeriod = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            break;
-          case 'this_year':
-            startPeriod = new Date(now.getFullYear(), 0, 1);
-            break;
-        }
-        
-        dateFilter = `date_debut.gte.${startPeriod.toISOString().split('T')[0]}`;
-      }
+      const startDate = new Date(dateRange.startDate);
+      const endDate = new Date(dateRange.endDate);
+      endDate.setHours(23, 59, 59, 999);
 
-      // Vehicle filter
-      const vehicleFilter = selectedVehicle !== 'all' ? `vehicule_id.eq.${selectedVehicle}` : '';
-
-      // Fetch reservations with filters
-      let reservationsQuery = supabase
+      // Get reservations data
+      const { data: reservations } = await supabase
         .from('reservations')
-        .select('*, vehicles(marque, modele, immatriculation), clients(nom, prenom)')
-        .eq('agency_id', user.id);
+        .select('prix_par_jour, date_debut, date_fin, statut')
+        .eq('agency_id', user.id)
+        .gte('date_debut', startDate.toISOString())
+        .lte('date_fin', endDate.toISOString());
 
-      if (dateFilter && vehicleFilter) {
-        reservationsQuery = reservationsQuery.or(`and(${dateFilter}),and(${vehicleFilter})`);
-      } else if (dateFilter) {
-        reservationsQuery = reservationsQuery.or(dateFilter);
-      } else if (vehicleFilter) {
-        reservationsQuery = reservationsQuery.eq('vehicule_id', selectedVehicle);
-      }
-
-      const { data: reservations, error: reservationsError } = await reservationsQuery;
-      if (reservationsError) throw reservationsError;
-
-      // Fetch vehicles
-      const { data: vehiclesData, error: vehiclesError } = await supabase
-        .from('vehicles')
-        .select('id, marque, modele, immatriculation')
-        .eq('agency_id', user.id);
-      if (vehiclesError) throw vehiclesError;
-
-      // Fetch vehicle expenses
-      const { data: vehicleExpenses, error: vehicleExpensesError } = await supabase
-        .from('vehicle_expenses')
-        .select('*')
-        .eq('agency_id', user.id);
-      if (vehicleExpensesError) throw vehicleExpensesError;
-
-      // Fetch global expenses
-      const { data: globalExpenses, error: globalExpensesError } = await supabase
+      // Get expenses data
+      const { data: globalExpenses } = await supabase
         .from('global_expenses')
-        .select('*')
-        .eq('agency_id', user.id);
-      if (globalExpensesError) throw globalExpensesError;
+        .select('amount, date')
+        .eq('agency_id', user.id)
+        .gte('date', startDate.toISOString())
+        .lte('date', endDate.toISOString());
 
-      // Fetch clients count
-      const { data: clients, error: clientsError } = await supabase
-        .from('clients')
+      const { data: vehicleExpenses } = await supabase
+        .from('vehicle_expenses')
+        .select('amount, date')
+        .eq('agency_id', user.id)
+        .gte('date', startDate.toISOString())
+        .lte('date', endDate.toISOString());
+
+      // Get maintenance costs
+      const { data: maintenanceExpenses } = await supabase
+        .from('entretiens')
+        .select('cout, date')
+        .eq('agency_id', user.id)
+        .gte('date', startDate.toISOString())
+        .lte('date', endDate.toISOString());
+
+      // Get vehicles count
+      const { data: vehicles } = await supabase
+        .from('vehicles')
         .select('id')
         .eq('agency_id', user.id);
-      if (clientsError) throw clientsError;
-
-      setVehicles(vehiclesData || []);
 
       // Calculate statistics
-      const totalRevenue = reservations?.reduce((sum, res) => {
-        if (res.prix_par_jour && res.date_debut && res.date_fin) {
-          const days = Math.ceil((new Date(res.date_fin).getTime() - new Date(res.date_debut).getTime()) / (1000 * 60 * 60 * 24));
-          return sum + (res.prix_par_jour * days);
+      const totalRevenue = reservations?.reduce((sum, reservation) => {
+        if (reservation.prix_par_jour && reservation.date_debut && reservation.date_fin) {
+          const start = new Date(reservation.date_debut);
+          const end = new Date(reservation.date_fin);
+          const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+          return sum + (reservation.prix_par_jour * Math.max(days, 1));
         }
         return sum;
       }, 0) || 0;
 
-      const totalVehicleExpenses = vehicleExpenses?.reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0;
-      const totalGlobalExpenses = globalExpenses?.reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0;
-      const totalExpenses = totalVehicleExpenses + totalGlobalExpenses;
+      const totalExpenses = [
+        ...(globalExpenses || []).map(e => e.amount || 0),
+        ...(vehicleExpenses || []).map(e => e.amount || 0)
+      ].reduce((sum, amount) => sum + amount, 0);
 
-      // Calculate additional statistics
-      const activeReservations = reservations?.filter(res => res.statut === 'en_cours' || res.statut === 'confirmee').length || 0;
-      const averageRevenuePerReservation = reservations?.length ? totalRevenue / reservations.length : 0;
-      
-      // Calculate occupancy rate (simplified - based on active vs total reservations)
-      const occupancyRate = reservations?.length ? (activeReservations / reservations.length) * 100 : 0;
+      const totalMaintenanceCosts = maintenanceExpenses?.reduce((sum, expense) => 
+        sum + (expense.cout || 0), 0) || 0;
 
-      // Calculate revenue growth (compare this month vs last month)
-      const thisMonth = new Date().getMonth();
-      const thisYear = new Date().getFullYear();
-      const thisMonthRevenue = reservations?.filter(res => {
-        if (!res.date_debut) return false;
-        const resDate = new Date(res.date_debut);
-        return resDate.getMonth() === thisMonth && resDate.getFullYear() === thisYear;
-      }).reduce((sum, res) => {
-        if (res.prix_par_jour && res.date_debut && res.date_fin) {
-          const days = Math.ceil((new Date(res.date_fin).getTime() - new Date(res.date_debut).getTime()) / (1000 * 60 * 60 * 24));
-          return sum + (res.prix_par_jour * days);
-        }
-        return sum;
-      }, 0) || 0;
+      const netProfit = totalRevenue - totalExpenses - totalMaintenanceCosts;
+      const totalVehicles = vehicles?.length || 0;
+      const averageRevenuePerVehicle = totalVehicles > 0 ? totalRevenue / totalVehicles : 0;
 
-      const lastMonthRevenue = reservations?.filter(res => {
-        if (!res.date_debut) return false;
-        const resDate = new Date(res.date_debut);
-        return resDate.getMonth() === (thisMonth - 1) && resDate.getFullYear() === thisYear;
-      }).reduce((sum, res) => {
-        if (res.prix_par_jour && res.date_debut && res.date_fin) {
-          const days = Math.ceil((new Date(res.date_fin).getTime() - new Date(res.date_debut).getTime()) / (1000 * 60 * 60 * 24));
-          return sum + (res.prix_par_jour * days);
-        }
-        return sum;
-      }, 0) || 0;
-
-      const revenueGrowth = lastMonthRevenue > 0 ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : 0;
-
-      // Monthly revenue data
-      const monthlyRevenue = [];
-      for (let i = 0; i < 12; i++) {
-        const month = new Date(2024, i, 1);
-        const monthRevenue = reservations?.filter(res => {
-          if (!res.date_debut) return false;
-          const resMonth = new Date(res.date_debut).getMonth();
-          return resMonth === i;
-        }).reduce((sum, res) => {
-          if (res.prix_par_jour && res.date_debut && res.date_fin) {
-            const days = Math.ceil((new Date(res.date_fin).getTime() - new Date(res.date_debut).getTime()) / (1000 * 60 * 60 * 24));
-            return sum + (res.prix_par_jour * days);
-          }
-          return sum;
-        }, 0) || 0;
-
-        monthlyRevenue.push({
-          month: month.toLocaleDateString('fr-FR', { month: 'short' }),
-          revenue: monthRevenue
-        });
-      }
-
-      // Vehicle revenue data
-      const vehicleRevenue = vehiclesData?.map(vehicle => {
-        const revenue = reservations?.filter(res => res.vehicule_id === vehicle.id)
-          .reduce((sum, res) => {
-            if (res.prix_par_jour && res.date_debut && res.date_fin) {
-              const days = Math.ceil((new Date(res.date_fin).getTime() - new Date(res.date_debut).getTime()) / (1000 * 60 * 60 * 24));
-              return sum + (res.prix_par_jour * days);
-            }
-            return sum;
-          }, 0) || 0;
-
-        return {
-          name: `${vehicle.marque} ${vehicle.modele}`,
-          revenue
-        };
-      }).filter(v => v.revenue > 0) || [];
-
-      // Expenses by category
-      const expenseCategories = {};
-      vehicleExpenses?.forEach(exp => {
-        if (exp.category) {
-          expenseCategories[exp.category] = (expenseCategories[exp.category] || 0) + (exp.amount || 0);
-        }
-      });
-      globalExpenses?.forEach(exp => {
-        if (exp.category) {
-          expenseCategories[exp.category] = (expenseCategories[exp.category] || 0) + (exp.amount || 0);
-        }
-      });
-
-      const expensesByCategory = Object.entries(expenseCategories).map(([category, amount]) => ({
-        category,
-        amount
-      }));
-
-      // Reservations by status
-      const statusCounts = {};
-      reservations?.forEach(res => {
-        const status = res.statut || 'Non défini';
-        statusCounts[status] = (statusCounts[status] || 0) + 1;
-      });
-
-      const reservationsByStatus = Object.entries(statusCounts).map(([status, count]) => ({
-        status,
-        count
-      }));
-
-      setData({
+      setStats({
         totalRevenue,
         totalExpenses,
-        totalReservations: reservations?.length || 0,
-        totalVehicles: vehiclesData?.length || 0,
-        totalClients: clients?.length || 0,
-        profit: totalRevenue - totalExpenses,
-        averageRevenuePerReservation,
-        activeReservations,
-        monthlyRevenue,
-        vehicleRevenue,
-        expensesByCategory,
-        reservationsByStatus,
-        revenueGrowth
+        totalMaintenanceCosts,
+        netProfit,
+        reservationsCount: reservations?.length || 0,
+        averageRevenuePerVehicle,
+        totalVehicles,
       });
-
     } catch (error) {
       console.error('Error fetching statistics:', error);
       toast({
-        title: t('common.error'),
+        title: "Erreur",
         description: "Impossible de charger les statistiques",
         variant: "destructive",
       });
@@ -324,345 +135,263 @@ export const Statistics: React.FC = () => {
     }
   };
 
-  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+  const generateComprehensiveReport = async () => {
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.width;
+    
+    // Header with logo space
+    pdf.setFontSize(20);
+    pdf.setTextColor(37, 99, 235); // Blue color
+    pdf.text('RAPPORT STATISTIQUES AGENCE', pageWidth / 2, 30, { align: 'center' });
+    
+    pdf.setFontSize(12);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text(`Période: ${new Date(dateRange.startDate).toLocaleDateString('fr-FR')} - ${new Date(dateRange.endDate).toLocaleDateString('fr-FR')}`, pageWidth / 2, 40, { align: 'center' });
+    pdf.text(`Généré le: ${new Date().toLocaleDateString('fr-FR')}`, pageWidth / 2, 47, { align: 'center' });
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+    // Summary section
+    pdf.setFontSize(16);
+    pdf.setTextColor(37, 99, 235);
+    pdf.text('RÉSUMÉ EXÉCUTIF', 20, 65);
+
+    const summaryData = [
+      ['Indicateur', 'Valeur'],
+      ['Revenus Totaux', `${stats.totalRevenue.toLocaleString()} MAD`],
+      ['Dépenses Totales', `${stats.totalExpenses.toLocaleString()} MAD`],
+      ['Coûts d\'Entretien', `${stats.totalMaintenanceCosts.toLocaleString()} MAD`],
+      ['Bénéfice Net', `${stats.netProfit.toLocaleString()} MAD`],
+      ['Nombre de Réservations', stats.reservationsCount.toString()],
+      ['Revenus par Véhicule', `${stats.averageRevenuePerVehicle.toLocaleString()} MAD`],
+      ['Total Véhicules', stats.totalVehicles.toString()],
+    ];
+
+    (pdf as any).autoTable({
+      head: [summaryData[0]],
+      body: summaryData.slice(1),
+      startY: 75,
+      theme: 'grid',
+      headStyles: { fillColor: [37, 99, 235], textColor: 255 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 80 },
+        1: { cellWidth: 80, halign: 'right' }
+      }
+    });
+
+    // Performance Analysis
+    let currentY = (pdf as any).lastAutoTable.finalY + 20;
+    
+    pdf.setFontSize(16);
+    pdf.setTextColor(37, 99, 235);
+    pdf.text('ANALYSE DE PERFORMANCE', 20, currentY);
+
+    const profitMargin = stats.totalRevenue > 0 ? ((stats.netProfit / stats.totalRevenue) * 100).toFixed(1) : '0';
+    const expenseRatio = stats.totalRevenue > 0 ? (((stats.totalExpenses + stats.totalMaintenanceCosts) / stats.totalRevenue) * 100).toFixed(1) : '0';
+
+    const analysisData = [
+      ['Métrique', 'Valeur', 'Analyse'],
+      ['Marge Bénéficiaire', `${profitMargin}%`, profitMargin > '15' ? 'Excellente' : profitMargin > '10' ? 'Bonne' : 'À améliorer'],
+      ['Ratio Dépenses/Revenus', `${expenseRatio}%`, expenseRatio < '70' ? 'Optimal' : expenseRatio < '85' ? 'Acceptable' : 'Élevé'],
+      ['Utilisation Flotte', `${(stats.reservationsCount / (stats.totalVehicles * 30)).toFixed(1)} rés./véh./mois`, 'Variable selon période'],
+    ];
+
+    (pdf as any).autoTable({
+      head: [analysisData[0]],
+      body: analysisData.slice(1),
+      startY: currentY + 10,
+      theme: 'grid',
+      headStyles: { fillColor: [37, 99, 235], textColor: 255 },
+      alternateRowStyles: { fillColor: [248, 250, 252] }
+    });
+
+    // Recommendations
+    currentY = (pdf as any).lastAutoTable.finalY + 20;
+    
+    pdf.setFontSize(16);
+    pdf.setTextColor(37, 99, 235);
+    pdf.text('RECOMMANDATIONS', 20, currentY);
+
+    pdf.setFontSize(11);
+    pdf.setTextColor(0, 0, 0);
+    
+    const recommendations = [
+      '• Optimiser les coûts d\'entretien par la maintenance préventive',
+      '• Analyser la rentabilité par véhicule pour identifier les plus performants',
+      '• Réviser les tarifs si la marge bénéficiaire est faible',
+      '• Diversifier les services pour augmenter les revenus par client'
+    ];
+
+    let textY = currentY + 15;
+    recommendations.forEach(rec => {
+      pdf.text(rec, 20, textY);
+      textY += 7;
+    });
+
+    // Footer
+    pdf.setFontSize(8);
+    pdf.setTextColor(128, 128, 128);
+    pdf.text('Rapport généré automatiquement par le système de gestion', pageWidth / 2, pdf.internal.pageSize.height - 10, { align: 'center' });
+
+    pdf.save(`rapport-statistiques-${dateRange.startDate}-${dateRange.endDate}.pdf`);
+
+    toast({
+      title: "Succès",
+      description: "Rapport PDF généré avec succès",
+    });
+  };
+
+  const statCards = [
+    {
+      title: 'Revenus Totaux',
+      value: `${stats.totalRevenue.toLocaleString()} MAD`,
+      icon: DollarSign,
+      gradient: 'gradient-success',
+      change: stats.totalRevenue > 0 ? '+' : ''
+    },
+    {
+      title: 'Dépenses Totales',
+      value: `${stats.totalExpenses.toLocaleString()} MAD`,
+      icon: TrendingDown,
+      gradient: 'gradient-warning',
+    },
+    {
+      title: 'Coûts Entretien',
+      value: `${stats.totalMaintenanceCosts.toLocaleString()} MAD`,
+      icon: Wrench,
+      gradient: 'gradient-info',
+    },
+    {
+      title: 'Bénéfice Net',
+      value: `${stats.netProfit.toLocaleString()} MAD`,
+      icon: stats.netProfit >= 0 ? TrendingUp : TrendingDown,
+      gradient: stats.netProfit >= 0 ? 'gradient-success' : 'bg-destructive',
+    },
+    {
+      title: 'Réservations',
+      value: stats.reservationsCount,
+      icon: Calendar,
+      gradient: 'gradient-info',
+    },
+    {
+      title: 'Revenus/Véhicule',
+      value: `${stats.averageRevenuePerVehicle.toLocaleString()} MAD`,
+      icon: Car,
+      gradient: 'gradient-primary',
+    }
+  ];
 
   return (
-    <div className="section-spacing">
-      {/* Header with optimized spacing */}
-      <div className="page-header text-center">
-        <h1 className="page-title">
-          {t('statistics.dashboard')}
-        </h1>
-        <p className="page-subtitle">{t('statistics.dashboardSubtitle')}</p>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Statistiques
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Analyse des performances de votre agence</p>
+        </div>
+        
+        <Button 
+          onClick={generateComprehensiveReport}
+          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg"
+          disabled={loading}
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Rapport PDF
+        </Button>
       </div>
 
-      {/* Filters with compact spacing */}
-      <Card className="mb-4 sm:mb-6 lg:mb-8">
-        <CardHeader className="padding-compact">
-          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <Filter className="w-4 h-4 sm:w-5 sm:h-5" />
-            {t('common.filters')}
+      {/* Date Range Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Calendar className="w-5 h-5" />
+            <span>Période d'analyse</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="padding-compact">
-          <div className="form-grid">
-            <div className="space-y-1 sm:space-y-2">
-              <Label htmlFor="period" className="text-xs sm:text-sm">{t('statistics.period')}</Label>
-              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="this_year">{t('statistics.thisYear')}</SelectItem>
-                  <SelectItem value="this_month">{t('statistics.thisMonth')}</SelectItem>
-                  <SelectItem value="last_month">{t('statistics.lastMonth')}</SelectItem>
-                  <SelectItem value="all">{t('statistics.allPeriods')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1 sm:space-y-2">
-              <Label htmlFor="vehicle" className="text-xs sm:text-sm">{t('reservations.vehicle')}</Label>
-              <Select value={selectedVehicle} onValueChange={setSelectedVehicle}>
-                <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
-                  <SelectValue placeholder={t('statistics.allVehicles')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('statistics.allVehicles')}</SelectItem>
-                  {vehicles.map(vehicle => (
-                    <SelectItem key={vehicle.id} value={vehicle.id}>
-                      {vehicle.marque} {vehicle.modele}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1 sm:space-y-2">
-              <Label htmlFor="start-date" className="text-xs sm:text-sm">{t('statistics.startDate')}</Label>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="startDate">Date de début</Label>
               <Input
-                id="start-date"
+                id="startDate"
                 type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="h-8 sm:h-10 text-xs sm:text-sm"
+                value={dateRange.startDate}
+                onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+                className="mt-1"
               />
             </div>
-            <div className="space-y-1 sm:space-y-2">
-              <Label htmlFor="end-date" className="text-xs sm:text-sm">{t('statistics.endDate')}</Label>
+            <div>
+              <Label htmlFor="endDate">Date de fin</Label>
               <Input
-                id="end-date"
+                id="endDate"
                 type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="h-8 sm:h-10 text-xs sm:text-sm"
+                value={dateRange.endDate}
+                onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+                className="mt-1"
               />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Key Metrics with responsive grid */}
-      <div className="stats-grid mb-4 sm:mb-6 lg:mb-8">
-        {/* Revenue Card */}
-        <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-950 dark:to-emerald-900">
-          <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-green-500/10 rounded-full -translate-y-12 translate-x-12 sm:-translate-y-16 sm:translate-x-16"></div>
-          <CardContent className="card-spacing relative">
-            <div className="flex items-start justify-between">
-              <div className="space-compact w-full">
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <div className="p-1.5 sm:p-2 bg-green-500/20 rounded-lg">
-                    <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {statCards.map((stat, index) => {
+          const Icon = stat.icon;
+          return (
+            <Card key={index} className="hover:shadow-elegant transition-all-smooth hover:scale-105 border-0 overflow-hidden">
+              <CardContent className="p-6 relative">
+                <div className="flex items-center justify-between">
+                  <div className="z-10 relative">
+                    <p className="text-sm font-medium text-muted-foreground mb-2">
+                      {stat.title}
+                    </p>
+                    <p className="text-3xl font-bold text-foreground">
+                      {stat.value}
+                    </p>
                   </div>
-                  <p className="text-xs sm:text-sm font-semibold text-green-700 dark:text-green-400">
-                    {t('statistics.totalRevenue')}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-green-700 dark:text-green-300 break-words">
-                    {data.totalRevenue.toLocaleString('fr-FR')}
-                  </p>
-                  <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 font-medium">MAD</p>
-                </div>
-                {data.revenueGrowth !== 0 && (
-                  <div className={`flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-xs font-medium w-fit ${
-                    data.revenueGrowth > 0 
-                      ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200' 
-                      : 'bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-200'
-                  }`}>
-                    {data.revenueGrowth > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                    {Math.abs(data.revenueGrowth).toFixed(1)}%
+                  <div className={`p-4 rounded-2xl ${stat.gradient} shadow-elegant z-10 relative`}>
+                    <Icon className="w-6 h-6 text-primary-foreground" />
                   </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Profit Card */}
-        <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950 dark:to-indigo-900">
-          <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-blue-500/10 rounded-full -translate-y-12 translate-x-12 sm:-translate-y-16 sm:translate-x-16"></div>
-          <CardContent className="card-spacing relative">
-            <div className="flex items-start justify-between">
-              <div className="space-compact w-full">
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <div className="p-1.5 sm:p-2 bg-blue-500/20 rounded-lg">
-                    <Target className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                  </div>
-                  <p className="text-xs sm:text-sm font-semibold text-blue-700 dark:text-blue-400">
-                    {t('statistics.netProfit')}
-                  </p>
                 </div>
-                <div>
-                  <p className={`text-lg sm:text-2xl lg:text-3xl font-bold break-words ${data.profit >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-red-600 dark:text-red-400'}`}>
-                    {data.profit.toLocaleString('fr-FR')}
-                  </p>
-                  <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 font-medium">MAD</p>
-                </div>
-                <div className="flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 bg-blue-200 dark:bg-blue-800 rounded-full text-xs font-medium text-blue-800 dark:text-blue-200 w-fit">
-                  {t('statistics.margin')}: {data.totalRevenue > 0 ? ((data.profit / data.totalRevenue) * 100).toFixed(1) : 0}%
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Reservations Card */}
-        <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-purple-50 to-violet-100 dark:from-purple-950 dark:to-violet-900">
-          <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-purple-500/10 rounded-full -translate-y-12 translate-x-12 sm:-translate-y-16 sm:translate-x-16"></div>
-          <CardContent className="card-spacing relative">
-            <div className="flex items-start justify-between">
-              <div className="space-compact w-full">
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <div className="p-1.5 sm:p-2 bg-purple-500/20 rounded-lg">
-                    <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
-                  </div>
-                  <p className="text-xs sm:text-sm font-semibold text-purple-700 dark:text-purple-400">
-                    {t('statistics.totalReservations')}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-purple-700 dark:text-purple-300">
-                    {data.totalReservations}
-                  </p>
-                  <p className="text-xs sm:text-sm text-purple-600 dark:text-purple-400 font-medium">
-                    {t('common.total')}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 bg-purple-200 dark:bg-purple-800 rounded-full text-xs font-medium text-purple-800 dark:text-purple-200 w-fit">
-                  <Activity className="w-3 h-3" />
-                  {data.activeReservations} {t('statistics.activeLabel')}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Vehicles Card */}
-        <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-orange-50 to-amber-100 dark:from-orange-950 dark:to-amber-900">
-          <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-orange-500/10 rounded-full -translate-y-12 translate-x-12 sm:-translate-y-16 sm:translate-x-16"></div>
-          <CardContent className="card-spacing relative">
-            <div className="flex items-start justify-between">
-              <div className="space-compact w-full">
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <div className="p-1.5 sm:p-2 bg-orange-500/20 rounded-lg">
-                    <Car className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
-                  </div>
-                  <p className="text-xs sm:text-sm font-semibold text-orange-700 dark:text-orange-400">
-                    {t('statistics.fleetSize')}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-orange-700 dark:text-orange-300">
-                    {data.totalVehicles}
-                  </p>
-                  <p className="text-xs sm:text-sm text-orange-600 dark:text-orange-400 font-medium">
-                    {t('statistics.vehiclesLabel')}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 bg-orange-200 dark:bg-orange-800 rounded-full text-xs font-medium text-orange-800 dark:text-orange-200 w-fit">
-                  <Users className="w-3 h-3" />
-                  {data.totalClients} {t('statistics.clientsLabel')}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                <div className={`absolute top-0 right-0 w-24 h-24 ${stat.gradient} opacity-10 rounded-full transform translate-x-8 -translate-y-8`}></div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
-      {/* Charts Section with responsive grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-responsive">
-        {/* Monthly Revenue Trend */}
-        <Card>
-          <CardHeader className="padding-compact">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-              {t('statistics.revenueEvolution')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="padding-compact">
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={data.monthlyRevenue}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis dataKey="month" fontSize={12} />
-                <YAxis fontSize={12} />
-                <Tooltip 
-                  formatter={(value) => [`${value} MAD`, t('statistics.totalRevenue')]}
-                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '12px' }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="revenue" 
-                  stroke="#3b82f6" 
-                  strokeWidth={2}
-                  dot={{ fill: '#3b82f6', strokeWidth: 1, r: 3 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Vehicle Performance */}
-        <Card>
-          <CardHeader className="padding-compact">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <Car className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
-              {t('statistics.vehiclePerformance')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="padding-compact">
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={data.vehicleRevenue.slice(0, 6)}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis 
-                  dataKey="name" 
-                  angle={-45} 
-                  textAnchor="end" 
-                  height={80}
-                  fontSize={10}
-                />
-                <YAxis fontSize={12} />
-                <Tooltip 
-                  formatter={(value) => [`${value} MAD`, t('statistics.totalRevenue')]}
-                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '12px' }}
-                />
-                <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Expense Breakdown */}
-        <Card>
-          <CardHeader className="padding-compact">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
-              {t('statistics.expenseBreakdown')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="padding-compact">
-            {data.expensesByCategory.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={data.expensesByCategory}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ category, percent }) => `${category} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="amount"
-                    fontSize={10}
-                  >
-                    {data.expensesByCategory.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => [`${value} MAD`]} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-[250px] text-muted-foreground text-sm">
-                {t('statistics.noExpenseData')}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Reservation Status */}
-        <Card>
-          <CardHeader className="padding-compact">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
-              {t('statistics.reservationStatus')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="padding-compact">
-            {data.reservationsByStatus.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={data.reservationsByStatus}>
-                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                  <XAxis dataKey="status" fontSize={12} />
-                  <YAxis fontSize={12} />
-                  <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '12px' }} />
-                  <Bar dataKey="count" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-[250px] text-muted-foreground text-sm">
-                {t('statistics.noReservationData')}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {/* Performance Analysis */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <FileText className="w-5 h-5" />
+            <span>Analyse de Performance</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 rounded-lg">
+              <h3 className="font-semibold text-green-700 dark:text-green-300 mb-2">Marge Bénéficiaire</h3>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {stats.totalRevenue > 0 ? ((stats.netProfit / stats.totalRevenue) * 100).toFixed(1) : '0'}%
+              </p>
+            </div>
+            <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 rounded-lg">
+              <h3 className="font-semibold text-blue-700 dark:text-blue-300 mb-2">Ratio Dépenses</h3>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {stats.totalRevenue > 0 ? (((stats.totalExpenses + stats.totalMaintenanceCosts) / stats.totalRevenue) * 100).toFixed(1) : '0'}%
+              </p>
+            </div>
+            <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950 dark:to-violet-950 rounded-lg">
+              <h3 className="font-semibold text-purple-700 dark:text-purple-300 mb-2">Utilisation Flotte</h3>
+              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                {stats.totalVehicles > 0 ? (stats.reservationsCount / stats.totalVehicles).toFixed(1) : '0'} rés./véh.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
