@@ -298,7 +298,7 @@ export const Vehicles: React.FC = () => {
               {t('vehicles.addVehicle')}
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto mx-4 dialog-mobile">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold">
                 {editingVehicle ? t('vehicles.editVehicle') : t('vehicles.addVehicle')}

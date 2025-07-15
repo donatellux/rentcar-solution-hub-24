@@ -17,15 +17,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="page-container">
-      <div className="flex h-screen">
-        {/* Sidebar - Fixed and sticky */}
+      <div className="flex h-screen w-full overflow-hidden">
+        {/* Sidebar - Fixed and sticky with mobile-optimized behavior */}
         <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
         
         {/* Main content - Scrollable area with optimized spacing */}
-        <div className="flex-1 lg:ml-[280px] flex flex-col h-screen">
+        <div className="flex-1 lg:ml-[280px] flex flex-col h-screen w-full min-w-0">
           <Header onMenuToggle={toggleSidebar} />
           
-          <main className="page-content">
+          <main className="page-content flex-1 overflow-y-auto overflow-x-hidden">
             <div className="content-wrapper">
               {children}
             </div>

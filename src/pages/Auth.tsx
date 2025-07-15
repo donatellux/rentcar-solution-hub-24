@@ -146,8 +146,8 @@ export const Auth: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-md mx-auto">
         <div className="text-center mb-8">
           <div className="inline-flex items-center space-x-2 mb-4">
             <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
@@ -162,8 +162,8 @@ export const Auth: React.FC = () => {
           </p>
         </div>
 
-        <Card>
-          <CardContent className="p-6">
+        <Card className="shadow-xl">
+          <CardContent className="p-4 sm:p-6">
             <Tabs defaultValue="login" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Connexion</TabsTrigger>

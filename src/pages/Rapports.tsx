@@ -225,7 +225,7 @@ export const Rapports: React.FC = () => {
               Nouveau rapport
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 dialog-mobile">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold">
                 {editingRapport ? 'Modifier le rapport' : 'Nouveau rapport'}

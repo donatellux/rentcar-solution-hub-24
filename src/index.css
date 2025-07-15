@@ -120,8 +120,11 @@ All colors MUST be HSL.
   }
 
   .page-content {
-    @apply flex-1 overflow-y-auto;
+    @apply flex-1 overflow-y-auto overflow-x-hidden;
     @apply px-3 py-4 sm:px-4 sm:py-6 lg:px-6 lg:py-8 xl:px-8 xl:py-10;
+    /* Mobile safe area support */
+    padding-bottom: calc(env(safe-area-inset-bottom) + 4rem);
+    width: 100%;
   }
 
   .page-header {
@@ -285,6 +288,62 @@ All colors MUST be HSL.
 
     .touch-target {
       @apply min-h-[44px] min-w-[44px];
+    }
+  }
+
+  /* Mobile viewport fixes and zoom handling */
+  @media screen and (max-width: 768px) {
+    body {
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    
+    /* Prevent horizontal scroll on mobile */
+    .page-container {
+      width: 100vw;
+      overflow-x: hidden;
+    }
+    
+    /* Better form inputs for mobile - prevent zoom on iOS */
+    input, select, textarea {
+      font-size: 16px !important;
+      line-height: 1.4;
+    }
+    
+    /* Mobile-optimized content wrapper */
+    .content-wrapper {
+      @apply px-2 sm:px-4;
+      max-width: 100vw;
+    }
+    
+    /* Mobile dialog improvements */
+    .dialog-mobile {
+      width: calc(100vw - 1rem) !important;
+      max-width: calc(100vw - 1rem) !important;
+      margin: 0.5rem !important;
+      max-height: calc(100vh - 2rem) !important;
+      overflow-y: auto;
+    }
+    
+    /* Mobile table wrapper */
+    .table-mobile-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+    }
+  }
+
+  /* Handle zoom levels for better sidebar behavior */
+  @media screen and (max-width: 1200px) {
+    /* When zoomed out or smaller screens, ensure sidebar behavior is maintained */
+    .sidebar-container {
+      position: fixed;
+      z-index: 40;
+      transition: transform 0.3s ease-in-out;
+    }
+    
+    .sidebar-container.hidden {
+      transform: translateX(-100%);
     }
   }
 }
