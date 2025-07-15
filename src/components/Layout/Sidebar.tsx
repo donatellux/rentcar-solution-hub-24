@@ -62,7 +62,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
         className={`sidebar-container fixed left-0 top-0 h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 transition-transform duration-300 ease-in-out z-50 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0 lg:static lg:z-auto flex flex-col w-[280px] min-w-[280px] max-w-[280px] ${
-          !isOpen ? 'hidden' : ''
+          !isOpen ? 'lg:flex hidden' : ''
         }`}
       >
         {/* Header */}
