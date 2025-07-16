@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,13 +28,15 @@ import {
 
 interface EntretienType {
   id: string;
-  vehicle_id: string | null;
+  vehicule_id: string | null;
   type: string | null;
   cout: number | null;
   date: string | null;
   description: string | null;
-  statut: string | null;
+  agency_id: string | null;
   created_at: string | null;
+  km_last_vidange: number | null;
+  vidange_periodicite_km: number | null;
   vehicles?: {
     marque: string;
     modele: string;
@@ -63,12 +66,11 @@ export const Entretien: React.FC = () => {
   });
 
   const [formData, setFormData] = useState({
-    vehicle_id: '',
+    vehicule_id: '',
     type: '',
     cout: '',
     date: '',
     description: '',
-    statut: 'planifie',
   });
 
   useEffect(() => {
@@ -119,12 +121,11 @@ export const Entretien: React.FC = () => {
 
     try {
       const entretienData = {
-        vehicle_id: formData.vehicle_id || null,
+        vehicule_id: formData.vehicule_id || null,
         type: formData.type,
         cout: formData.cout ? parseFloat(formData.cout) : null,
         date: formData.date || null,
         description: formData.description,
-        statut: formData.statut,
         agency_id: user.id,
       };
 
@@ -193,24 +194,22 @@ export const Entretien: React.FC = () => {
   const handleEdit = (entretien: EntretienType) => {
     setEditingEntretien(entretien);
     setFormData({
-      vehicle_id: entretien.vehicle_id || '',
+      vehicule_id: entretien.vehicule_id || '',
       type: entretien.type || '',
       cout: entretien.cout?.toString() || '',
       date: entretien.date ? entretien.date.split('T')[0] : '',
       description: entretien.description || '',
-      statut: entretien.statut || 'planifie',
     });
     setIsDialogOpen(true);
   };
 
   const resetForm = () => {
     setFormData({
-      vehicle_id: '',
+      vehicule_id: '',
       type: '',
       cout: '',
       date: '',
       description: '',
-      statut: 'planifie',
     });
   };
 
@@ -219,6 +218,7 @@ export const Entretien: React.FC = () => {
       toast({
         title: "Erreur",
         description: "Veuillez sélectionner une période valide",
+        variant: "destructive",
       });
       return;
     }
@@ -266,14 +266,13 @@ export const Entretien: React.FC = () => {
         pdf.text('OPÉRATIONS D\'ENTRETIEN', 20, currentY);
 
         const entretienData = [
-          ['Date', 'Véhicule', 'Type', 'Description', 'Coût (MAD)', 'Statut'],
+          ['Date', 'Véhicule', 'Type', 'Description', 'Coût (MAD)'],
           ...filteredEntretiens.map(entretien => [
             entretien.date ? new Date(entretien.date).toLocaleDateString('fr-FR') : 'N/A',
             entretien.vehicles ? `${entretien.vehicles.marque} ${entretien.vehicles.modele}` : 'N/A',
             entretien.type || 'N/A',
             entretien.description || 'Aucune description',
             `${(entretien.cout || 0).toLocaleString('fr-FR')}`,
-            entretien.statut || 'N/A'
           ])
         ];
 
@@ -286,12 +285,11 @@ export const Entretien: React.FC = () => {
           alternateRowStyles: { fillColor: [248, 250, 252] },
           styles: { fontSize: 8 },
           columnStyles: {
-            0: { cellWidth: 25 },
-            1: { cellWidth: 40 },
-            2: { cellWidth: 25 },
-            3: { cellWidth: 50 },
-            4: { cellWidth: 25, halign: 'right' },
-            5: { cellWidth: 25 }
+            0: { cellWidth: 30 },
+            1: { cellWidth: 50 },
+            2: { cellWidth: 30 },
+            3: { cellWidth: 60 },
+            4: { cellWidth: 30, halign: 'right' }
           }
         });
 
@@ -305,8 +303,6 @@ export const Entretien: React.FC = () => {
 
       // Summary section
       const totalCost = filteredEntretiens.reduce((sum, entretien) => sum + (entretien.cout || 0), 0);
-      const completedCount = filteredEntretiens.filter(e => e.statut === 'termine').length;
-      const pendingCount = filteredEntretiens.filter(e => e.statut === 'en_cours' || e.statut === 'planifie').length;
       
       pdf.setFontSize(16);
       pdf.setTextColor(37, 99, 235);
@@ -315,8 +311,6 @@ export const Entretien: React.FC = () => {
       const summaryData = [
         ['Indicateur', 'Valeur'],
         ['Total Opérations', filteredEntretiens.length.toString()],
-        ['Opérations Terminées', completedCount.toString()],
-        ['Opérations En Cours/Planifiées', pendingCount.toString()],
         ['Coût Total', `${totalCost.toLocaleString('fr-FR')} MAD`]
       ];
 
@@ -352,19 +346,6 @@ export const Entretien: React.FC = () => {
         description: "Erreur lors de la génération du PDF",
         variant: "destructive",
       });
-    }
-  };
-
-  const getStatusColor = (status: string | null) => {
-    switch (status) {
-      case 'termine':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'en_cours':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'planifie':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
     }
   };
 
@@ -422,8 +403,8 @@ export const Entretien: React.FC = () => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="vehicle_id">Véhicule *</Label>
-                    <Select value={formData.vehicle_id} onValueChange={(value) => setFormData({ ...formData, vehicle_id: value })}>
+                    <Label htmlFor="vehicule_id">Véhicule *</Label>
+                    <Select value={formData.vehicule_id} onValueChange={(value) => setFormData({ ...formData, vehicule_id: value })}>
                       <SelectTrigger className="mt-1">
                         <SelectValue placeholder="Sélectionner un véhicule" />
                       </SelectTrigger>
@@ -481,19 +462,6 @@ export const Entretien: React.FC = () => {
                     className="mt-1"
                     rows={3}
                   />
-                </div>
-                <div>
-                  <Label htmlFor="statut">Statut</Label>
-                  <Select value={formData.statut} onValueChange={(value) => setFormData({ ...formData, statut: value })}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Sélectionner un statut" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="planifie">Planifié</SelectItem>
-                      <SelectItem value="en_cours">En cours</SelectItem>
-                      <SelectItem value="termine">Terminé</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
                 
                 <div className="flex justify-end space-x-3 pt-4 border-t">
@@ -581,7 +549,6 @@ export const Entretien: React.FC = () => {
                     <TableHead>Coût</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Description</TableHead>
-                    <TableHead>Statut</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -605,12 +572,6 @@ export const Entretien: React.FC = () => {
                         <div className="max-w-xs truncate">
                           {entretien.description || 'Aucune description'}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(entretien.statut)}>
-                          {entretien.statut === 'termine' && <CheckCheck className="w-3.5 h-3.5 mr-1" />}
-                          {entretien.statut || 'N/A'}
-                        </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
