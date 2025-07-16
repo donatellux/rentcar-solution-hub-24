@@ -356,14 +356,15 @@ export const B2BReservations: React.FC = () => {
               Nouvelle Réservation B2B
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-3xl">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
             <DialogHeader>
               <DialogTitle>Créer une réservation B2B</DialogTitle>
               <DialogDescription>
                 Remplissez les détails de la réservation pour entreprise
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleCreateReservation} className="space-y-6">
+            <div className="overflow-y-auto max-h-[70vh] pr-2">
+              <form onSubmit={handleCreateReservation} className="space-y-6">
               {/* Company Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold border-b pb-2">Informations de l'entreprise</h3>
@@ -630,7 +631,8 @@ export const B2BReservations: React.FC = () => {
                   Créer la réservation
                 </Button>
               </div>
-            </form>
+              </form>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
