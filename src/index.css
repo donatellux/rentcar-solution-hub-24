@@ -114,21 +114,20 @@ All colors MUST be HSL.
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Optimized spacing system */
+  /* Full width layout for SaaS apps */
   .page-container {
     @apply min-h-screen w-full;
   }
 
   .page-content {
-    @apply flex-1 overflow-y-auto overflow-x-hidden;
-    @apply px-3 py-3 sm:px-4 sm:py-4 lg:px-4 lg:py-4;
+    @apply flex-1 overflow-y-auto overflow-x-hidden w-full;
+    @apply px-3 py-3 sm:px-4 sm:py-4 lg:px-6 lg:py-6;
     /* Mobile safe area support */
     padding-bottom: calc(env(safe-area-inset-bottom) + 4rem);
-    width: 100%;
   }
 
   .page-header {
-    @apply mb-3 sm:mb-4 lg:mb-4;
+    @apply mb-3 sm:mb-4 lg:mb-6 w-full;
   }
 
   .page-title {
@@ -140,22 +139,23 @@ All colors MUST be HSL.
   }
 
   .content-wrapper {
-    @apply w-full max-w-none;
+    @apply w-full;
   }
 
+  /* Desktop-first grid layouts for maximum space usage */
   .card-grid {
     @apply grid gap-3 sm:gap-4 lg:gap-6;
-    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5;
   }
 
   .stats-grid {
     @apply grid gap-3 sm:gap-4 lg:gap-6;
-    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-4;
+    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6;
   }
 
   .form-grid {
-    @apply grid gap-3 sm:gap-4 lg:gap-6;
-    @apply grid-cols-1 md:grid-cols-2;
+    @apply grid gap-3 sm:gap-4 lg:gap-6 w-full;
+    @apply grid-cols-1 md:grid-cols-2 lg:grid-cols-3;
   }
 
   .button-group {
@@ -212,25 +212,24 @@ All colors MUST be HSL.
     }
   }
 
-  /* Desktop optimizations */
+  /* Desktop optimizations - Full width SaaS layout */
   @media (min-width: 1024px) {
     .desktop-grid {
-      @apply grid-cols-3 lg:grid-cols-4;
+      @apply grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6;
     }
 
     .desktop-spacing {
       @apply space-y-6;
     }
 
-    /* Compact desktop layout - use full screen width */
+    /* Full width desktop layout - no max-width constraints */
     .desktop-page-content {
-      @apply px-6 py-4;
-      height: calc(100vh - 56px); /* Compact header height */
-      width: 100%;
+      @apply px-6 py-6 w-full;
+      min-height: calc(100vh - 120px); /* Header + nav height */
     }
 
     .desktop-full-width {
-      @apply w-full max-w-none;
+      @apply w-full;
       margin: 0;
       padding: 0;
     }
@@ -467,6 +466,15 @@ All colors MUST be HSL.
     text-align: left;
   }
 
+  /* Full width utilities for SaaS layout */
+  .saas-full-width {
+    @apply w-full max-w-none;
+  }
+
+  .saas-container {
+    @apply w-full px-4 lg:px-6 xl:px-8;
+  }
+
   /* Responsive spacing utilities */
   .space-responsive {
     @apply space-y-3 sm:space-y-4 lg:space-y-6;
@@ -527,8 +535,13 @@ body {
   overflow-y: auto;
 }
 
-/* Prevent horizontal scrolling globally */
+/* Prevent horizontal scrolling globally while ensuring full width */
 * {
-  max-width: 100%;
   box-sizing: border-box;
+}
+
+/* Remove any container max-width constraints */
+.container {
+  max-width: none !important;
+  width: 100% !important;
 }

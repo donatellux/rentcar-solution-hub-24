@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
@@ -34,10 +35,10 @@ export const NavigationBar: React.FC = () => {
   ];
 
   return (
-    <nav className="bg-card border-b border-border shadow-sm">
+    <nav className="bg-card border-b border-border shadow-sm w-full">
       <div className="w-full px-6">
-        <div className="flex justify-center">
-          <div className="flex space-x-2 py-3 flex-wrap justify-center max-w-6xl">
+        <div className="flex justify-start overflow-x-auto">
+          <div className="flex space-x-2 py-3 min-w-max">
             {navigation.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.href;
@@ -46,7 +47,7 @@ export const NavigationBar: React.FC = () => {
                 <NavLink
                   key={item.name}
                   to={item.href}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                     isActive
                       ? 'bg-primary text-primary-foreground shadow-md scale-105'
                       : 'text-muted-foreground hover:text-foreground hover:bg-accent/60 hover:scale-105'
