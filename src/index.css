@@ -121,26 +121,26 @@ All colors MUST be HSL.
 
   .page-content {
     @apply flex-1 overflow-y-auto overflow-x-hidden;
-    @apply px-3 py-3 sm:px-4 sm:py-4 lg:px-4 lg:py-4 xl:px-6 xl:py-5;
+    @apply px-3 py-4 sm:px-4 sm:py-6 lg:px-6 lg:py-8 xl:px-8 xl:py-10;
     /* Mobile safe area support */
     padding-bottom: calc(env(safe-area-inset-bottom) + 4rem);
     width: 100%;
   }
 
   .page-header {
-    @apply mb-3 sm:mb-4 lg:mb-5;
+    @apply mb-4 sm:mb-6 lg:mb-8;
   }
 
   .page-title {
-    @apply text-lg sm:text-xl lg:text-2xl font-semibold text-foreground mb-1;
+    @apply text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mb-1 sm:mb-2;
   }
 
   .page-subtitle {
-    @apply text-xs sm:text-sm text-muted-foreground;
+    @apply text-sm sm:text-base text-muted-foreground;
   }
 
   .content-wrapper {
-    @apply w-full max-w-none;
+    @apply mx-auto max-w-7xl w-full;
   }
 
   .card-grid {
@@ -149,8 +149,8 @@ All colors MUST be HSL.
   }
 
   .stats-grid {
-    @apply grid gap-3 sm:gap-4 lg:gap-4;
-    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+    @apply grid gap-3 sm:gap-4 lg:gap-6;
+    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-4;
   }
 
   .form-grid {
@@ -225,39 +225,32 @@ All colors MUST be HSL.
     /* Desktop table optimizations - full width tables */
     .desktop-table-container {
       @apply w-full h-full flex flex-col;
-      min-height: calc(100vh - 80px); /* Optimized height */
+      min-height: calc(100vh - 120px); /* Full height minus header */
     }
 
     .desktop-table-wrapper {
       @apply flex-1 w-full overflow-auto;
-      max-height: calc(100vh - 100px); /* More space for table */
+      max-height: calc(100vh - 140px); /* Allow scrolling if needed */
     }
 
     .desktop-table {
-      @apply w-full text-sm;
+      @apply w-full text-base;
       min-width: 100%;
-      table-layout: fixed; /* Better column control */
     }
 
     .desktop-table th {
-      @apply px-3 py-2 text-xs font-medium text-muted-foreground;
+      @apply px-6 py-4 text-sm font-semibold;
       white-space: nowrap;
-      border-bottom: 1px solid hsl(var(--border));
     }
 
     .desktop-table td {
-      @apply px-3 py-3 text-sm;
+      @apply px-6 py-4;
       white-space: nowrap;
-      border-bottom: 1px solid hsl(var(--border));
-    }
-
-    .desktop-table tr:hover {
-      @apply bg-muted/50;
     }
 
     .desktop-page-content {
-      @apply p-4;
-      height: calc(100vh - 60px); /* Compact header height */
+      @apply p-6;
+      height: calc(100vh - 80px); /* Full viewport minus header */
     }
   }
 

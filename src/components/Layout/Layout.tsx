@@ -22,7 +22,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
         
         {/* Main content - Scrollable area with optimized spacing */}
-        <div className="flex-1 lg:ml-[200px] flex flex-col h-screen w-full min-w-0">
+        <div className="flex-1 lg:ml-[280px] flex flex-col h-screen w-full min-w-0">
           <Header onMenuToggle={toggleSidebar} />
           
           <main className="page-content flex-1 overflow-y-auto overflow-x-hidden lg:desktop-page-content">
