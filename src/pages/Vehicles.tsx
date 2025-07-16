@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -209,8 +210,20 @@ export const Vehicles: React.FC = () => {
     try {
       console.log('Starting vehicle deletion process for:', vehicle.id);
 
-      // First, delete related records in the correct order
-      // 1. Delete from entretiens
+      // Delete all related records in the correct order to avoid foreign key constraint violations
+      
+      // 1. Delete from vehicle_revenues
+      const { error: revenuesError } = await supabase
+        .from('vehicle_revenues')
+        .delete()
+        .eq('vehicle_id', vehicle.id);
+
+      if (revenuesError) {
+        console.error('Error deleting vehicle revenues:', revenuesError);
+        throw revenuesError;
+      }
+
+      // 2. Delete from entretiens (maintenance)
       const { error: entretiensError } = await supabase
         .from('entretiens')
         .delete()
@@ -221,7 +234,7 @@ export const Vehicles: React.FC = () => {
         throw entretiensError;
       }
 
-      // 2. Delete from vehicle_expenses
+      // 3. Delete from vehicle_expenses
       const { error: expensesError } = await supabase
         .from('vehicle_expenses')
         .delete()
@@ -232,18 +245,88 @@ export const Vehicles: React.FC = () => {
         throw expensesError;
       }
 
-      // 3. Update reservations to remove vehicle reference (set to null) instead of deleting
-      const { error: reservationError } = await supabase
-        .from('reservations')
-        .update({ vehicule_id: null })
-        .eq('vehicule_id', vehicle.id);
+      // 4. Delete from documents
+      const { error: documentsError } = await supabase
+        .from('documents')
+        .delete()
+        .eq('car_id', vehicle.id);
 
-      if (reservationError) {
-        console.error('Error updating reservations:', reservationError);
-        throw reservationError;
+      if (documentsError) {
+        console.error('Error deleting documents:', documentsError);
+        throw documentsError;
       }
 
-      // 4. Finally, delete the vehicle
+      // 5. Delete from reservations (instead of just updating to null)
+      const { error: reservationsError } = await supabase
+        .from('reservations')
+        .delete()
+        .eq('vehicule_id', vehicle.id);
+
+      if (reservationsError) {
+        console.error('Error deleting reservations:', reservationsError);
+        throw reservationsError;
+      }
+
+      // 6. Update B2B reservations to remove vehicle from vehicles array
+      // First, get all B2B reservations that might contain this vehicle
+      const { data: b2bReservations, error: fetchB2BError } = await supabase
+        .from('b2b_reservations')
+        .select('id, vehicles')
+        .eq('agency_id', user?.id);
+
+      if (fetchB2BError) {
+        console.error('Error fetching B2B reservations:', fetchB2BError);
+        throw fetchB2BError;
+      }
+
+      // Update B2B reservations that contain this vehicle
+      if (b2bReservations) {
+        for (const reservation of b2bReservations) {
+          if (reservation.vehicles && Array.isArray(reservation.vehicles)) {
+            const updatedVehicles = reservation.vehicles.filter(v => v.id !== vehicle.id);
+            
+            // If the reservation still has vehicles, update it; otherwise delete it
+            if (updatedVehicles.length > 0) {
+              await supabase
+                .from('b2b_reservations')
+                .update({ vehicles: updatedVehicles })
+                .eq('id', reservation.id);
+            } else {
+              await supabase
+                .from('b2b_reservations')
+                .delete()
+                .eq('id', reservation.id);
+            }
+          }
+        }
+      }
+
+      // 7. Update global_revenues to remove vehicle from vehicle_ids array
+      const { data: globalRevenues, error: fetchGlobalError } = await supabase
+        .from('global_revenues')
+        .select('id, vehicle_ids')
+        .eq('agency_id', user?.id);
+
+      if (fetchGlobalError) {
+        console.error('Error fetching global revenues:', fetchGlobalError);
+        throw fetchGlobalError;
+      }
+
+      // Update global revenues that contain this vehicle
+      if (globalRevenues) {
+        for (const revenue of globalRevenues) {
+          if (revenue.vehicle_ids && Array.isArray(revenue.vehicle_ids)) {
+            const updatedVehicleIds = revenue.vehicle_ids.filter(id => id !== vehicle.id);
+            
+            await supabase
+              .from('global_revenues')
+              .update({ vehicle_ids: updatedVehicleIds })
+              .eq('id', revenue.id);
+          }
+        }
+      }
+
+      // 8. Finally, delete the vehicle
       const { error: vehicleError } = await supabase
         .from('vehicles')
         .delete()
@@ -256,7 +339,7 @@ export const Vehicles: React.FC = () => {
 
       toast({
         title: "Succès",
-        description: "Véhicule supprimé avec succès",
+        description: "Véhicule et tous les enregistrements associés supprimés avec succès",
       });
 
       fetchVehicles();
@@ -264,7 +347,7 @@ export const Vehicles: React.FC = () => {
       console.error('Error deleting vehicle:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de supprimer le véhicule. Il pourrait être lié à des réservations actives.",
+        description: "Impossible de supprimer le véhicule. Veuillez réessayer.",
         variant: "destructive",
       });
     } finally {
@@ -689,10 +772,25 @@ export const Vehicles: React.FC = () => {
       <AlertDialog open={!!vehicleToDelete} onOpenChange={() => setVehicleToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-            <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer le véhicule {vehicleToDelete?.marque} {vehicleToDelete?.modele} ({vehicleToDelete?.immatriculation}) ?
-              Cette action supprimera également tous les enregistrements associés (entretiens, dépenses) et ne peut pas être annulée.
+            <AlertDialogTitle className="text-destructive">⚠️ Suppression définitive</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p className="font-medium">
+                Êtes-vous sûr de vouloir supprimer le véhicule <span className="font-bold">{vehicleToDelete?.marque} {vehicleToDelete?.modele}</span> ({vehicleToDelete?.immatriculation}) ?
+              </p>
+              <div className="bg-destructive/10 p-3 rounded-md border border-destructive/20">
+                <p className="text-sm font-medium text-destructive mb-2">Cette action supprimera définitivement :</p>
+                <ul className="text-sm text-destructive space-y-1 ml-4">
+                  <li>• Toutes les réservations de ce véhicule</li>
+                  <li>• Tous les entretiens et maintenances</li>
+                  <li>• Toutes les dépenses liées au véhicule</li>
+                  <li>• Tous les documents associés</li>
+                  <li>• Tous les revenus générés par ce véhicule</li>
+                  <li>• Les références dans les statistiques</li>
+                </ul>
+              </div>
+              <p className="text-sm font-medium text-destructive">
+                Cette action ne peut pas être annulée !
+              </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -701,7 +799,7 @@ export const Vehicles: React.FC = () => {
               onClick={() => vehicleToDelete && handleDelete(vehicleToDelete)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Supprimer
+              Supprimer définitivement
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
