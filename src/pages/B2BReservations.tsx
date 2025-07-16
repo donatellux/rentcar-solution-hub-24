@@ -246,7 +246,8 @@ export const B2BReservations: React.FC = () => {
   };
 
   const calculateTotal = () => {
-    return formData.vehicle_prices.reduce((total, vp) => total + vp.price, 0);
+    const days = calculateDays();
+    return formData.vehicle_prices.reduce((total, vp) => total + (vp.price * days), 0) + (formData.additional_charges || 0);
   };
 
   const calculateDays = () => {
@@ -308,8 +309,8 @@ export const B2BReservations: React.FC = () => {
     }
     
     try {
-      const totalRevenue = calculateTotal();
       const days = calculateDays();
+      const totalRevenue = calculateTotal();
       
       // Create society entry
       const societyData = {
@@ -352,6 +353,8 @@ export const B2BReservations: React.FC = () => {
         };
       });
 
+      const totalVehicleAmount = formData.vehicle_prices.reduce((total, vp) => total + (vp.price * days), 0);
+      
       const b2bReservationData = {
         society_id: societyId,
         agency_id: user?.id,
@@ -360,7 +363,7 @@ export const B2BReservations: React.FC = () => {
         vehicles: vehiclesData,
         with_driver: formData.with_driver,
         additional_charges: formData.additional_charges || 0,
-        total_amount: totalRevenue,
+        total_amount: totalVehicleAmount + (formData.additional_charges || 0),
         status: formData.status || 'confirmed',
         notes: '',
       };
@@ -777,7 +780,7 @@ export const B2BReservations: React.FC = () => {
               <div class="total-section">
                 <div class="total-row">
                   <span>Sous-total véhicules:</span>
-                  <span>${reservation.total_amount.toFixed(2)} MAD</span>
+                  <span>${vehicleInfo.reduce((sum, vehicle) => sum + vehicle.total, 0).toFixed(2)} MAD</span>
                 </div>
                 ${reservation.additional_charges > 0 ? `
                   <div class="total-row">
@@ -787,7 +790,7 @@ export const B2BReservations: React.FC = () => {
                 ` : ''}
                 <div class="total-row grand-total">
                   <span>TOTAL GÉNÉRAL:</span>
-                  <span>${(reservation.total_amount + (reservation.additional_charges || 0)).toFixed(2)} MAD</span>
+                  <span>${(vehicleInfo.reduce((sum, vehicle) => sum + vehicle.total, 0) + (reservation.additional_charges || 0)).toFixed(2)} MAD</span>
                 </div>
               </div>
             </div>
