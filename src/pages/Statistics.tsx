@@ -136,6 +136,15 @@ export const Statistics: React.FC = () => {
   };
 
   const generateComprehensiveReport = async () => {
+    if (!dateRange.startDate || !dateRange.endDate) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner une période valide",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const pdf = new jsPDF();
     const pageWidth = pdf.internal.pageSize.width;
     

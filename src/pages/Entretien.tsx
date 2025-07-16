@@ -267,6 +267,15 @@ export const Entretien: React.FC = () => {
   };
 
   const generatePDF = async () => {
+    if (!pdfDateRange.startDate || !pdfDateRange.endDate) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner une période valide",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const pdf = new jsPDF();
     const pageWidth = pdf.internal.pageSize.width;
     
@@ -531,14 +540,38 @@ export const Entretien: React.FC = () => {
           </DialogContent>
         </Dialog>
         
-        <Button 
-          onClick={generatePDF}
-          variant="outline" 
-          className="border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
-        >
-          <Download className="w-4 h-4 mr-2" />
-          Rapport PDF
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+          <div className="grid grid-cols-2 gap-2 min-w-[300px]">
+            <div>
+              <Label htmlFor="pdfStartDate" className="text-xs">Date début</Label>
+              <Input
+                id="pdfStartDate"
+                type="date"
+                value={pdfDateRange.startDate}
+                onChange={(e) => setPdfDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+                className="text-xs h-8"
+              />
+            </div>
+            <div>
+              <Label htmlFor="pdfEndDate" className="text-xs">Date fin</Label>
+              <Input
+                id="pdfEndDate"
+                type="date"
+                value={pdfDateRange.endDate}
+                onChange={(e) => setPdfDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+                className="text-xs h-8"
+              />
+            </div>
+          </div>
+          <Button 
+            onClick={generatePDF}
+            variant="outline" 
+            className="border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950 whitespace-nowrap"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Rapport PDF
+          </Button>
+        </div>
         </div>
       </div>
 
