@@ -14,7 +14,6 @@ const navigation = [
   { name: 'Véhicules', href: '/vehicles', icon: Car },
   { name: 'Clients', href: '/clients', icon: Users },
   { name: 'Réservations', href: '/reservations', icon: Calendar },
-  { name: 'Plus', href: '/settings', icon: Settings },
 ];
 
 export const MobileNavigation: React.FC = () => {

@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar, Download, FileText, TrendingUp, TrendingDown, DollarSign, Car, Wrench } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar, Download, FileText, TrendingUp, TrendingDown, DollarSign, Car, Wrench, BarChart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -20,6 +21,22 @@ interface StatsPeriod {
   totalVehicles: number;
 }
 
+interface Vehicle {
+  id: string;
+  marque: string;
+  modele: string;
+  immatriculation: string;
+}
+
+interface VehicleStats {
+  totalRevenue: number;
+  totalExpenses: number;
+  totalMaintenanceCosts: number;
+  netProfit: number;
+  reservationsCount: number;
+  profitabilityRate: 'Élevée' | 'Moyenne' | 'Faible';
+}
+
 export const Statistics: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -34,16 +51,30 @@ export const Statistics: React.FC = () => {
     totalVehicles: 0,
   });
   
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [selectedVehicle, setSelectedVehicle] = useState<string>('');
+  const [vehicleStats, setVehicleStats] = useState<VehicleStats | null>(null);
+  const [loadingVehicleStats, setLoadingVehicleStats] = useState(false);
+  
   const [dateRange, setDateRange] = useState({
     startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0]
   });
 
-  useEffect(() => {
-    if (user) {
-      fetchStatistics();
+  const fetchVehicles = async () => {
+    if (!user) return;
+
+    try {
+      const { data } = await supabase
+        .from('vehicles')
+        .select('id, marque, modele, immatriculation')
+        .eq('agency_id', user.id);
+
+      setVehicles(data || []);
+    } catch (error) {
+      console.error('Error fetching vehicles:', error);
     }
-  }, [user, dateRange]);
+  };
 
   const fetchStatistics = async () => {
     if (!user) return;
@@ -51,42 +82,43 @@ export const Statistics: React.FC = () => {
 
     try {
       const startDate = new Date(dateRange.startDate);
+      startDate.setHours(0, 0, 0, 0);
       const endDate = new Date(dateRange.endDate);
       endDate.setHours(23, 59, 59, 999);
 
-      // Get reservations data
+      // Get reservations data with corrected date filtering
       const { data: reservations } = await supabase
         .from('reservations')
         .select('prix_par_jour, date_debut, date_fin, statut')
         .eq('agency_id', user.id)
         .gte('date_debut', startDate.toISOString())
-        .lte('date_fin', endDate.toISOString());
+        .lte('date_debut', endDate.toISOString());
 
       // Get expenses data
       const { data: globalExpenses } = await supabase
         .from('global_expenses')
         .select('amount, date')
         .eq('agency_id', user.id)
-        .gte('date', startDate.toISOString())
-        .lte('date', endDate.toISOString());
+        .gte('date', startDate.toISOString().split('T')[0])
+        .lte('date', endDate.toISOString().split('T')[0]);
 
       const { data: vehicleExpenses } = await supabase
         .from('vehicle_expenses')
         .select('amount, date')
         .eq('agency_id', user.id)
-        .gte('date', startDate.toISOString())
-        .lte('date', endDate.toISOString());
+        .gte('date', startDate.toISOString().split('T')[0])
+        .lte('date', endDate.toISOString().split('T')[0]);
 
       // Get maintenance costs
       const { data: maintenanceExpenses } = await supabase
         .from('entretiens')
         .select('cout, date')
         .eq('agency_id', user.id)
-        .gte('date', startDate.toISOString())
-        .lte('date', endDate.toISOString());
+        .gte('date', startDate.toISOString().split('T')[0])
+        .lte('date', endDate.toISOString().split('T')[0]);
 
       // Get vehicles count
-      const { data: vehicles } = await supabase
+      const { data: vehiclesList } = await supabase
         .from('vehicles')
         .select('id')
         .eq('agency_id', user.id);
@@ -111,7 +143,7 @@ export const Statistics: React.FC = () => {
         sum + (expense.cout || 0), 0) || 0;
 
       const netProfit = totalRevenue - totalExpenses - totalMaintenanceCosts;
-      const totalVehicles = vehicles?.length || 0;
+      const totalVehicles = vehiclesList?.length || 0;
       const averageRevenuePerVehicle = totalVehicles > 0 ? totalRevenue / totalVehicles : 0;
 
       setStats({
@@ -134,6 +166,104 @@ export const Statistics: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const fetchVehicleStatistics = async (vehicleId: string) => {
+    if (!user) return;
+    setLoadingVehicleStats(true);
+
+    try {
+      const startDate = new Date(dateRange.startDate);
+      startDate.setHours(0, 0, 0, 0);
+      const endDate = new Date(dateRange.endDate);
+      endDate.setHours(23, 59, 59, 999);
+
+      // Get reservations for this vehicle
+      const { data: reservations } = await supabase
+        .from('reservations')
+        .select('prix_par_jour, date_debut, date_fin, statut')
+        .eq('agency_id', user.id)
+        .eq('vehicule_id', vehicleId)
+        .gte('date_debut', startDate.toISOString())
+        .lte('date_debut', endDate.toISOString());
+
+      // Get vehicle expenses  
+      const { data: vehicleExpenses } = await supabase
+        .from('vehicle_expenses')
+        .select('amount, date')
+        .eq('agency_id', user.id)
+        .eq('vehicule_id', vehicleId)
+        .gte('date', dateRange.startDate)
+        .lte('date', dateRange.endDate);
+
+      // Get maintenance costs for this vehicle
+      const { data: maintenanceExpenses } = await supabase
+        .from('entretiens')
+        .select('cout, date')
+        .eq('agency_id', user.id)
+        .eq('vehicule_id', vehicleId)
+        .gte('date', dateRange.startDate)
+        .lte('date', dateRange.endDate);
+
+      // Calculate vehicle statistics
+      const totalRevenue = reservations?.reduce((sum, reservation) => {
+        if (reservation.prix_par_jour && reservation.date_debut && reservation.date_fin) {
+          const start = new Date(reservation.date_debut);
+          const end = new Date(reservation.date_fin);
+          const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+          return sum + (reservation.prix_par_jour * Math.max(days, 1));
+        }
+        return sum;
+      }, 0) || 0;
+
+      const totalExpenses = vehicleExpenses?.reduce((sum, expense) => 
+        sum + (expense.amount || 0), 0) || 0;
+
+      const totalMaintenanceCosts = maintenanceExpenses?.reduce((sum, expense) => 
+        sum + (expense.cout || 0), 0) || 0;
+
+      const netProfit = totalRevenue - totalExpenses - totalMaintenanceCosts;
+      const reservationsCount = reservations?.length || 0;
+
+      // Calculate profitability rate
+      let profitabilityRate: 'Élevée' | 'Moyenne' | 'Faible' = 'Faible';
+      if (totalRevenue > 0) {
+        const profitMargin = (netProfit / totalRevenue) * 100;
+        if (profitMargin >= 20) profitabilityRate = 'Élevée';
+        else if (profitMargin >= 10) profitabilityRate = 'Moyenne';
+      }
+
+      setVehicleStats({
+        totalRevenue,
+        totalExpenses,
+        totalMaintenanceCosts,
+        netProfit,
+        reservationsCount,
+        profitabilityRate,
+      });
+    } catch (error) {
+      console.error('Error fetching vehicle statistics:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les statistiques du véhicule",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingVehicleStats(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchStatistics();
+      fetchVehicles();
+    }
+  }, [user, dateRange.startDate, dateRange.endDate]);
+
+  useEffect(() => {
+    if (selectedVehicle) {
+      fetchVehicleStatistics(selectedVehicle);
+    }
+  }, [selectedVehicle, dateRange.startDate, dateRange.endDate]);
 
   const generateComprehensiveReport = async () => {
     if (!dateRange.startDate || !dateRange.endDate) {
@@ -175,12 +305,11 @@ export const Statistics: React.FC = () => {
 
       const summaryData = [
         ['Indicateur', 'Valeur'],
-        ['Revenus Totaux', `${Math.round(stats.totalRevenue)} MAD`],
-        ['Dépenses Totales', `${Math.round(stats.totalExpenses)} MAD`],
-        ['Coûts d\'Entretien', `${Math.round(stats.totalMaintenanceCosts)} MAD`],
-        ['Bénéfice Net', `${Math.round(stats.netProfit)} MAD`],
+        ['Revenus Totaux', `${Math.round(stats.totalRevenue).toString()} MAD`],
+        ['Dépenses Totales', `${Math.round(stats.totalExpenses).toString()} MAD`],
+        ['Coûts d\'Entretien', `${Math.round(stats.totalMaintenanceCosts).toString()} MAD`],
+        ['Bénéfice Net', `${Math.round(stats.netProfit).toString()} MAD`],
         ['Nombre de Réservations', stats.reservationsCount.toString()],
-        ['Revenus par Véhicule', `${Math.round(stats.averageRevenuePerVehicle)} MAD`],
         ['Total Véhicules', stats.totalVehicles.toString()],
       ];
 
@@ -197,63 +326,6 @@ export const Statistics: React.FC = () => {
           1: { cellWidth: 70, halign: 'right' }
         }
       });
-
-      // Performance Analysis
-      let currentY = (pdf as any).lastAutoTable.finalY + 20;
-      
-      pdf.setFontSize(14);
-      pdf.setTextColor(37, 99, 235);
-      pdf.text('ANALYSE DE PERFORMANCE', 20, currentY);
-
-      const profitMargin = stats.totalRevenue > 0 ? ((stats.netProfit / stats.totalRevenue) * 100).toFixed(1) : '0';
-      const expenseRatio = stats.totalRevenue > 0 ? (((stats.totalExpenses + stats.totalMaintenanceCosts) / stats.totalRevenue) * 100).toFixed(1) : '0';
-      const utilizationRate = stats.totalVehicles > 0 ? (stats.reservationsCount / stats.totalVehicles).toFixed(1) : '0';
-
-      const analysisData = [
-        ['Métrique', 'Valeur', 'Analyse'],
-        ['Marge Bénéficiaire', `${profitMargin}%`, profitMargin > '15' ? 'Excellente' : profitMargin > '10' ? 'Bonne' : 'À améliorer'],
-        ['Ratio Dépenses/Revenus', `${expenseRatio}%`, expenseRatio < '70' ? 'Optimal' : expenseRatio < '85' ? 'Acceptable' : 'Élevé'],
-        ['Utilisation Flotte', `${utilizationRate} rés./véh.`, utilizationRate > '10' ? 'Élevée' : utilizationRate > '5' ? 'Modérée' : 'Faible'],
-      ];
-
-      autoTable(pdf, {
-        head: [analysisData[0]],
-        body: analysisData.slice(1),
-        startY: currentY + 10,
-        theme: 'grid',
-        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 10 },
-        alternateRowStyles: { fillColor: [248, 250, 252] },
-        styles: { fontSize: 9 }
-      });
-
-      // Recommendations
-      currentY = (pdf as any).lastAutoTable.finalY + 20;
-      
-      pdf.setFontSize(14);
-      pdf.setTextColor(37, 99, 235);
-      pdf.text('RECOMMANDATIONS', 20, currentY);
-
-      pdf.setFontSize(10);
-      pdf.setTextColor(0, 0, 0);
-      
-      const recommendations = [
-        '• Optimiser les coûts d\'entretien par la maintenance préventive',
-        '• Analyser la rentabilité par véhicule pour identifier les plus performants',
-        '• Réviser les tarifs si la marge bénéficiaire est faible',
-        '• Diversifier les services pour augmenter les revenus par client',
-        '• Améliorer l\'utilisation de la flotte si le taux est faible'
-      ];
-
-      let textY = currentY + 15;
-      recommendations.forEach(rec => {
-        pdf.text(rec, 20, textY);
-        textY += 7;
-      });
-
-      // Footer
-      pdf.setFontSize(8);
-      pdf.setTextColor(128, 128, 128);
-      pdf.text('Rapport généré automatiquement par le système de gestion', pageWidth / 2, pdf.internal.pageSize.height - 10, { align: 'center' });
 
       // Save and open the PDF
       const fileName = `rapport-statistiques-${dateRange.startDate}-${dateRange.endDate}.pdf`;
@@ -276,40 +348,33 @@ export const Statistics: React.FC = () => {
   const statCards = [
     {
       title: 'Revenus Totaux',
-      value: `${stats.totalRevenue.toLocaleString()} MAD`,
+      value: `${Math.round(stats.totalRevenue).toString()} MAD`,
       icon: DollarSign,
       gradient: 'gradient-success',
-      change: stats.totalRevenue > 0 ? '+' : ''
     },
     {
       title: 'Dépenses Totales',
-      value: `${stats.totalExpenses.toLocaleString()} MAD`,
+      value: `${Math.round(stats.totalExpenses).toString()} MAD`,
       icon: TrendingDown,
       gradient: 'gradient-warning',
     },
     {
       title: 'Coûts Entretien',
-      value: `${stats.totalMaintenanceCosts.toLocaleString()} MAD`,
+      value: `${Math.round(stats.totalMaintenanceCosts).toString()} MAD`,
       icon: Wrench,
       gradient: 'gradient-info',
     },
     {
       title: 'Bénéfice Net',
-      value: `${stats.netProfit.toLocaleString()} MAD`,
+      value: `${Math.round(stats.netProfit).toString()} MAD`,
       icon: stats.netProfit >= 0 ? TrendingUp : TrendingDown,
       gradient: stats.netProfit >= 0 ? 'gradient-success' : 'bg-destructive',
     },
     {
       title: 'Réservations',
-      value: stats.reservationsCount,
+      value: stats.reservationsCount.toString(),
       icon: Calendar,
       gradient: 'gradient-info',
-    },
-    {
-      title: 'Revenus/Véhicule',
-      value: `${stats.averageRevenuePerVehicle.toLocaleString()} MAD`,
-      icon: Car,
-      gradient: 'gradient-primary',
     }
   ];
 
@@ -320,7 +385,7 @@ export const Statistics: React.FC = () => {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Statistiques
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Analyse des performances de votre agence</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Analyse des performances de votre agence pour la période sélectionnée</p>
         </div>
         
         <Button 
@@ -363,6 +428,109 @@ export const Statistics: React.FC = () => {
                 className="mt-1"
               />
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Vehicle Analysis Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <BarChart className="w-5 h-5" />
+            <span>Analyse de Rentabilité par Véhicule</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="w-full max-w-xs">
+              <Label htmlFor="vehicleSelect">Sélectionner un véhicule</Label>
+              <Select value={selectedVehicle} onValueChange={setSelectedVehicle}>
+                <SelectTrigger id="vehicleSelect" className="mt-1">
+                  <SelectValue placeholder="Choisir un véhicule..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {vehicles.map((vehicle) => (
+                    <SelectItem key={vehicle.id} value={vehicle.id}>
+                      {vehicle.marque} {vehicle.modele} - {vehicle.immatriculation}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedVehicle && vehicleStats && (
+              <div className="mt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 p-4 rounded-lg">
+                    <h4 className="font-medium text-green-700 dark:text-green-300 text-sm">Revenus Totaux</h4>
+                    <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                      {Math.round(vehicleStats.totalRevenue).toString()} MAD
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950 dark:to-rose-950 p-4 rounded-lg">
+                    <h4 className="font-medium text-red-700 dark:text-red-300 text-sm">Dépenses Totales</h4>
+                    <p className="text-lg font-bold text-red-600 dark:text-red-400">
+                      {Math.round(vehicleStats.totalExpenses + vehicleStats.totalMaintenanceCosts).toString()} MAD
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 p-4 rounded-lg">
+                    <h4 className="font-medium text-blue-700 dark:text-blue-300 text-sm">Bénéfice Net</h4>
+                    <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                      {Math.round(vehicleStats.netProfit).toString()} MAD
+                    </p>
+                  </div>
+                  <div className={`p-4 rounded-lg ${
+                    vehicleStats.profitabilityRate === 'Élevée' 
+                      ? 'bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950'
+                      : vehicleStats.profitabilityRate === 'Moyenne'
+                      ? 'bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950 dark:to-orange-950'
+                      : 'bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950 dark:to-rose-950'
+                  }`}>
+                    <h4 className={`font-medium text-sm ${
+                      vehicleStats.profitabilityRate === 'Élevée' 
+                        ? 'text-green-700 dark:text-green-300'
+                        : vehicleStats.profitabilityRate === 'Moyenne'
+                        ? 'text-yellow-700 dark:text-yellow-300'
+                        : 'text-red-700 dark:text-red-300'
+                    }`}>Rentabilité</h4>
+                    <p className={`text-lg font-bold ${
+                      vehicleStats.profitabilityRate === 'Élevée' 
+                        ? 'text-green-600 dark:text-green-400'
+                        : vehicleStats.profitabilityRate === 'Moyenne'
+                        ? 'text-yellow-600 dark:text-yellow-400'
+                        : 'text-red-600 dark:text-red-400'
+                    }`}>
+                      {vehicleStats.profitabilityRate}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                  <h4 className="font-semibold mb-2">Détails des Coûts</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600 dark:text-gray-400">Dépenses Directes:</span>
+                      <span className="ml-2 font-medium">{Math.round(vehicleStats.totalExpenses).toString()} MAD</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 dark:text-gray-400">Coûts d'Entretien:</span>
+                      <span className="ml-2 font-medium">{Math.round(vehicleStats.totalMaintenanceCosts).toString()} MAD</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 dark:text-gray-400">Nombre de Réservations:</span>
+                      <span className="ml-2 font-medium">{vehicleStats.reservationsCount}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {loadingVehicleStats && (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-2 text-gray-600 dark:text-gray-400">Chargement des statistiques...</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
