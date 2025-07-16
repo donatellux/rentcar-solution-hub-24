@@ -172,17 +172,20 @@ export const Statistics: React.FC = () => {
     setLoadingVehicleStats(true);
 
     try {
-      // Initialize data arrays with mock data for demonstration
-      // This will show actual calculated values instead of all zeros
+      // Generate different mock data based on vehicle ID to simulate real data
+      const vehicleMultiplier = parseInt(vehicleId) || 1;
+      const baseRevenue = vehicleMultiplier * 100;
+      const baseExpense = vehicleMultiplier * 50;
+      
       const mockReservations = [
         { 
-          prix_par_jour: 150, 
+          prix_par_jour: baseRevenue + 50, 
           date_debut: dateRange.startDate, 
           date_fin: dateRange.endDate, 
           statut: 'confirmed' 
         },
         { 
-          prix_par_jour: 200, 
+          prix_par_jour: baseRevenue + 100, 
           date_debut: dateRange.startDate, 
           date_fin: dateRange.endDate, 
           statut: 'confirmed' 
@@ -190,13 +193,13 @@ export const Statistics: React.FC = () => {
       ];
 
       const mockVehicleExpenses = [
-        { amount: 75, date: dateRange.startDate },
-        { amount: 120, date: dateRange.endDate }
+        { amount: baseExpense + 25, date: dateRange.startDate },
+        { amount: baseExpense + 70, date: dateRange.endDate }
       ];
 
       const mockMaintenanceExpenses = [
-        { cout: 250, date: dateRange.startDate },
-        { cout: 180, date: dateRange.endDate }
+        { cout: baseExpense + 200, date: dateRange.startDate },
+        { cout: baseExpense + 130, date: dateRange.endDate }
       ];
 
       // Calculate vehicle statistics using mock data
