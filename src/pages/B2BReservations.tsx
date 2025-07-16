@@ -209,11 +209,19 @@ export const B2BReservations: React.FC = () => {
         .in('statut', ['confirmee', 'en_cours']);
 
       // Filter regular reservations that actually conflict
+      // Two date ranges conflict if: max(start1, start2) < min(end1, end2)
+      // Or equivalently: start1 < end2 AND start2 < end1
       const regularConflicts = (allRegularReservations || []).filter(res => {
         const existingStart = res.date_debut;
         const existingEnd = res.date_fin;
-        // Conflict if: existing_start < new_end AND existing_end > new_start
-        return existingStart < newEndDate && existingEnd > newStartDate;
+        
+        // Conflict if periods overlap, but allow booking on the exact end date
+        // This means: existingStart < newEndDate AND existingEnd > newStartDate
+        const isConflicting = existingStart < newEndDate && existingEnd > newStartDate;
+        
+        console.log(`Regular reservation ${res.vehicule_id}: ${existingStart} to ${existingEnd}, new: ${newStartDate} to ${newEndDate}, conflicting: ${isConflicting}`);
+        
+        return isConflicting;
       });
 
       // Get B2B reservations
@@ -230,13 +238,12 @@ export const B2BReservations: React.FC = () => {
           const existingStart = (b2bRes as any).start_date;
           const existingEnd = (b2bRes as any).end_date;
           
-          // Check if this B2B reservation conflicts with our new period
-          if (existingStart < newEndDate && existingEnd > newStartDate) {
-            // Extract vehicle IDs from this conflicting B2B reservation
-            if (Array.isArray((b2bRes as any).vehicles)) {
-              for (const vehicle of (b2bRes as any).vehicles) {
-                b2bConflicts.push(vehicle.vehicle_id);
-              }
+          // Same conflict logic: allow booking on exact end date
+          const isConflicting = existingStart < newEndDate && existingEnd > newStartDate;
+          
+          if (isConflicting && Array.isArray((b2bRes as any).vehicles)) {
+            for (const vehicle of (b2bRes as any).vehicles) {
+              b2bConflicts.push(vehicle.vehicle_id);
             }
           }
         }
