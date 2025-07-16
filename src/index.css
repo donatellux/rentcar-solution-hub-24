@@ -529,19 +529,6 @@ body {
 
 /* Prevent horizontal scrolling globally */
 * {
+  max-width: 100%;
   box-sizing: border-box;
-}
-
-/* Ensure full width utilization for SaaS layout */
-.container {
-  width: 100% !important;
-  max-width: none !important;
-}
-
-/* SaaS-style full width containers */
-.saas-container {
-  width: 100%;
-  max-width: none;
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
 }
