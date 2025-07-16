@@ -252,190 +252,154 @@ export const Depenses: React.FC = () => {
   };
 
   const generatePDF = async () => {
-    if (!pdfDateRange.startDate || !pdfDateRange.endDate) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez sélectionner une période valide",
-        variant: "destructive",
-      });
-      return;
-    }
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.width;
+    
+    // Header with logo space
+    pdf.setFontSize(20);
+    pdf.setTextColor(37, 99, 235);
+    pdf.text('RAPPORT DES DÉPENSES', pageWidth / 2, 30, { align: 'center' });
+    
+    pdf.setFontSize(12);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text(`Période du ${new Date(pdfDateRange.startDate).toLocaleDateString('fr-FR')} au ${new Date(pdfDateRange.endDate).toLocaleDateString('fr-FR')}`, pageWidth / 2, 40, { align: 'center' });
+    pdf.text(`Généré le: ${new Date().toLocaleDateString('fr-FR')}`, pageWidth / 2, 47, { align: 'center' });
 
-    try {
-      console.log('Generating PDF for date range:', pdfDateRange);
-      
-      const pdf = new jsPDF();
-      const pageWidth = pdf.internal.pageSize.width;
-      
-      // Header with logo space
-      pdf.setFontSize(20);
-      pdf.setTextColor(37, 99, 235);
-      pdf.text('RAPPORT DES DÉPENSES', pageWidth / 2, 30, { align: 'center' });
-      
-      pdf.setFontSize(12);
-      pdf.setTextColor(0, 0, 0);
-      const startDateFormatted = new Date(pdfDateRange.startDate).toLocaleDateString('fr-FR');
-      const endDateFormatted = new Date(pdfDateRange.endDate).toLocaleDateString('fr-FR');
-      pdf.text(`Période du ${startDateFormatted} au ${endDateFormatted}`, pageWidth / 2, 40, { align: 'center' });
-      pdf.text(`Généré le: ${new Date().toLocaleDateString('fr-FR')}`, pageWidth / 2, 47, { align: 'center' });
+    // Filter expenses by date range
+    const startDate = new Date(pdfDateRange.startDate);
+    const endDate = new Date(pdfDateRange.endDate);
+    endDate.setHours(23, 59, 59, 999);
 
-      // Filter expenses by date range
-      const startDate = new Date(pdfDateRange.startDate);
-      startDate.setHours(0, 0, 0, 0);
-      const endDate = new Date(pdfDateRange.endDate);
-      endDate.setHours(23, 59, 59, 999);
+    const filteredGlobal = globalExpenses.filter(expense => {
+      if (!expense.date) return false;
+      const expenseDate = new Date(expense.date);
+      return expenseDate >= startDate && expenseDate <= endDate;
+    });
 
-      console.log('Filtering data between:', startDate, 'and', endDate);
-      console.log('Global expenses before filter:', globalExpenses.length);
-      console.log('Vehicle expenses before filter:', vehicleExpenses.length);
+    const filteredVehicle = vehicleExpenses.filter(expense => {
+      if (!expense.date) return false;
+      const expenseDate = new Date(expense.date);
+      return expenseDate >= startDate && expenseDate <= endDate;
+    });
 
-      const filteredGlobal = globalExpenses.filter(expense => {
-        if (!expense.date) return false;
-        const expenseDate = new Date(expense.date);
-        return expenseDate >= startDate && expenseDate <= endDate;
-      });
-
-      const filteredVehicle = vehicleExpenses.filter(expense => {
-        if (!expense.date) return false;
-        const expenseDate = new Date(expense.date);
-        return expenseDate >= startDate && expenseDate <= endDate;
-      });
-
-      console.log('Filtered global expenses:', filteredGlobal.length);
-      console.log('Filtered vehicle expenses:', filteredVehicle.length);
-
-      let currentY = 65;
-
-      // Global expenses table
-      if (filteredGlobal.length > 0) {
-        pdf.setFontSize(16);
-        pdf.setTextColor(37, 99, 235);
-        pdf.text('DÉPENSES GLOBALES', 20, currentY);
-
-        const globalData = [
-          ['Date', 'Catégorie', 'Description', 'Montant (MAD)'],
-          ...filteredGlobal.map(expense => [
-            expense.date ? new Date(expense.date).toLocaleDateString('fr-FR') : 'N/A',
-            expense.category || 'N/A',
-            expense.description || 'Aucune description',
-            `${(expense.amount || 0).toLocaleString('fr-FR')}`
-          ])
-        ];
-
-        (pdf as any).autoTable({
-          head: [globalData[0]],
-          body: globalData.slice(1),
-          startY: currentY + 10,
-          theme: 'grid',
-          headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 10 },
-          alternateRowStyles: { fillColor: [248, 250, 252] },
-          styles: { fontSize: 9 },
-          columnStyles: {
-            0: { cellWidth: 30 },
-            1: { cellWidth: 35 },
-            2: { cellWidth: 80 },
-            3: { cellWidth: 35, halign: 'right' }
-          }
-        });
-
-        currentY = (pdf as any).lastAutoTable.finalY + 20;
-      }
-
-      // Vehicle expenses table
-      if (filteredVehicle.length > 0) {
-        pdf.setFontSize(16);
-        pdf.setTextColor(37, 99, 235);
-        pdf.text('DÉPENSES VÉHICULES', 20, currentY);
-
-        const vehicleData = [
-          ['Date', 'Véhicule', 'Catégorie', 'Description', 'Montant (MAD)'],
-          ...filteredVehicle.map(expense => [
-            expense.date ? new Date(expense.date).toLocaleDateString('fr-FR') : 'N/A',
-            expense.vehicles ? `${expense.vehicles.marque} ${expense.vehicles.modele}` : 'N/A',
-            expense.category || 'N/A',
-            expense.description || 'Aucune description',
-            `${(expense.amount || 0).toLocaleString('fr-FR')}`
-          ])
-        ];
-
-        (pdf as any).autoTable({
-          head: [vehicleData[0]],
-          body: vehicleData.slice(1),
-          startY: currentY + 10,
-          theme: 'grid',
-          headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 10 },
-          alternateRowStyles: { fillColor: [248, 250, 252] },
-          styles: { fontSize: 9 },
-          columnStyles: {
-            0: { cellWidth: 25 },
-            1: { cellWidth: 45 },
-            2: { cellWidth: 30 },
-            3: { cellWidth: 55 },
-            4: { cellWidth: 25, halign: 'right' }
-          }
-        });
-
-        currentY = (pdf as any).lastAutoTable.finalY + 20;
-      }
-
-      // Summary section
-      const totalGlobalAmount = filteredGlobal.reduce((sum, expense) => sum + (expense.amount || 0), 0);
-      const totalVehicleAmount = filteredVehicle.reduce((sum, expense) => sum + (expense.amount || 0), 0);
-      const totalAmount = totalGlobalAmount + totalVehicleAmount;
-      
-      // Add no data message if no expenses found
-      if (filteredGlobal.length === 0 && filteredVehicle.length === 0) {
-        pdf.setFontSize(12);
-        pdf.setTextColor(128, 128, 128);
-        pdf.text('Aucune dépense trouvée pour cette période', pageWidth / 2, currentY, { align: 'center' });
-        currentY += 30;
-      }
-      
-      // Total summary
+    // Global expenses table
+    if (filteredGlobal.length > 0) {
       pdf.setFontSize(16);
       pdf.setTextColor(37, 99, 235);
-      pdf.text('RÉSUMÉ', 20, currentY);
-      
-      const summaryData = [
-        ['Type', 'Nombre', 'Montant Total (MAD)'],
-        ['Dépenses Globales', filteredGlobal.length.toString(), totalGlobalAmount.toLocaleString('fr-FR')],
-        ['Dépenses Véhicules', filteredVehicle.length.toString(), totalVehicleAmount.toLocaleString('fr-FR')],
-        ['TOTAL GÉNÉRAL', (filteredGlobal.length + filteredVehicle.length).toString(), totalAmount.toLocaleString('fr-FR')]
+      pdf.text('DÉPENSES GLOBALES', 20, 65);
+
+      const globalData = [
+        ['Date', 'Catégorie', 'Description', 'Montant (MAD)'],
+        ...filteredGlobal.map(expense => [
+          expense.date ? new Date(expense.date).toLocaleDateString('fr-FR') : 'N/A',
+          expense.category || 'N/A',
+          expense.description || 'Aucune description',
+          `${(expense.amount || 0).toLocaleString('fr-FR')}`
+        ])
       ];
 
       (pdf as any).autoTable({
-        head: [summaryData[0]],
-        body: summaryData.slice(1),
-        startY: currentY + 10,
+        head: [globalData[0]],
+        body: globalData.slice(1),
+        startY: 75,
         theme: 'grid',
         headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 10 },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
         styles: { fontSize: 9 },
         columnStyles: {
-          1: { halign: 'center' },
-          2: { halign: 'right' }
+          0: { cellWidth: 30 },
+          1: { cellWidth: 35 },
+          2: { cellWidth: 80 },
+          3: { cellWidth: 35, halign: 'right' }
         }
       });
+    }
 
-      // Footer
-      pdf.setFontSize(8);
-      pdf.setTextColor(128, 128, 128);
-      pdf.text('Rapport généré automatiquement par le système de gestion', pageWidth / 2, pdf.internal.pageSize.height - 10, { align: 'center' });
+    // Vehicle expenses table
+    if (filteredVehicle.length > 0) {
+      const startY = filteredGlobal.length > 0 ? (pdf as any).lastAutoTable.finalY + 20 : 75;
+      
+      pdf.setFontSize(16);
+      pdf.setTextColor(37, 99, 235);
+      pdf.text('DÉPENSES VÉHICULES', 20, startY - 10);
 
-      const fileName = `rapport-depenses-${pdfDateRange.startDate}-${pdfDateRange.endDate}.pdf`;
-      pdf.save(fileName);
+      const vehicleData = [
+        ['Date', 'Véhicule', 'Catégorie', 'Description', 'Montant (MAD)'],
+        ...filteredVehicle.map(expense => [
+          expense.date ? new Date(expense.date).toLocaleDateString('fr-FR') : 'N/A',
+          expense.vehicles ? `${expense.vehicles.marque} ${expense.vehicles.modele}` : 'N/A',
+          expense.category || 'N/A',
+          expense.description || 'Aucune description',
+          `${(expense.amount || 0).toLocaleString('fr-FR')}`
+        ])
+      ];
 
-      toast({
-        title: "Succès",
-        description: "Rapport PDF généré avec succès",
-      });
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      toast({
-        title: "Erreur",
-        description: "Erreur lors de la génération du PDF",
-        variant: "destructive",
+      (pdf as any).autoTable({
+        head: [vehicleData[0]],
+        body: vehicleData.slice(1),
+        startY: startY,
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 10 },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        styles: { fontSize: 9 },
+        columnStyles: {
+          0: { cellWidth: 25 },
+          1: { cellWidth: 45 },
+          2: { cellWidth: 30 },
+          3: { cellWidth: 55 },
+          4: { cellWidth: 25, halign: 'right' }
+        }
       });
     }
+
+    // Summary section
+    const totalAmount = [...filteredGlobal, ...filteredVehicle].reduce((sum, expense) => sum + (expense.amount || 0), 0);
+    let finalY = (pdf as any).lastAutoTable?.finalY || 90;
+    
+    // Add no data message if no expenses found
+    if (filteredGlobal.length === 0 && filteredVehicle.length === 0) {
+      pdf.setFontSize(12);
+      pdf.setTextColor(128, 128, 128);
+      pdf.text('Aucune dépense trouvée pour cette période', pageWidth / 2, 75, { align: 'center' });
+      finalY = 90;
+    }
+    
+    // Total summary
+    pdf.setFontSize(16);
+    pdf.setTextColor(37, 99, 235);
+    pdf.text('RÉSUMÉ', 20, finalY + 20);
+    
+    const summaryData = [
+      ['Type', 'Nombre', 'Montant Total (MAD)'],
+      ['Dépenses Globales', filteredGlobal.length.toString(), filteredGlobal.reduce((sum, e) => sum + (e.amount || 0), 0).toLocaleString('fr-FR')],
+      ['Dépenses Véhicules', filteredVehicle.length.toString(), filteredVehicle.reduce((sum, e) => sum + (e.amount || 0), 0).toLocaleString('fr-FR')],
+      ['TOTAL GÉNÉRAL', (filteredGlobal.length + filteredVehicle.length).toString(), totalAmount.toLocaleString('fr-FR')]
+    ];
+
+    (pdf as any).autoTable({
+      head: [summaryData[0]],
+      body: summaryData.slice(1),
+      startY: finalY + 30,
+      theme: 'grid',
+      headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 10 },
+      styles: { fontSize: 9 },
+      columnStyles: {
+        1: { halign: 'center' },
+        2: { halign: 'right' }
+      }
+    });
+
+    // Footer
+    pdf.setFontSize(8);
+    pdf.setTextColor(128, 128, 128);
+    pdf.text('Rapport généré automatiquement par le système de gestion', pageWidth / 2, pdf.internal.pageSize.height - 10, { align: 'center' });
+
+    pdf.save(`rapport-depenses-${pdfDateRange.startDate}-${pdfDateRange.endDate}.pdf`);
+
+    toast({
+      title: "Succès",
+      description: "Rapport PDF généré avec succès",
+    });
   };
 
   const getCategoryColor = (category: string | null) => {
@@ -619,38 +583,14 @@ export const Depenses: React.FC = () => {
           </DialogContent>
         </Dialog>
         
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-          <div className="grid grid-cols-2 gap-2 min-w-[300px]">
-            <div>
-              <Label htmlFor="pdfStartDate" className="text-xs">Date début</Label>
-              <Input
-                id="pdfStartDate"
-                type="date"
-                value={pdfDateRange.startDate}
-                onChange={(e) => setPdfDateRange(prev => ({ ...prev, startDate: e.target.value }))}
-                className="text-xs h-8"
-              />
-            </div>
-            <div>
-              <Label htmlFor="pdfEndDate" className="text-xs">Date fin</Label>
-              <Input
-                id="pdfEndDate"
-                type="date"
-                value={pdfDateRange.endDate}
-                onChange={(e) => setPdfDateRange(prev => ({ ...prev, endDate: e.target.value }))}
-                className="text-xs h-8"
-              />
-            </div>
-          </div>
-          <Button 
-            onClick={generatePDF}
-            variant="outline" 
-            className="border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950 whitespace-nowrap"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Rapport PDF
-          </Button>
-        </div>
+        <Button 
+          onClick={generatePDF}
+          variant="outline" 
+          className="border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Rapport PDF
+        </Button>
         </div>
       </div>
 
