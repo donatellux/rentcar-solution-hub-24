@@ -181,14 +181,18 @@ export const Statistics: React.FC = () => {
         .gte('date_debut', dateRange.startDate)
         .lte('date_fin', dateRange.endDate);
 
+      // Format dates consistently 
+      const startDateStr = dateRange.startDate;
+      const endDateStr = dateRange.endDate;
+
       // Fetch real vehicle expenses data  
       const vehicleExpensesQuery = await supabase
         .from('vehicle_expenses')
         .select('amount, date')
         .eq('agency_id', user.id)
         .eq('vehicle_id', vehicleId)
-        .gte('date', new Date(dateRange.startDate).toISOString().split('T')[0])
-        .lte('date', new Date(dateRange.endDate).toISOString().split('T')[0]);
+        .gte('date', startDateStr)
+        .lte('date', endDateStr);
 
       // Fetch real maintenance data
       const maintenanceQuery = await supabase
@@ -196,8 +200,8 @@ export const Statistics: React.FC = () => {
         .select('cout, date')
         .eq('agency_id', user.id)
         .eq('vehicule_id', vehicleId)
-        .gte('date', new Date(dateRange.startDate).toISOString().split('T')[0])
-        .lte('date', new Date(dateRange.endDate).toISOString().split('T')[0]);
+        .gte('date', startDateStr)
+        .lte('date', endDateStr);
 
       const reservations = reservationsQuery.data || [];
       const vehicleExpenses = vehicleExpensesQuery.data || [];
