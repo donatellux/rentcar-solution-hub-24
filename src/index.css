@@ -121,30 +121,30 @@ All colors MUST be HSL.
 
   .page-content {
     @apply flex-1 overflow-y-auto overflow-x-hidden;
-    @apply px-3 py-4 sm:px-4 sm:py-6;
-    /* Desktop: use full space with minimal padding */
-    @apply lg:px-6 lg:py-6;
+    @apply px-2 py-2 sm:px-3 sm:py-3;
+    /* Desktop: minimal padding for maximum space usage */
+    @apply lg:px-4 lg:py-3;
     /* Mobile safe area support */
     padding-bottom: calc(env(safe-area-inset-bottom) + 4rem);
     width: 100%;
   }
 
   .page-header {
-    @apply mb-4 sm:mb-6 lg:mb-8;
+    @apply mb-3 sm:mb-4 lg:mb-4;
   }
 
   .page-title {
-    @apply text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mb-1 sm:mb-2;
+    @apply text-lg sm:text-xl lg:text-2xl font-semibold text-foreground mb-1;
   }
 
   .page-subtitle {
-    @apply text-sm sm:text-base text-muted-foreground;
+    @apply text-sm text-muted-foreground;
   }
 
   .content-wrapper {
     @apply mx-auto w-full;
-    /* Desktop: use full available width */
-    @apply lg:max-w-none;
+    /* Desktop: use full available width with no margins */
+    @apply lg:max-w-none lg:mx-0;
   }
 
   .card-grid {
@@ -223,38 +223,42 @@ All colors MUST be HSL.
     }
 
     .desktop-spacing {
-      @apply space-y-8;
+      @apply space-y-4;
     }
 
     /* Desktop table optimizations - full width tables */
     .desktop-table-container {
       @apply w-full h-full flex flex-col;
-      min-height: calc(100vh - 120px); /* Full height minus header */
+      min-height: calc(100vh - 80px); /* Full height minus compact header */
     }
 
     .desktop-table-wrapper {
       @apply flex-1 w-full overflow-auto;
-      max-height: calc(100vh - 140px); /* Allow scrolling if needed */
+      max-height: calc(100vh - 100px); /* Allow scrolling if needed */
     }
 
     .desktop-table {
-      @apply w-full text-base;
+      @apply w-full text-sm;
       min-width: 100%;
+      table-layout: fixed; /* Fixed layout for consistent column widths */
     }
 
     .desktop-table th {
-      @apply px-6 py-4 text-sm font-semibold;
+      @apply px-4 py-3 text-sm font-medium border-b;
       white-space: nowrap;
+      background-color: hsl(var(--muted));
     }
 
     .desktop-table td {
-      @apply px-6 py-4;
+      @apply px-4 py-3 text-sm;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .desktop-page-content {
-      @apply p-6;
-      height: calc(100vh - 80px); /* Full viewport minus header */
+      @apply p-4;
+      height: calc(100vh - 60px); /* Full viewport minus compact header */
     }
   }
 
@@ -285,19 +289,26 @@ All colors MUST be HSL.
 
   /* Desktop full-width layout optimizations */
   @media (min-width: 1024px) {
+    /* Compact header and content layout */
+    .compact-header {
+      @apply bg-background border-b;
+      padding: 0.75rem 1rem;
+      height: 60px;
+    }
+
     /* Full width content that spans from sidebar to screen edge */
     .desktop-page-content {
       width: 100%;
       max-width: none;
-      padding: 0;
+      padding: 1rem;
       margin: 0;
-      height: calc(100vh - 80px);
+      height: calc(100vh - 60px);
     }
 
     .desktop-table-container {
       width: 100%;
       max-width: none;
-      padding: 1.5rem 2rem;
+      padding: 0;
       margin: 0;
       height: 100%;
       display: flex;
@@ -306,37 +317,47 @@ All colors MUST be HSL.
 
     .desktop-table-wrapper {
       width: 100%;
-      overflow: visible;
+      overflow: auto;
       flex: 1;
+      border: 1px solid hsl(var(--border));
+      border-radius: 8px;
+      background: hsl(var(--card));
     }
 
     .desktop-table {
       width: 100%;
-      font-size: 1.1rem;
-      table-layout: auto;
+      font-size: 0.875rem;
+      table-layout: fixed;
       min-width: 100%;
     }
 
     .desktop-table th {
-      padding: 1.25rem 1.75rem;
-      font-size: 1.2rem;
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
       font-weight: 600;
       white-space: nowrap;
       text-align: left;
+      background: hsl(var(--muted));
+      border-bottom: 1px solid hsl(var(--border));
     }
 
     .desktop-table td {
-      padding: 1.25rem 1.75rem;
-      font-size: 1.1rem;
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
       vertical-align: middle;
+      border-bottom: 1px solid hsl(var(--border));
+    }
+
+    .desktop-table tr:hover {
+      background: hsl(var(--muted)/50);
     }
 
     /* Ensure content fills available space */
     .page-content {
       width: 100%;
-      padding: 0;
+      padding: 1rem;
       margin: 0;
-      height: calc(100vh - 80px);
+      height: calc(100vh - 60px);
     }
 
     .content-wrapper {
@@ -347,19 +368,23 @@ All colors MUST be HSL.
       height: 100%;
     }
 
-    /* Make cards and sections fill width properly */
-    .desktop-card {
-      width: 100%;
-      margin: 0;
+    /* Compact sections */
+    .compact-section {
+      @apply bg-card rounded-lg border mb-4;
+      padding: 1rem;
     }
 
-    .desktop-header {
-      padding: 1.5rem 2rem;
-      margin: 0;
+    .compact-section-header {
+      @apply flex items-center justify-between mb-3;
     }
 
-    .desktop-search {
-      padding: 0 2rem 1rem 2rem;
+    .compact-section-title {
+      @apply text-lg font-semibold text-foreground;
+    }
+
+    /* Search and filter bar */
+    .search-bar {
+      @apply flex items-center gap-3 mb-4 p-3 bg-muted/50 rounded-lg border;
     }
   }
 
