@@ -146,7 +146,7 @@ export const Statistics: React.FC = () => {
     
     pdf.setFontSize(12);
     pdf.setTextColor(0, 0, 0);
-    pdf.text(`Période: ${new Date(dateRange.startDate).toLocaleDateString('fr-FR')} - ${new Date(dateRange.endDate).toLocaleDateString('fr-FR')}`, pageWidth / 2, 40, { align: 'center' });
+    pdf.text(`Période du ${new Date(dateRange.startDate).toLocaleDateString('fr-FR')} au ${new Date(dateRange.endDate).toLocaleDateString('fr-FR')}`, pageWidth / 2, 40, { align: 'center' });
     pdf.text(`Généré le: ${new Date().toLocaleDateString('fr-FR')}`, pageWidth / 2, 47, { align: 'center' });
 
     // Summary section

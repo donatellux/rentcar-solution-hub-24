@@ -273,11 +273,12 @@ export const Entretien: React.FC = () => {
     // Header with logo space
     pdf.setFontSize(20);
     pdf.setTextColor(37, 99, 235);
-    pdf.text('Rapport des Entretiens', pageWidth / 2, 30, { align: 'center' });
+    pdf.text('RAPPORT DES ENTRETIENS', pageWidth / 2, 30, { align: 'center' });
     
     pdf.setFontSize(12);
     pdf.setTextColor(0, 0, 0);
-    pdf.text(`Période: ${new Date(pdfDateRange.startDate).toLocaleDateString('fr-FR')} - ${new Date(pdfDateRange.endDate).toLocaleDateString('fr-FR')}`, pageWidth / 2, 40, { align: 'center' });
+    pdf.text(`Période du ${new Date(pdfDateRange.startDate).toLocaleDateString('fr-FR')} au ${new Date(pdfDateRange.endDate).toLocaleDateString('fr-FR')}`, pageWidth / 2, 40, { align: 'center' });
+    pdf.text(`Généré le: ${new Date().toLocaleDateString('fr-FR')}`, pageWidth / 2, 47, { align: 'center' });
 
     // Filter entretiens by date range
     const startDate = new Date(pdfDateRange.startDate);
@@ -291,13 +292,23 @@ export const Entretien: React.FC = () => {
     });
 
     if (filteredEntretiens.length > 0) {
+      // Group by type for analysis
+      const typeGroups = filteredEntretiens.reduce((groups, entretien) => {
+        const type = entretien.type || 'Autre';
+        if (!groups[type]) groups[type] = [];
+        groups[type].push(entretien);
+        return groups;
+      }, {} as Record<string, typeof filteredEntretiens>);
+
+      // Main table
       const tableData = [
-        ['Date', 'Véhicule', 'Type', 'Coût (MAD)'],
+        ['Date', 'Véhicule', 'Type', 'Description', 'Coût (MAD)'],
         ...filteredEntretiens.map(entretien => [
-          entretien.date ? new Date(entretien.date).toLocaleDateString('fr-FR') : '',
-          entretien.vehicles ? `${entretien.vehicles.marque} ${entretien.vehicles.modele} (${entretien.vehicles.immatriculation})` : '',
-          entretien.type || '',
-          `${(entretien.cout || 0).toLocaleString()}`
+          entretien.date ? new Date(entretien.date).toLocaleDateString('fr-FR') : 'N/A',
+          entretien.vehicles ? `${entretien.vehicles.marque} ${entretien.vehicles.modele} (${entretien.vehicles.immatriculation})` : 'N/A',
+          entretien.type || 'N/A',
+          entretien.description || 'Aucune description',
+          `${(entretien.cout || 0).toLocaleString('fr-FR')}`
         ])
       ];
 
@@ -306,23 +317,60 @@ export const Entretien: React.FC = () => {
         body: tableData.slice(1),
         startY: 60,
         theme: 'grid',
-        headStyles: { fillColor: [37, 99, 235], textColor: 255 },
-        alternateRowStyles: { fillColor: [248, 250, 252] }
+        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 10 },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        styles: { fontSize: 9 },
+        columnStyles: {
+          0: { cellWidth: 25 },
+          1: { cellWidth: 50 },
+          2: { cellWidth: 25 },
+          3: { cellWidth: 60 },
+          4: { cellWidth: 30, halign: 'right' }
+        }
       });
 
-      // Total
+      // Summary by type
       const totalCost = filteredEntretiens.reduce((sum, entretien) => sum + (entretien.cout || 0), 0);
-      const finalY = (pdf as any).lastAutoTable.finalY;
+      let finalY = (pdf as any).lastAutoTable.finalY + 20;
       
-      pdf.setFontSize(14);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text(`Coût Total des Entretiens: ${totalCost.toLocaleString()} MAD`, pageWidth - 20, finalY + 20, { align: 'right' });
+      pdf.setFontSize(16);
+      pdf.setTextColor(37, 99, 235);
+      pdf.text('RÉSUMÉ PAR TYPE', 20, finalY);
+      
+      const summaryData = [
+        ['Type d\'entretien', 'Nombre', 'Coût Total (MAD)'],
+        ...Object.entries(typeGroups).map(([type, entries]) => [
+          type,
+          entries.length.toString(),
+          entries.reduce((sum, e) => sum + (e.cout || 0), 0).toLocaleString('fr-FR')
+        ]),
+        ['TOTAL GÉNÉRAL', filteredEntretiens.length.toString(), totalCost.toLocaleString('fr-FR')]
+      ];
+
+      (pdf as any).autoTable({
+        head: [summaryData[0]],
+        body: summaryData.slice(1),
+        startY: finalY + 10,
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 10 },
+        styles: { fontSize: 9 },
+        columnStyles: {
+          1: { halign: 'center' },
+          2: { halign: 'right' }
+        }
+      });
     } else {
       pdf.setFontSize(12);
+      pdf.setTextColor(128, 128, 128);
       pdf.text('Aucun entretien trouvé pour cette période', pageWidth / 2, 60, { align: 'center' });
     }
 
-    pdf.save(`entretiens-${pdfDateRange.startDate}-${pdfDateRange.endDate}.pdf`);
+    // Footer
+    pdf.setFontSize(8);
+    pdf.setTextColor(128, 128, 128);
+    pdf.text('Rapport généré automatiquement par le système de gestion', pageWidth / 2, pdf.internal.pageSize.height - 10, { align: 'center' });
+
+    pdf.save(`rapport-entretiens-${pdfDateRange.startDate}-${pdfDateRange.endDate}.pdf`);
 
     toast({
       title: "Succès",
