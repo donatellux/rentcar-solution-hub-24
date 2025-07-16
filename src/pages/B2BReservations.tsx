@@ -76,25 +76,15 @@ export const B2BReservations: React.FC = () => {
     if (!user) return;
 
     try {
-      // Fetch B2B reservations using raw query to avoid TypeScript issues
-      const { data: reservationsData, error: reservationsError } = await supabase
-        .rpc('get_b2b_reservations', { agency_uuid: user.id });
-
-      // If RPC doesn't exist, fall back to direct query with type casting
-      let b2bData = reservationsData;
-      if (reservationsError) {
-        const { data: fallbackData, error: fallbackError } = await (supabase as any)
-          .from('b2b_reservations')
-          .select('*')
-          .eq('agency_id', user.id)
-          .order('created_at', { ascending: false });
-        
-        if (fallbackError) {
-          console.error('Error fetching B2B reservations:', fallbackError);
-          b2bData = [];
-        } else {
-          b2bData = fallbackData;
-        }
+      // Fetch B2B reservations directly with type casting to avoid TypeScript issues
+      const { data: b2bData, error: b2bError } = await (supabase as any)
+        .from('b2b_reservations')
+        .select('*')
+        .eq('agency_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (b2bError) {
+        console.error('Error fetching B2B reservations:', b2bError);
       }
 
       // Fetch agency data
