@@ -288,46 +288,55 @@ export const B2BReservations: React.FC = () => {
         console.log('Societies table not available, using fallback approach');
       }
 
-      // Create reservations for each selected vehicle
-      const reservationPromises = formData.vehicle_prices.map(async (vehiclePrice) => {
-        const totalPriceForVehicle = vehiclePrice.price * days;
-        
-        const reservationData: any = {
-          vehicule_id: vehiclePrice.vehicleId,
-          date_debut: formData.date_debut,
-          date_fin: formData.date_fin,
-          prix_par_jour: vehiclePrice.price,
-          agency_id: user?.id,
-          statut: 'confirmee',
-          lieu_delivrance: `B2B: ${formData.society_name} | Contact: ${formData.contact_person} | Tel: ${formData.contact_phone}`,
+      // Create B2B reservation entry
+      const vehiclesData = formData.vehicle_prices.map(vehiclePrice => {
+        const vehicle = availableVehicles.find(v => v.id === vehiclePrice.vehicleId);
+        return {
+          vehicle_id: vehiclePrice.vehicleId,
+          vehicle_name: `${vehicle?.marque} ${vehicle?.modele}`,
+          price_per_day: vehiclePrice.price,
+          total_amount: vehiclePrice.price * days,
         };
+      });
 
-        // Add B2B specific fields if societies table exists
-        if (societyId) {
-          reservationData.is_b2b = true;
-          reservationData.society_id = societyId;
-          reservationData.with_driver = formData.with_driver;
-          // Note: additional_charges are stored in societies table, not reservations
-        }
+      const b2bReservationData = {
+        society_id: societyId,
+        agency_id: user?.id,
+        start_date: formData.date_debut,
+        end_date: formData.date_fin,
+        vehicles: vehiclesData,
+        with_driver: formData.with_driver,
+        additional_charges: formData.additional_charges || 0,
+        total_amount: totalRevenue,
+        status: 'confirmed',
+        notes: '',
+      };
 
-        const { error: reservationError } = await supabase
-          .from('reservations')
-          .insert([reservationData]);
+      const { error: b2bReservationError } = await supabase
+        .from('b2b_reservations' as any)
+        .insert([b2bReservationData]);
 
-        if (reservationError) throw reservationError;
+      if (b2bReservationError) {
+        console.error('Error creating B2B reservation:', b2bReservationError);
+        throw b2bReservationError;
+      }
 
-        // Add each vehicle's revenue to global expenses
+      // Add each vehicle's revenue to global expenses
+      const expensePromises = formData.vehicle_prices.map(async (vehiclePrice) => {
+        const totalPriceForVehicle = vehiclePrice.price * days;
+        const vehicle = availableVehicles.find(v => v.id === vehiclePrice.vehicleId);
+        
         await supabase.from('global_expenses').insert([{
           agency_id: user?.id,
           type: 'revenue',
           category: 'B2B Reservations',
           amount: totalPriceForVehicle,
-          description: `Réservation B2B - ${formData.society_name} - ${availableVehicles.find(v => v.id === vehiclePrice.vehicleId)?.marque} ${availableVehicles.find(v => v.id === vehiclePrice.vehicleId)?.modele}`,
+          description: `Réservation B2B - ${formData.society_name} - ${vehicle?.marque} ${vehicle?.modele}`,
           date: new Date().toISOString().split('T')[0]
         }]);
       });
 
-      await Promise.all(reservationPromises);
+      await Promise.all(expensePromises);
 
       await fetchData();
       resetForm();
