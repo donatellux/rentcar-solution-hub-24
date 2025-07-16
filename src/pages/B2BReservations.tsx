@@ -307,7 +307,7 @@ export const B2BReservations: React.FC = () => {
           reservationData.is_b2b = true;
           reservationData.society_id = societyId;
           reservationData.with_driver = formData.with_driver;
-          reservationData.additional_charges = formData.additional_charges;
+          // Note: additional_charges are stored in societies table, not reservations
         }
 
         const { error: reservationError } = await supabase
