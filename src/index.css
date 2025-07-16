@@ -49,14 +49,14 @@ All colors MUST be HSL.
 
     --radius: 0.75rem;
 
-    --sidebar-background: 222 84% 5%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 47 96% 53%;
-    --sidebar-primary-foreground: 222 84% 5%;
-    --sidebar-accent: 215 27.9% 16.9%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 215 27.9% 16.9%;
-    --sidebar-ring: 47 96% 53%;
+    --sidebar-background: 220 39% 11%;
+    --sidebar-foreground: 46 87% 65%;
+    --sidebar-primary: 46 87% 65%;
+    --sidebar-primary-foreground: 220 39% 11%;
+    --sidebar-accent: 220 39% 15%;
+    --sidebar-accent-foreground: 46 87% 65%;
+    --sidebar-border: 220 39% 15%;
+    --sidebar-ring: 46 87% 65%;
   }
 
   .dark {
@@ -87,14 +87,14 @@ All colors MUST be HSL.
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 47 96% 53%;
-    --sidebar-background: 222 84% 5%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 47 96% 53%;
-    --sidebar-primary-foreground: 222 84% 5%;
-    --sidebar-accent: 215 27.9% 16.9%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 215 27.9% 16.9%;
-    --sidebar-ring: 47 96% 53%;
+    --sidebar-background: 220 39% 11%;
+    --sidebar-foreground: 46 87% 65%;
+    --sidebar-primary: 46 87% 65%;
+    --sidebar-primary-foreground: 220 39% 11%;
+    --sidebar-accent: 220 39% 15%;
+    --sidebar-accent-foreground: 46 87% 65%;
+    --sidebar-border: 220 39% 15%;
+    --sidebar-ring: 46 87% 65%;
   }
 }
 
@@ -222,21 +222,35 @@ All colors MUST be HSL.
       @apply space-y-8;
     }
 
-    /* Desktop table optimizations - bigger tables for better visibility */
+    /* Desktop table optimizations - full width tables */
+    .desktop-table-container {
+      @apply w-full h-full flex flex-col;
+      min-height: calc(100vh - 120px); /* Full height minus header */
+    }
+
+    .desktop-table-wrapper {
+      @apply flex-1 w-full overflow-auto;
+      max-height: calc(100vh - 140px); /* Allow scrolling if needed */
+    }
+
     .desktop-table {
-      @apply text-base;
+      @apply w-full text-base;
+      min-width: 100%;
     }
 
     .desktop-table th {
-      @apply px-6 py-4;
+      @apply px-6 py-4 text-sm font-semibold;
+      white-space: nowrap;
     }
 
     .desktop-table td {
       @apply px-6 py-4;
+      white-space: nowrap;
     }
 
-    .desktop-table-wrapper {
-      @apply overflow-visible;
+    .desktop-page-content {
+      @apply p-6;
+      height: calc(100vh - 80px); /* Full viewport minus header */
     }
   }
 

@@ -25,8 +25,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="flex-1 lg:ml-[280px] flex flex-col h-screen w-full min-w-0">
           <Header onMenuToggle={toggleSidebar} />
           
-          <main className="page-content flex-1 overflow-y-auto overflow-x-hidden">
-            <div className="content-wrapper">
+          <main className="page-content flex-1 overflow-y-auto overflow-x-hidden lg:desktop-page-content">
+            <div className="content-wrapper lg:desktop-table-container">
               {children}
             </div>
           </main>

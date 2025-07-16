@@ -1312,8 +1312,8 @@ export const B2BReservations: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <Table>
+              <div className="overflow-x-auto lg:w-full lg:h-full">
+                <Table className="lg:w-full lg:min-w-full">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Entreprise</TableHead>
