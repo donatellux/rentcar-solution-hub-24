@@ -193,9 +193,9 @@ export const Reservations: React.FC = () => {
         return;
       }
 
-      // Format dates for proper comparison
-      const newStartDate = dateRange.debut.toISOString().split('T')[0];
-      const newEndDate = dateRange.fin.toISOString().split('T')[0];
+      // Format dates for proper comparison - use local date to avoid timezone issues
+      const newStartDate = dateRange.debut.toLocaleDateString('en-CA'); // YYYY-MM-DD format
+      const newEndDate = dateRange.fin.toLocaleDateString('en-CA'); // YYYY-MM-DD format
 
       console.log('Checking availability for period:', newStartDate, 'to', newEndDate);
 
@@ -460,7 +460,7 @@ export const Reservations: React.FC = () => {
       const contractData = {
         reservation,
         agency,
-        generatedAt: new Date().toISOString()
+        generatedAt: new Date().toLocaleDateString('en-CA')
       };
 
       // Calculate days and total amount
@@ -926,9 +926,9 @@ export const Reservations: React.FC = () => {
     setDateRange(newDateRange);
     
     if (type === 'debut') {
-      setFormData({ ...formData, date_debut: date.toISOString().split('T')[0] });
+      setFormData({ ...formData, date_debut: date.toLocaleDateString('en-CA') });
     } else {
-      setFormData({ ...formData, date_fin: date.toISOString().split('T')[0] });
+      setFormData({ ...formData, date_fin: date.toLocaleDateString('en-CA') });
     }
   };
 
