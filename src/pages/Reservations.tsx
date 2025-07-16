@@ -188,7 +188,8 @@ export const Reservations: React.FC = () => {
     }
 
     try {
-      const { data: conflictingReservations, error } = await supabase
+      // Check normal reservations
+      const { data: conflictingReservations, error: reservationError } = await supabase
         .from('reservations')
         .select('vehicule_id')
         .eq('agency_id', user.id)
@@ -199,7 +200,7 @@ export const Reservations: React.FC = () => {
           `and(date_debut.gte.${dateRange.debut.toISOString()},date_fin.lte.${dateRange.fin.toISOString()})`
         );
 
-      if (error) throw error;
+      if (reservationError) throw reservationError;
 
       const unavailableVehicleIds = conflictingReservations?.map(r => r.vehicule_id) || [];
       const available = vehicles.filter(v => 

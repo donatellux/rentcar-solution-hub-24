@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Calendar, Car, Building2, Edit, Trash2, Search } from 'lucide-react';
+import { Plus, Calendar, Car, Building2, Edit, Trash2, Search, FileText, Download, DollarSign } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
@@ -80,6 +80,9 @@ export const B2BReservations: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingReservation, setEditingReservation] = useState<any>(null);
+  const [generatingPDF, setGeneratingPDF] = useState<string | null>(null);
+  const [agency, setAgency] = useState<any>(null);
   
   const [formData, setFormData] = useState({
     // Society information
@@ -148,6 +151,19 @@ export const B2BReservations: React.FC = () => {
         .eq('agency_id', user?.id);
 
       setVehicles(vehiclesData || []);
+      
+      // Fetch agency data for PDF generation
+      const { data: agencyData, error: agencyError } = await supabase
+        .from('agencies')
+        .select('agency_name, address, phone, email, logo_path, rc, ice')
+        .eq('id', user.id)
+        .single();
+
+      if (agencyError && agencyError.code !== 'PGRST116') {
+        console.warn('Agency data not found');
+      } else {
+        setAgency(agencyData);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
@@ -435,6 +451,7 @@ export const B2BReservations: React.FC = () => {
     });
     setDateRange({ debut: null, fin: null });
     setAvailableVehicles([]);
+    setEditingReservation(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -461,6 +478,356 @@ export const B2BReservations: React.FC = () => {
         description: "Erreur lors de la suppression",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleEdit = (reservation: any) => {
+    setEditingReservation(reservation);
+    
+    // Populate form with existing data
+    setFormData({
+      society_name: reservation.societies?.society_name || '',
+      rib: '',
+      iban: '',
+      ice: '',
+      rc: '',
+      address: '',
+      contact_person: reservation.societies?.contact_person || '',
+      contact_phone: reservation.societies?.contact_phone || '',
+      contact_email: '',
+      date_debut: reservation.start_date,
+      date_fin: reservation.end_date,
+      number_of_cars: reservation.vehicles?.length || 1,
+      additional_charges: reservation.additional_charges || 0,
+      selected_vehicles: reservation.vehicles?.map((v: any) => v.vehicle_id) || [],
+      vehicle_prices: reservation.vehicles?.map((v: any) => ({
+        vehicleId: v.vehicle_id,
+        price: v.price_per_day || 0
+      })) || [],
+      with_driver: reservation.with_driver || false,
+      status: reservation.status || 'confirmed',
+    });
+
+    // Set date range
+    setDateRange({
+      debut: reservation.start_date ? new Date(reservation.start_date) : null,
+      fin: reservation.end_date ? new Date(reservation.end_date) : null
+    });
+
+    setDialogOpen(true);
+  };
+
+  const generateInvoicePDF = async (reservation: any) => {
+    if (!agency) {
+      toast({
+        title: "Erreur",
+        description: "Informations de l'agence manquantes",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setGeneratingPDF(reservation.id);
+
+      const vehicleInfo = getVehicleInfo(reservation);
+      const companyName = getCompanyName(reservation);
+      
+      // Calculate duration
+      const startDate = new Date(reservation.start_date);
+      const endDate = new Date(reservation.end_date);
+      const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+      const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      // Create modern HTML invoice
+      const invoiceHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+              line-height: 1.6; 
+              color: #333; 
+              background: #f8f9fa;
+            }
+            .container { 
+              max-width: 800px; 
+              margin: 0 auto; 
+              background: white; 
+              box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            }
+            .header { 
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white; 
+              padding: 30px; 
+              position: relative;
+            }
+            .logo { 
+              max-width: 120px; 
+              height: auto; 
+              margin-bottom: 15px;
+              border-radius: 8px;
+            }
+            .agency-info { 
+              display: flex; 
+              justify-content: space-between; 
+              align-items: flex-end;
+            }
+            .agency-details h1 { 
+              font-size: 28px; 
+              font-weight: 700; 
+              margin-bottom: 10px;
+            }
+            .agency-details p { 
+              margin: 3px 0; 
+              opacity: 0.9;
+            }
+            .invoice-title { 
+              background: #fff; 
+              color: #667eea; 
+              padding: 8px 20px; 
+              border-radius: 25px; 
+              font-weight: 600; 
+              display: inline-block;
+            }
+            .content { padding: 40px; }
+            .invoice-details { 
+              display: grid; 
+              grid-template-columns: 1fr 1fr; 
+              gap: 30px; 
+              margin-bottom: 40px;
+            }
+            .detail-section h3 { 
+              color: #667eea; 
+              font-size: 18px; 
+              margin-bottom: 15px; 
+              border-bottom: 2px solid #667eea; 
+              padding-bottom: 5px;
+            }
+            .detail-item { 
+              display: flex; 
+              justify-content: space-between; 
+              margin: 8px 0; 
+              padding: 5px 0;
+            }
+            .detail-label { 
+              font-weight: 600; 
+              color: #555;
+            }
+            .detail-value { 
+              color: #333;
+            }
+            .vehicles-table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin: 30px 0; 
+              border-radius: 10px; 
+              overflow: hidden; 
+              box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            }
+            .vehicles-table th { 
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+              color: white; 
+              padding: 15px; 
+              text-align: left; 
+              font-weight: 600;
+            }
+            .vehicles-table td { 
+              padding: 12px 15px; 
+              border-bottom: 1px solid #eee;
+            }
+            .vehicles-table tr:nth-child(even) { 
+              background: #f8f9fa;
+            }
+            .vehicles-table tr:hover { 
+              background: #e3f2fd;
+            }
+            .total-section { 
+              background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
+              color: white; 
+              padding: 25px; 
+              border-radius: 10px; 
+              margin: 30px 0;
+            }
+            .total-row { 
+              display: flex; 
+              justify-content: space-between; 
+              margin: 5px 0; 
+              font-size: 18px;
+            }
+            .grand-total { 
+              font-size: 24px; 
+              font-weight: 700; 
+              border-top: 2px solid rgba(255,255,255,0.3); 
+              padding-top: 15px; 
+              margin-top: 15px;
+            }
+            .footer { 
+              background: #f8f9fa; 
+              padding: 30px; 
+              text-align: center; 
+              border-top: 3px solid #667eea;
+            }
+            .footer p { 
+              margin: 5px 0; 
+              color: #666;
+            }
+            .badge { 
+              background: #28a745; 
+              color: white; 
+              padding: 4px 12px; 
+              border-radius: 15px; 
+              font-size: 12px; 
+              font-weight: 600;
+            }
+            @media print {
+              body { background: white; }
+              .container { box-shadow: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="agency-info">
+                <div class="agency-details">
+                  ${agency.logo_path ? `<img src="${agency.logo_path}" alt="Logo" class="logo">` : ''}
+                  <h1>${agency.agency_name || 'Agence de Location'}</h1>
+                  <p><strong>📍</strong> ${agency.address || 'Adresse non spécifiée'}</p>
+                  <p><strong>📞</strong> ${agency.phone || 'N/A'} | <strong>✉️</strong> ${agency.email || 'N/A'}</p>
+                  <p><strong>RC:</strong> ${agency.rc || 'N/A'} | <strong>ICE:</strong> ${agency.ice || 'N/A'}</p>
+                </div>
+                <div class="invoice-title">
+                  FACTURE B2B
+                </div>
+              </div>
+            </div>
+
+            <div class="content">
+              <div class="invoice-details">
+                <div class="detail-section">
+                  <h3>Informations Client</h3>
+                  <div class="detail-item">
+                    <span class="detail-label">Entreprise:</span>
+                    <span class="detail-value">${companyName}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Contact:</span>
+                    <span class="detail-value">${reservation.societies?.contact_person || 'N/A'}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Téléphone:</span>
+                    <span class="detail-value">${reservation.societies?.contact_phone || 'N/A'}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Statut:</span>
+                    <span class="detail-value"><span class="badge">${reservation.status || 'Confirmée'}</span></span>
+                  </div>
+                </div>
+
+                <div class="detail-section">
+                  <h3>Détails de la Réservation</h3>
+                  <div class="detail-item">
+                    <span class="detail-label">Numéro:</span>
+                    <span class="detail-value">#${reservation.id.substring(0, 8).toUpperCase()}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Date de début:</span>
+                    <span class="detail-value">${startDate.toLocaleDateString('fr-FR')}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Date de fin:</span>
+                    <span class="detail-value">${endDate.toLocaleDateString('fr-FR')}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Durée:</span>
+                    <span class="detail-value">${days} jour(s)</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Avec chauffeur:</span>
+                    <span class="detail-value">${reservation.with_driver ? 'Oui' : 'Non'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <table class="vehicles-table">
+                <thead>
+                  <tr>
+                    <th>Véhicule</th>
+                    <th>Prix/Jour</th>
+                    <th>Durée</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${vehicleInfo.map(vehicle => `
+                    <tr>
+                      <td><strong>${vehicle.name}</strong></td>
+                      <td>${vehicle.price.toFixed(2)} MAD</td>
+                      <td>${days} jour(s)</td>
+                      <td><strong>${vehicle.total.toFixed(2)} MAD</strong></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+
+              <div class="total-section">
+                <div class="total-row">
+                  <span>Sous-total véhicules:</span>
+                  <span>${reservation.total_amount.toFixed(2)} MAD</span>
+                </div>
+                ${reservation.additional_charges > 0 ? `
+                  <div class="total-row">
+                    <span>Charges additionnelles:</span>
+                    <span>${reservation.additional_charges.toFixed(2)} MAD</span>
+                  </div>
+                ` : ''}
+                <div class="total-row grand-total">
+                  <span>TOTAL GÉNÉRAL:</span>
+                  <span>${(reservation.total_amount + (reservation.additional_charges || 0)).toFixed(2)} MAD</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="footer">
+              <p><strong>Merci pour votre confiance !</strong></p>
+              <p>Cette facture a été générée automatiquement le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
+              <p>Pour toute question, contactez-nous au ${agency.phone || 'N/A'} ou ${agency.email || 'N/A'}</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Open PDF in new window
+      const newWindow = window.open('', '_blank');
+      if (newWindow) {
+        newWindow.document.write(invoiceHTML);
+        newWindow.document.close();
+        newWindow.focus();
+        
+        // Auto print
+        setTimeout(() => {
+          newWindow.print();
+        }, 1000);
+      }
+
+      toast({
+        title: "Succès",
+        description: "Facture générée avec succès",
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la génération de la facture",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingPDF(null);
     }
   };
 
@@ -972,6 +1339,27 @@ export const B2BReservations: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEdit(reservation)}
+                                className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => generateInvoicePDF(reservation)}
+                                disabled={generatingPDF === reservation.id}
+                                className="hover:bg-green-50 hover:border-green-200 hover:text-green-700"
+                              >
+                                {generatingPDF === reservation.id ? (
+                                  <div className="animate-spin w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full" />
+                                ) : (
+                                  <FileText className="w-4 h-4" />
+                                )}
+                              </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
