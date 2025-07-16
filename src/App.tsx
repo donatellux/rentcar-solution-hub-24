@@ -10,6 +10,7 @@ import { Dashboard } from '@/pages/Dashboard';
 import { Clients } from '@/pages/Clients';
 import { Vehicles } from '@/pages/Vehicles';
 import { Reservations } from '@/pages/Reservations';
+import { B2BReservations } from '@/pages/B2BReservations';
 import { Entretien } from '@/pages/Entretien';
 import { Depenses } from '@/pages/Depenses';
 import { Documents } from '@/pages/Documents';
@@ -52,6 +53,13 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <Reservations />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/b2b-reservations" element={
+            <ProtectedRoute>
+              <Layout>
+                <B2BReservations />
               </Layout>
             </ProtectedRoute>
           } />

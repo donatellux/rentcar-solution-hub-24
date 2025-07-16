@@ -14,7 +14,8 @@ import {
   LogOut,
   Menu,
   X,
-  BarChart3
+  BarChart3,
+  Building2
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -35,6 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     { name: t('nav.vehicles'), href: '/vehicles', icon: Car },
     { name: t('nav.clients'), href: '/clients', icon: Users },
     { name: t('nav.reservations'), href: '/reservations', icon: Calendar },
+    { name: 'Réservations B2B', href: '/b2b-reservations', icon: Building2 },
     { name: t('nav.calendar'), href: '/calendrier', icon: CalendarCheck },
     { name: t('nav.maintenance'), href: '/entretien', icon: Wrench },
     { name: t('nav.expenses'), href: '/depenses', icon: Receipt },
