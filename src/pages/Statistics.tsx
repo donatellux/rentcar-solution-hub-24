@@ -172,38 +172,39 @@ export const Statistics: React.FC = () => {
     setLoadingVehicleStats(true);
 
     try {
-      // Generate different mock data based on vehicle ID to simulate real data
-      const vehicleMultiplier = parseInt(vehicleId) || 1;
-      const baseRevenue = vehicleMultiplier * 100;
-      const baseExpense = vehicleMultiplier * 50;
-      
-      const mockReservations = [
-        { 
-          prix_par_jour: baseRevenue + 50, 
-          date_debut: dateRange.startDate, 
-          date_fin: dateRange.endDate, 
-          statut: 'confirmed' 
-        },
-        { 
-          prix_par_jour: baseRevenue + 100, 
-          date_debut: dateRange.startDate, 
-          date_fin: dateRange.endDate, 
-          statut: 'confirmed' 
-        }
-      ];
+      // Fetch real reservations data for the specific vehicle
+      const reservationsQuery = await supabase
+        .from('reservations')
+        .select('prix_par_jour, date_debut, date_fin, statut')
+        .eq('agency_id', user.id)
+        .eq('vehicule_id', vehicleId)
+        .gte('date_debut', dateRange.startDate)
+        .lte('date_fin', dateRange.endDate);
 
-      const mockVehicleExpenses = [
-        { amount: baseExpense + 25, date: dateRange.startDate },
-        { amount: baseExpense + 70, date: dateRange.endDate }
-      ];
+      // Fetch real vehicle expenses data  
+      const vehicleExpensesQuery = await supabase
+        .from('vehicle_expenses')
+        .select('amount, date')
+        .eq('agency_id', user.id)
+        .eq('vehicle_id', vehicleId)
+        .gte('date', dateRange.startDate)
+        .lte('date', dateRange.endDate);
 
-      const mockMaintenanceExpenses = [
-        { cout: baseExpense + 200, date: dateRange.startDate },
-        { cout: baseExpense + 130, date: dateRange.endDate }
-      ];
+      // Fetch real maintenance data
+      const maintenanceQuery = await supabase
+        .from('entretiens')
+        .select('cout, date')
+        .eq('agency_id', user.id)
+        .eq('vehicule_id', vehicleId)
+        .gte('date', dateRange.startDate)
+        .lte('date', dateRange.endDate);
 
-      // Calculate vehicle statistics using mock data
-      const totalRevenue = mockReservations.reduce((sum, reservation) => {
+      const reservations = reservationsQuery.data || [];
+      const vehicleExpenses = vehicleExpensesQuery.data || [];
+      const maintenanceExpenses = maintenanceQuery.data || [];
+
+      // Calculate vehicle statistics using real data
+      const totalRevenue = (reservations || []).reduce((sum, reservation) => {
         if (reservation.prix_par_jour && reservation.date_debut && reservation.date_fin) {
           const start = new Date(reservation.date_debut);
           const end = new Date(reservation.date_fin);
@@ -213,14 +214,14 @@ export const Statistics: React.FC = () => {
         return sum;
       }, 0);
 
-      const totalExpenses = mockVehicleExpenses.reduce((sum, expense) => 
+      const totalExpenses = (vehicleExpenses || []).reduce((sum, expense) => 
         sum + (expense.amount || 0), 0);
 
-      const totalMaintenanceCosts = mockMaintenanceExpenses.reduce((sum, expense) => 
+      const totalMaintenanceCosts = (maintenanceExpenses || []).reduce((sum, expense) => 
         sum + (expense.cout || 0), 0);
 
       const netProfit = totalRevenue - totalExpenses - totalMaintenanceCosts;
-      const reservationsCount = mockReservations.length;
+      const reservationsCount = (reservations || []).length;
 
       // Calculate profitability rate
       let profitabilityRate: 'Élevée' | 'Moyenne' | 'Faible' = 'Faible';
