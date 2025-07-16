@@ -275,12 +275,65 @@ All colors MUST be HSL.
     @apply bg-muted-foreground/50;
   }
 
-  /* Focus improvements */
+/* Focus improvements */
   button:focus-visible,
   input:focus-visible,
   select:focus-visible,
   textarea:focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2;
+  }
+
+  /* Desktop optimizations */
+  @media (min-width: 1024px) {
+    .desktop-page-content {
+      padding: 1rem 0;
+      max-width: none;
+      width: 100%;
+    }
+
+    .desktop-table-container {
+      max-width: none;
+      width: 100%;
+      padding: 0 1rem;
+      margin: 0;
+    }
+
+    .desktop-table-wrapper {
+      overflow: visible;
+      width: 100%;
+      margin: 0;
+    }
+
+    .desktop-table {
+      font-size: 1rem;
+      width: 100%;
+      table-layout: auto;
+    }
+
+    .desktop-table th {
+      padding: 1rem 1.5rem;
+      font-size: 1.1rem;
+      white-space: nowrap;
+    }
+
+    .desktop-table td {
+      padding: 1rem 1.5rem;
+      font-size: 1rem;
+    }
+
+    /* Full width content layout */
+    .page-content {
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    .content-wrapper {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      padding: 1rem;
+    }
   }
 
   /* Animation improvements */
