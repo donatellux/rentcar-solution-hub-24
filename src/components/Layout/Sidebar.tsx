@@ -61,24 +61,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
 
       {/* Sidebar */}
       <div
-        className={`sidebar-container fixed left-0 top-0 h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 transition-transform duration-300 ease-in-out z-50 ${
+        className={`sidebar-container fixed left-0 top-0 h-screen bg-sidebar border-r border-sidebar-border transition-transform duration-300 ease-in-out z-50 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0 lg:static lg:z-auto flex flex-col w-[280px] min-w-[280px] max-w-[280px] ${
           !isOpen ? 'lg:flex hidden' : ''
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div className="flex items-center justify-between p-6 border-b border-sidebar-border flex-shrink-0">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Car className="w-5 h-5 text-white" />
+            <div className="w-8 h-8 bg-sidebar-primary rounded-lg flex items-center justify-center">
+              <Car className="w-5 h-5 text-sidebar-primary-foreground" />
             </div>
             <div>
-              <h2 className="font-bold text-lg text-gray-900 dark:text-white">
+              <h2 className="font-bold text-lg text-sidebar-foreground">
                 {agency?.agency_name || 'Rentcar Solution'}
               </h2>
               {agency?.slogan && (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-sidebar-foreground/70">
                   {agency.slogan}
                 </p>
               )}
@@ -107,8 +107,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
                     to={item.href}
                     className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                       isActive
-                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
-                        : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+                        ? 'bg-sidebar-accent text-sidebar-primary'
+                        : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
                     }`}
                     onClick={() => window.innerWidth < 1024 && onToggle()}
                   >
@@ -122,11 +122,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
         </nav>
 
         {/* Footer - Sticky at bottom */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div className="p-4 border-t border-sidebar-border flex-shrink-0">
           <Button
             variant="ghost"
             onClick={handleSignOut}
-            className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+            className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-sidebar-accent"
           >
             <LogOut className="w-5 h-5 mr-3" />
             {t('common.logout')}

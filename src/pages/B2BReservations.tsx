@@ -1286,14 +1286,14 @@ export const B2BReservations: React.FC = () => {
         </div>
       </div>
 
-      <Card className="shadow-lg">
+      <Card className="shadow-lg lg:h-full lg:flex lg:flex-col">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Building2 className="w-5 h-5 text-blue-600" />
             <span>Historique des réservations B2B ({totalItems})</span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="lg:flex-1 lg:flex lg:flex-col lg:min-h-0">
           {filteredReservations.length === 0 ? (
             <div className="text-center py-8">
               <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -1312,8 +1312,8 @@ export const B2BReservations: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto lg:w-full lg:h-full">
-                <Table className="lg:w-full lg:min-w-full">
+              <div className="overflow-x-auto lg:flex-1 lg:overflow-auto lg:h-full">
+                <Table className="lg:w-full lg:h-full lg:text-base">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Entreprise</TableHead>

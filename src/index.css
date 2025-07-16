@@ -121,7 +121,9 @@ All colors MUST be HSL.
 
   .page-content {
     @apply flex-1 overflow-y-auto overflow-x-hidden;
-    @apply px-3 py-4 sm:px-4 sm:py-6 lg:px-6 lg:py-8 xl:px-8 xl:py-10;
+    @apply px-3 py-4 sm:px-4 sm:py-6;
+    /* Desktop: use full space with minimal padding */
+    @apply lg:px-6 lg:py-6;
     /* Mobile safe area support */
     padding-bottom: calc(env(safe-area-inset-bottom) + 4rem);
     width: 100%;
@@ -140,7 +142,9 @@ All colors MUST be HSL.
   }
 
   .content-wrapper {
-    @apply mx-auto max-w-7xl w-full;
+    @apply mx-auto w-full;
+    /* Desktop: use full available width */
+    @apply lg:max-w-none;
   }
 
   .card-grid {
