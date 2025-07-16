@@ -285,45 +285,46 @@ export const Dashboard: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+    <div className="space-y-4 lg:space-y-6 max-w-full overflow-x-hidden">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0">
+        <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           Dashboard
         </h1>
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
           <Link to="/statistiques">
-            <Button variant="outline" size="sm" className="text-blue-600 border-blue-300 hover:bg-blue-50">
-              Voir toutes les statistiques
+            <Button variant="outline" size="sm" className="text-blue-600 border-blue-300 hover:bg-blue-50 w-full sm:w-auto">
+              <span className="hidden sm:inline">Voir toutes les statistiques</span>
+              <span className="sm:hidden">Statistiques</span>
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </Link>
-          <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+          <div className="hidden lg:flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
             <TrendingUp className="w-4 h-4" />
             <span>Dernière mise à jour: {new Date().toLocaleDateString('fr-FR')}</span>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={index} className="hover:shadow-elegant transition-all-smooth hover:scale-105 border-0 overflow-hidden">
-              <CardContent className="p-6 relative">
+            <Card key={index} className="hover:shadow-elegant transition-all-smooth hover:scale-105 border-0 overflow-hidden min-w-0">
+              <CardContent className="p-4 lg:p-6 relative">
                 <div className="flex items-center justify-between">
-                  <div className="z-10 relative">
-                    <p className="text-sm font-medium text-muted-foreground mb-2">
+                  <div className="z-10 relative min-w-0 flex-1">
+                    <p className="text-xs lg:text-sm font-medium text-muted-foreground mb-1 lg:mb-2 truncate">
                       {stat.title}
                     </p>
-                    <p className="text-3xl font-bold text-foreground">
+                    <p className="text-xl lg:text-3xl font-bold text-foreground break-words">
                       {stat.value}
                     </p>
                   </div>
-                  <div className={`p-4 rounded-2xl ${stat.gradient} shadow-elegant z-10 relative`}>
-                    <Icon className="w-6 h-6 text-primary-foreground" />
+                  <div className={`p-3 lg:p-4 rounded-2xl ${stat.gradient} shadow-elegant z-10 relative flex-shrink-0 ml-2`}>
+                    <Icon className="w-5 h-5 lg:w-6 lg:h-6 text-primary-foreground" />
                   </div>
                 </div>
-                <div className={`absolute top-0 right-0 w-24 h-24 ${stat.gradient} opacity-10 rounded-full transform translate-x-8 -translate-y-8`}></div>
+                <div className={`absolute top-0 right-0 w-16 h-16 lg:w-24 lg:h-24 ${stat.gradient} opacity-10 rounded-full transform translate-x-4 lg:translate-x-8 -translate-y-4 lg:-translate-y-8`}></div>
               </CardContent>
             </Card>
           );

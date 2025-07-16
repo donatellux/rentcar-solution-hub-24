@@ -28,10 +28,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Mobile/Tablet: Header + Sidebar + Bottom Navigation */}
       <div className="lg:hidden flex h-full">
         <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
-        <div className="flex flex-col flex-1 min-w-0">
-          <Header />
-          <main className="flex-1 overflow-y-auto pb-16">
-            <div className="p-4">
+        <div className="flex flex-col flex-1 min-w-0 overflow-x-hidden">
+          <Header onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+          <main className="flex-1 overflow-y-auto pb-16 overflow-x-hidden">
+            <div className="p-3 max-w-full">
               {children}
             </div>
           </main>

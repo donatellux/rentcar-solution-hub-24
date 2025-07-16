@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Sun, Moon, Languages, LogOut } from 'lucide-react';
+import { Sun, Moon, Languages, LogOut, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,7 +8,11 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { NotificationDropdown } from '@/components/NotificationDropdown';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onToggleSidebar?: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const { agency, signOut } = useAuth();
   const { language, setLanguage, t } = useLanguage();
   const [isDark, setIsDark] = React.useState(false);
@@ -22,6 +26,11 @@ export const Header: React.FC = () => {
     <header className="bg-card border-b border-border px-6 py-3 shadow-sm">
       <div className="flex items-center justify-between w-full">
         <div className="flex items-center space-x-4">
+          <div className="lg:hidden">
+            <Button variant="ghost" size="sm" onClick={onToggleSidebar}>
+              <Menu className="w-5 h-5" />
+            </Button>
+          </div>
           <h1 className="text-lg font-semibold text-foreground">Dashboard</h1>
         </div>
 

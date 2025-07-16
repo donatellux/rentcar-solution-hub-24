@@ -526,3 +526,9 @@ body {
   overflow-x: hidden;
   overflow-y: auto;
 }
+
+/* Prevent horizontal scrolling globally */
+* {
+  max-width: 100%;
+  box-sizing: border-box;
+}
