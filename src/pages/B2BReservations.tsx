@@ -195,42 +195,62 @@ export const B2BReservations: React.FC = () => {
         return;
       }
 
-      // Get regular reservations that overlap with the selected date range
-      const { data: overlappingReservations } = await supabase
+      // Format dates for proper comparison
+      const newStartDate = dateRange.debut.toISOString().split('T')[0];
+      const newEndDate = dateRange.fin.toISOString().split('T')[0];
+
+      console.log('B2B: Checking availability for period:', newStartDate, 'to', newEndDate);
+
+      // Get regular reservations
+      const { data: allRegularReservations } = await supabase
         .from('reservations')
-        .select('vehicule_id')
+        .select('vehicule_id, date_debut, date_fin')
         .eq('agency_id', user?.id)
-        .in('statut', ['confirmee', 'en_cours'])
-        .filter('date_debut', 'lt', dateRange.fin.toISOString())
-        .filter('date_fin', 'gt', dateRange.debut.toISOString());
+        .in('statut', ['confirmee', 'en_cours']);
 
-      // Get B2B reservations that overlap with the selected date range
-      const { data: overlappingB2BReservations } = await supabase
+      // Filter regular reservations that actually conflict
+      const regularConflicts = (allRegularReservations || []).filter(res => {
+        const existingStart = res.date_debut;
+        const existingEnd = res.date_fin;
+        // Conflict if: existing_start < new_end AND existing_end > new_start
+        return existingStart < newEndDate && existingEnd > newStartDate;
+      });
+
+      // Get B2B reservations
+      const { data: allB2BReservations } = await supabase
         .from('b2b_reservations' as any)
-        .select('vehicles')
+        .select('vehicles, start_date, end_date')
         .eq('agency_id', user?.id)
-        .in('status', ['confirmed', 'en_cours'])
-        .filter('start_date', 'lt', dateRange.fin.toISOString().split('T')[0])
-        .filter('end_date', 'gt', dateRange.debut.toISOString().split('T')[0]);
+        .in('status', ['confirmed', 'en_cours']);
 
-      // Extract vehicle IDs from regular reservations
-      const reservedVehicleIds = overlappingReservations?.map(r => r.vehicule_id) || [];
-      
-      // Extract vehicle IDs from B2B reservations
-      const b2bReservedVehicleIds: string[] = [];
-      if (overlappingB2BReservations) {
-        for (const b2bRes of overlappingB2BReservations) {
-          if (Array.isArray((b2bRes as any).vehicles)) {
-            for (const vehicle of (b2bRes as any).vehicles) {
-              b2bReservedVehicleIds.push(vehicle.vehicle_id);
+      // Filter B2B reservations that actually conflict
+      const b2bConflicts: string[] = [];
+      if (allB2BReservations) {
+        for (const b2bRes of allB2BReservations) {
+          const existingStart = (b2bRes as any).start_date;
+          const existingEnd = (b2bRes as any).end_date;
+          
+          // Check if this B2B reservation conflicts with our new period
+          if (existingStart < newEndDate && existingEnd > newStartDate) {
+            // Extract vehicle IDs from this conflicting B2B reservation
+            if (Array.isArray((b2bRes as any).vehicles)) {
+              for (const vehicle of (b2bRes as any).vehicles) {
+                b2bConflicts.push(vehicle.vehicle_id);
+              }
             }
           }
         }
       }
 
-      // Combine all reserved vehicle IDs
-      const allReservedVehicleIds = [...reservedVehicleIds, ...b2bReservedVehicleIds];
-      const available = allVehicles.filter(v => !allReservedVehicleIds.includes(v.id));
+      // Combine all unavailable vehicle IDs
+      const regularUnavailable = regularConflicts.map(r => r.vehicule_id);
+      const allUnavailableIds = [...regularUnavailable, ...b2bConflicts];
+      
+      console.log('B2B: All unavailable vehicle IDs:', allUnavailableIds);
+
+      // Filter available vehicles
+      const available = allVehicles.filter(v => !allUnavailableIds.includes(v.id));
+      console.log('B2B: Available vehicles:', available.map(v => `${v.marque} ${v.modele}`));
       
       setAvailableVehicles(available);
     } catch (error) {
