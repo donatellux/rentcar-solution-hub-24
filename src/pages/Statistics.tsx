@@ -120,7 +120,7 @@ export const Statistics: React.FC = () => {
       // Get B2B revenues from b2b_reservations table
       const { data: b2bRevenues } = await supabase
         .from('b2b_reservations' as any)
-        .select('total_amount, start_date')
+        .select('total_amount, start_date, end_date')
         .eq('agency_id', user.id)
         .in('status', ['confirmed', 'active'])
         .gte('start_date', startDate.toISOString().split('T')[0])
@@ -143,7 +143,7 @@ export const Statistics: React.FC = () => {
         return sum;
       }, 0) || 0;
 
-      // Calculate B2B revenue - handle potential query errors
+      // Calculate B2B revenue - total_amount already includes price * days calculation
       const b2bRevenueTotal = Array.isArray(b2bRevenues) ? 
         b2bRevenues.reduce((sum, revenue) => sum + ((revenue as any).total_amount || 0), 0) : 0;
 
@@ -262,10 +262,8 @@ export const Statistics: React.FC = () => {
           if (Array.isArray((b2bRes as any).vehicles)) {
             for (const vehicle of (b2bRes as any).vehicles) {
               if (vehicle.vehicle_id === vehicleId) {
-                // Calculate proportional revenue for this vehicle
-                const vehicleCount = (b2bRes as any).vehicles.length;
-                const vehicleShare = ((b2bRes as any).total_amount || 0) / vehicleCount;
-                b2bRevenueTotal += vehicleShare;
+                // Use the vehicle's total_amount which already includes price * days calculation
+                b2bRevenueTotal += vehicle.total_amount || 0;
               }
             }
           }

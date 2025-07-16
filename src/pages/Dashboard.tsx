@@ -134,7 +134,7 @@ export const Dashboard: React.FC = () => {
         if (reservation.total_amount && reservation.start_date) {
           const startDate = new Date(reservation.start_date);
           if (startDate.getMonth() === currentMonth && startDate.getFullYear() === currentYear) {
-            return sum + reservation.total_amount;
+            return sum + reservation.total_amount; // total_amount already includes price * days calculation
           }
         }
         return sum;
