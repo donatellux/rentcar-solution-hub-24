@@ -331,7 +331,7 @@ export const B2BReservations: React.FC = () => {
       }
 
       // Add total revenue to global revenues
-      await supabase.from('global_revenues' as any).insert([{
+      const { error: globalRevenueError } = await supabase.from('global_revenues' as any).insert([{
         agency_id: user?.id,
         source: 'B2B Reservations',
         amount: totalRevenue,
@@ -340,12 +340,16 @@ export const B2BReservations: React.FC = () => {
         vehicle_ids: formData.vehicle_prices.map(vp => vp.vehicleId)
       }]);
 
+      if (globalRevenueError) {
+        console.error('Error adding global revenue:', globalRevenueError);
+      }
+
       // Add each vehicle's revenue to vehicle revenues for statistics
       const vehicleRevenuePromises = formData.vehicle_prices.map(async (vehiclePrice) => {
         const totalPriceForVehicle = vehiclePrice.price * days;
         const vehicle = availableVehicles.find(v => v.id === vehiclePrice.vehicleId);
         
-        await supabase.from('vehicle_revenues' as any).insert([{
+        const { error: vehicleRevenueError } = await supabase.from('vehicle_revenues' as any).insert([{
           agency_id: user?.id,
           vehicle_id: vehiclePrice.vehicleId,
           source: 'B2B Reservation',
@@ -355,6 +359,10 @@ export const B2BReservations: React.FC = () => {
           start_date: formData.date_debut,
           end_date: formData.date_fin
         }]);
+
+        if (vehicleRevenueError) {
+          console.error('Error adding vehicle revenue:', vehicleRevenueError);
+        }
       });
 
       await Promise.all(vehicleRevenuePromises);
@@ -682,23 +690,22 @@ export const B2BReservations: React.FC = () => {
                     <h3 className="text-lg font-semibold border-b pb-2">Sélection des véhicules</h3>
                     <div>
                       <Label htmlFor="number_of_cars">Nombre de véhicules *</Label>
-                      <Input
-                        id="number_of_cars"
-                        type="number"
-                        min="1"
-                        max={availableVehicles.length}
-                        value={formData.number_of_cars}
-                        onChange={(e) => {
-                          const count = parseInt(e.target.value) || 1;
-                          setFormData(prev => ({ 
-                            ...prev, 
-                            number_of_cars: count,
-                            selected_vehicles: [],
-                            vehicle_prices: []
-                          }));
-                        }}
-                        required
-                      />
+                       <Input
+                         id="number_of_cars"
+                         type="text"
+                         value={formData.number_of_cars}
+                         onChange={(e) => {
+                           const value = parseInt(e.target.value) || 1;
+                           setFormData(prev => ({ 
+                             ...prev, 
+                             number_of_cars: Math.max(1, value),
+                             selected_vehicles: [],
+                             vehicle_prices: []
+                           }));
+                         }}
+                         placeholder="1"
+                         required
+                       />
                     </div>
                     
                     <div className="space-y-3">
