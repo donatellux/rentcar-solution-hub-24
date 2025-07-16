@@ -96,11 +96,12 @@ export const B2BReservations: React.FC = () => {
     // Reservation details
     date_debut: '',
     date_fin: '',
-    number_of_cars: 1,
+    number_of_cars: 1 as number,
     additional_charges: 0,
     selected_vehicles: [] as string[],
     vehicle_prices: [] as VehiclePrice[],
     with_driver: false,
+    status: 'confirmed' as string,
   });
 
   const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([]);
@@ -178,7 +179,7 @@ export const B2BReservations: React.FC = () => {
         return;
       }
 
-      // Get reservations that overlap with the selected date range
+      // Get regular reservations that overlap with the selected date range
       const { data: overlappingReservations } = await supabase
         .from('reservations')
         .select('vehicule_id')
@@ -190,9 +191,36 @@ export const B2BReservations: React.FC = () => {
           `and(date_debut.gte.${dateRange.debut.toISOString()},date_fin.lte.${dateRange.fin.toISOString()})`
         );
 
-      // Filter out vehicles that are already reserved
+      // Get B2B reservations that overlap with the selected date range
+      const { data: overlappingB2BReservations } = await supabase
+        .from('b2b_reservations' as any)
+        .select('vehicles')
+        .eq('agency_id', user?.id)
+        .in('status', ['confirmed', 'en_cours'])
+        .or(
+          `and(start_date.lte.${dateRange.debut.toISOString().split('T')[0]},end_date.gte.${dateRange.debut.toISOString().split('T')[0]}),` +
+          `and(start_date.lte.${dateRange.fin.toISOString().split('T')[0]},end_date.gte.${dateRange.fin.toISOString().split('T')[0]}),` +
+          `and(start_date.gte.${dateRange.debut.toISOString().split('T')[0]},end_date.lte.${dateRange.fin.toISOString().split('T')[0]})`
+        );
+
+      // Extract vehicle IDs from regular reservations
       const reservedVehicleIds = overlappingReservations?.map(r => r.vehicule_id) || [];
-      const available = allVehicles.filter(v => !reservedVehicleIds.includes(v.id));
+      
+      // Extract vehicle IDs from B2B reservations
+      const b2bReservedVehicleIds: string[] = [];
+      if (overlappingB2BReservations) {
+        for (const b2bRes of overlappingB2BReservations) {
+          if (Array.isArray((b2bRes as any).vehicles)) {
+            for (const vehicle of (b2bRes as any).vehicles) {
+              b2bReservedVehicleIds.push(vehicle.vehicle_id);
+            }
+          }
+        }
+      }
+
+      // Combine all reserved vehicle IDs
+      const allReservedVehicleIds = [...reservedVehicleIds, ...b2bReservedVehicleIds];
+      const available = allVehicles.filter(v => !allReservedVehicleIds.includes(v.id));
       
       setAvailableVehicles(available);
     } catch (error) {
@@ -317,7 +345,7 @@ export const B2BReservations: React.FC = () => {
         with_driver: formData.with_driver,
         additional_charges: formData.additional_charges || 0,
         total_amount: totalRevenue,
-        status: 'confirmed',
+        status: formData.status || 'confirmed',
         notes: '',
       };
 
@@ -403,6 +431,7 @@ export const B2BReservations: React.FC = () => {
       selected_vehicles: [],
       vehicle_prices: [],
       with_driver: false,
+      status: 'confirmed',
     });
     setDateRange({ debut: null, fin: null });
     setAvailableVehicles([]);
@@ -688,24 +717,25 @@ export const B2BReservations: React.FC = () => {
                 {availableVehicles.length > 0 && (
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold border-b pb-2">Sélection des véhicules</h3>
-                    <div>
-                      <Label htmlFor="number_of_cars">Nombre de véhicules *</Label>
-                       <Input
-                         id="number_of_cars"
-                         type="text"
-                         value={formData.number_of_cars}
-                         onChange={(e) => {
-                           const value = parseInt(e.target.value) || 1;
-                           setFormData(prev => ({ 
-                             ...prev, 
-                             number_of_cars: Math.max(1, value),
-                             selected_vehicles: [],
-                             vehicle_prices: []
-                           }));
-                         }}
-                         placeholder="1"
-                         required
-                       />
+                     <div>
+                       <Label htmlFor="number_of_cars">Nombre de véhicules *</Label>
+                        <Input
+                          id="number_of_cars"
+                          type="number"
+                          min="1"
+                          value={formData.number_of_cars || ''}
+                           onChange={(e) => {
+                             const value = parseInt(e.target.value) || 1;
+                             setFormData(prev => ({ 
+                               ...prev, 
+                               number_of_cars: value,
+                               selected_vehicles: [],
+                               vehicle_prices: []
+                             }));
+                           }}
+                          placeholder="Entrez le nombre de véhicules"
+                          required
+                        />
                     </div>
                     
                     <div className="space-y-3">
@@ -741,6 +771,24 @@ export const B2BReservations: React.FC = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Status Selection */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">Statut de la réservation</h3>
+                  <div>
+                    <Label htmlFor="status">Statut *</Label>
+                    <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choisir un statut" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="confirmed">Confirmé</SelectItem>
+                        <SelectItem value="en_cours">En cours</SelectItem>
+                        <SelectItem value="annule">Annulé</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
                 {/* Pricing and Options */}
                 <div className="space-y-4">

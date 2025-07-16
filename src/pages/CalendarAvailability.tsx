@@ -89,14 +89,47 @@ const CalendarAvailability: React.FC = () => {
 
       if (reservationsError) throw reservationsError;
 
-      // Process reservations
+      // Fetch B2B reservations for current month
+      const { data: b2bReservationsData, error: b2bReservationsError } = await supabase
+        .from('b2b_reservations' as any)
+        .select('id, start_date, end_date, status, vehicles, societies(society_name)')
+        .eq('agency_id', user.id)
+        .or(`start_date.lte.${endOfMonth},end_date.gte.${startOfMonth}`);
+
+      if (b2bReservationsError) throw b2bReservationsError;
+
+      // Process regular reservations
       const processedReservations = reservationsData?.map(res => ({
         ...res,
         client_name: res.clients ? `${res.clients.nom} ${res.clients.prenom}` : 'Client non défini'
       })) || [];
 
+      // Process B2B reservations and expand them for each vehicle
+      const processedB2BReservations: Reservation[] = [];
+      if (b2bReservationsData && Array.isArray(b2bReservationsData)) {
+        for (const b2bRes of b2bReservationsData) {
+          if (Array.isArray((b2bRes as any).vehicles)) {
+            for (const vehicle of (b2bRes as any).vehicles) {
+              processedB2BReservations.push({
+                id: `b2b-${(b2bRes as any).id}-${vehicle.vehicle_id}`,
+                vehicule_id: vehicle.vehicle_id,
+                date_debut: (b2bRes as any).start_date,
+                date_fin: (b2bRes as any).end_date,
+                statut: (b2bRes as any).status === 'confirmed' ? 'confirmee' : 
+                       (b2bRes as any).status === 'en_cours' ? 'en_cours' : 
+                       (b2bRes as any).status === 'annule' ? 'annulee' : 'confirmee',
+                client_name: `B2B - ${((b2bRes as any).societies as any)?.society_name || 'Entreprise'}`
+              });
+            }
+          }
+        }
+      }
+
+      // Combine both reservation types
+      const allReservations = [...processedReservations, ...processedB2BReservations];
+
       setVehicles(vehiclesData || []);
-      setReservations(processedReservations);
+      setReservations(allReservations);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
