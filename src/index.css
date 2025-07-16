@@ -510,3 +510,18 @@ All colors MUST be HSL.
     @apply p-6 sm:p-8 lg:p-12;
   }
 }
+
+/* Global layout for full screen coverage */
+html,
+body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}

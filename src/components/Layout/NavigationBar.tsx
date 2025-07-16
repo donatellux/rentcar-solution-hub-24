@@ -35,9 +35,9 @@ export const NavigationBar: React.FC = () => {
 
   return (
     <nav className="bg-card border-b border-border shadow-sm">
-      <div className="max-w-full px-4">
+      <div className="w-full px-6">
         <div className="flex justify-center">
-          <div className="flex space-x-1 py-2 overflow-x-auto">
+          <div className="flex space-x-2 py-3 flex-wrap justify-center max-w-6xl">
             {navigation.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.href;
@@ -46,14 +46,14 @@ export const NavigationBar: React.FC = () => {
                 <NavLink
                   key={item.name}
                   to={item.href}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                     isActive
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                      ? 'bg-primary text-primary-foreground shadow-md scale-105'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/60 hover:scale-105'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
-                  <span className="hidden sm:inline">{item.name}</span>
+                  <span>{item.name}</span>
                 </NavLink>
               );
             })}
