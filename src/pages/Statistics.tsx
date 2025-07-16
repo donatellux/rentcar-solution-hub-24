@@ -187,8 +187,8 @@ export const Statistics: React.FC = () => {
         .select('amount, date')
         .eq('agency_id', user.id)
         .eq('vehicle_id', vehicleId)
-        .gte('date', dateRange.startDate)
-        .lte('date', dateRange.endDate);
+        .gte('date', dateRange.startDate + 'T00:00:00')
+        .lt('date', dateRange.endDate + 'T23:59:59');
 
       // Fetch real maintenance data
       const maintenanceQuery = await supabase
@@ -196,8 +196,8 @@ export const Statistics: React.FC = () => {
         .select('cout, date')
         .eq('agency_id', user.id)
         .eq('vehicule_id', vehicleId)
-        .gte('date', dateRange.startDate)
-        .lte('date', dateRange.endDate);
+        .gte('date', dateRange.startDate + 'T00:00:00')
+        .lt('date', dateRange.endDate + 'T23:59:59');
 
       const reservations = reservationsQuery.data || [];
       const vehicleExpenses = vehicleExpensesQuery.data || [];
