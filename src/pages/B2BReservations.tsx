@@ -14,7 +14,6 @@ import { Switch } from '@/components/ui/switch';
 import { Building2, Plus, Calendar, Car, Users, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 
-// For now, we'll use a simplified approach without societies until the migration is applied
 interface B2BReservation {
   id: string;
   client_id: string;
@@ -31,6 +30,19 @@ interface B2BReservation {
   additional_charges?: number;
   clients?: { nom: string; prenom: string };
   vehicles?: { marque: string; modele: string; immatriculation: string };
+}
+
+interface Society {
+  id?: string;
+  society_name: string;
+  rib: string;
+  iban: string;
+  ice: string;
+  rc: string;
+  address: string;
+  contact_person: string;
+  contact_phone: string;
+  contact_email: string;
 }
 
 interface Vehicle {
@@ -60,17 +72,28 @@ export const B2BReservations: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   
   const [formData, setFormData] = useState({
-    client_id: '',
-    vehicule_id: '',
+    // Society information
+    society_name: '',
+    rib: '',
+    iban: '',
+    ice: '',
+    rc: '',
+    address: '',
+    contact_person: '',
+    contact_phone: '',
+    contact_email: '',
+    
+    // Reservation details
     date_debut: '',
     date_fin: '',
-    prix_jour: 0,
+    prix_jour: '',
     with_driver: false,
     number_of_cars: 1,
-    additional_charges: 0,
-    company_name: '', // For now, store company name as a simple field
-    company_details: '' // Store additional company details
+    additional_charges: '',
+    selected_vehicles: [] as string[],
   });
+
+  const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -121,16 +144,55 @@ export const B2BReservations: React.FC = () => {
     }
   };
 
+  const fetchAvailableVehicles = async () => {
+    if (!formData.date_debut || !formData.date_fin) {
+      setAvailableVehicles([]);
+      return;
+    }
+
+    try {
+      // Get all vehicles for the agency
+      const { data: allVehicles } = await supabase
+        .from('vehicles')
+        .select('id, marque, modele, immatriculation, etat')
+        .eq('agency_id', user?.id)
+        .eq('etat', 'disponible');
+
+      if (!allVehicles) {
+        setAvailableVehicles([]);
+        return;
+      }
+
+      // Get reservations that overlap with the selected date range
+      const { data: overlappingReservations } = await supabase
+        .from('reservations')
+        .select('vehicule_id')
+        .eq('agency_id', user?.id)
+        .gte('date_fin', formData.date_debut)
+        .lte('date_debut', formData.date_fin);
+
+      // Filter out vehicles that are already reserved
+      const reservedVehicleIds = overlappingReservations?.map(r => r.vehicule_id) || [];
+      const available = allVehicles.filter(v => !reservedVehicleIds.includes(v.id));
+      
+      setAvailableVehicles(available);
+    } catch (error) {
+      console.error('Error fetching available vehicles:', error);
+      setAvailableVehicles([]);
+    }
+  };
+
   const calculateTotal = () => {
-    if (!formData.date_debut || !formData.date_fin || !formData.prix_jour) return 0;
+    const prixJour = parseFloat(formData.prix_jour) || 0;
+    if (!formData.date_debut || !formData.date_fin || !prixJour) return 0;
     
     const startDate = new Date(formData.date_debut);
     const endDate = new Date(formData.date_fin);
     const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
-    const baseTotal = diffDays * formData.prix_jour * formData.number_of_cars;
-    return baseTotal + (formData.additional_charges || 0);
+    // Only count base rental price, not additional charges (they're costs, not revenue)
+    return diffDays * prixJour * formData.number_of_cars;
   };
 
   const handleCreateReservation = async (e: React.FormEvent) => {
@@ -138,51 +200,96 @@ export const B2BReservations: React.FC = () => {
     
     try {
       const totalPrice = calculateTotal();
+      const additionalCharges = parseFloat(formData.additional_charges) || 0;
       
-      // Create reservation with basic B2B fields (will be enhanced after migration)
-      const reservationData = {
-        client_id: formData.client_id,
-        vehicule_id: formData.vehicule_id,
-        date_debut: formData.date_debut,
-        date_fin: formData.date_fin,
-        prix_jour: formData.prix_jour,
-        prix_total: totalPrice,
-        agency_id: user?.id,
-        statut: 'confirmee',
-        // Store B2B details in existing text fields for now
-        lieu_delivrance: `B2B: ${formData.company_name}`, // Temporary storage
-        // Additional fields will be added after migration
-      };
+      // Try to create society entry, but handle gracefully if table doesn't exist yet
+      let societyId = null;
+      try {
+        const societyData = {
+          agency_id: user?.id,
+          society_name: formData.society_name,
+          rib: formData.rib,
+          iban: formData.iban,
+          ice: formData.ice,
+          rc: formData.rc,
+          address: formData.address,
+          contact_person: formData.contact_person,
+          contact_phone: formData.contact_phone,
+          contact_email: formData.contact_email,
+        };
 
-      const { data, error } = await supabase
-        .from('reservations')
-        .insert([reservationData]);
+        const result = await supabase
+          .from('societies' as any)
+          .insert([societyData])
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (!result.error && result.data) {
+          societyId = (result.data as any)?.id;
+        }
+      } catch (societyError) {
+        console.log('Societies table not available yet, using fallback approach');
+      }
 
-      // Add revenue to global expenses
+      // Create reservations for each selected vehicle
+      const reservationPromises = formData.selected_vehicles.map(async (vehicleId) => {
+        const reservationData: any = {
+          vehicule_id: vehicleId,
+          date_debut: formData.date_debut,
+          date_fin: formData.date_fin,
+          prix_jour: parseFloat(formData.prix_jour),
+          prix_total: totalPrice / formData.number_of_cars, // Split total between vehicles
+          agency_id: user?.id,
+          statut: 'confirmee',
+          // Store B2B info in lieu_delivrance temporarily if new columns don't exist
+          lieu_delivrance: `B2B: ${formData.society_name} | Contact: ${formData.contact_person} | Tel: ${formData.contact_phone}`,
+        };
+
+        // Add B2B specific fields if they exist
+        if (societyId) {
+          reservationData.is_b2b = true;
+          reservationData.society_id = societyId;
+          reservationData.with_driver = formData.with_driver;
+          reservationData.number_of_cars = formData.number_of_cars;
+          reservationData.additional_charges = additionalCharges;
+        }
+
+        return supabase.from('reservations').insert([reservationData]);
+      });
+
+      await Promise.all(reservationPromises);
+
+      // Add only base rental revenue to global expenses (not additional charges)
       await supabase.from('global_expenses').insert([{
         agency_id: user?.id,
         type: 'revenue',
         category: 'B2B Reservations',
-        amount: totalPrice,
-        description: `Réservation B2B - ${formData.company_name} - ${formData.number_of_cars} véhicule(s)`,
+        amount: totalPrice, // Only base rental price
+        description: `Réservation B2B - ${formData.society_name} - ${formData.number_of_cars} véhicule(s)`,
         date: new Date().toISOString().split('T')[0]
       }]);
 
       await fetchData();
+      // Reset form
       setFormData({
-        client_id: '',
-        vehicule_id: '',
+        society_name: '',
+        rib: '',
+        iban: '',
+        ice: '',
+        rc: '',
+        address: '',
+        contact_person: '',
+        contact_phone: '',
+        contact_email: '',
         date_debut: '',
         date_fin: '',
-        prix_jour: 0,
+        prix_jour: '',
         with_driver: false,
         number_of_cars: 1,
-        additional_charges: 0,
-        company_name: '',
-        company_details: ''
+        additional_charges: '',
+        selected_vehicles: [],
       });
+      setAvailableVehicles([]);
       setDialogOpen(false);
       
       toast({
@@ -198,6 +305,21 @@ export const B2BReservations: React.FC = () => {
       });
     }
   };
+
+  // Effect to fetch available vehicles when dates change
+  useEffect(() => {
+    fetchAvailableVehicles();
+  }, [formData.date_debut, formData.date_fin]);
+
+  // Effect to reset selected vehicles when number of cars changes
+  useEffect(() => {
+    if (formData.selected_vehicles.length > formData.number_of_cars) {
+      setFormData(prev => ({
+        ...prev,
+        selected_vehicles: prev.selected_vehicles.slice(0, formData.number_of_cars)
+      }));
+    }
+  }, [formData.number_of_cars]);
 
   const isB2BReservation = (reservation: B2BReservation) => {
     return reservation.lieu_delivrance?.startsWith('B2B:') || reservation.is_b2b;
@@ -241,110 +363,216 @@ export const B2BReservations: React.FC = () => {
                 Remplissez les détails de la réservation pour entreprise
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleCreateReservation} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="company_name">Nom de l&apos;entreprise *</Label>
-                  <Input
-                    id="company_name"
-                    value={formData.company_name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, company_name: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="client_id">Contact principal *</Label>
-                  <Select value={formData.client_id} onValueChange={(value) => setFormData(prev => ({ ...prev, client_id: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un contact" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.nom} {client.prenom}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="vehicule_id">Véhicule principal *</Label>
-                  <Select value={formData.vehicule_id} onValueChange={(value) => setFormData(prev => ({ ...prev, vehicule_id: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un véhicule" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {vehicles.map((vehicle) => (
-                        <SelectItem key={vehicle.id} value={vehicle.id}>
-                          {vehicle.marque} {vehicle.modele} - {vehicle.immatriculation}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="number_of_cars">Nombre de véhicules</Label>
-                  <Input
-                    id="number_of_cars"
-                    type="number"
-                    min="1"
-                    value={formData.number_of_cars}
-                    onChange={(e) => setFormData(prev => ({ ...prev, number_of_cars: parseInt(e.target.value) || 1 }))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="date_debut">Date de début *</Label>
-                  <Input
-                    id="date_debut"
-                    type="date"
-                    value={formData.date_debut}
-                    onChange={(e) => setFormData(prev => ({ ...prev, date_debut: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="date_fin">Date de fin *</Label>
-                  <Input
-                    id="date_fin"
-                    type="date"
-                    value={formData.date_fin}
-                    onChange={(e) => setFormData(prev => ({ ...prev, date_fin: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="prix_jour">Prix par jour (MAD) *</Label>
-                  <Input
-                    id="prix_jour"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.prix_jour}
-                    onChange={(e) => setFormData(prev => ({ ...prev, prix_jour: parseFloat(e.target.value) || 0 }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="additional_charges">Frais supplémentaires (MAD)</Label>
-                  <Input
-                    id="additional_charges"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.additional_charges}
-                    onChange={(e) => setFormData(prev => ({ ...prev, additional_charges: parseFloat(e.target.value) || 0 }))}
-                  />
+            <form onSubmit={handleCreateReservation} className="space-y-6">
+              {/* Company Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold border-b pb-2">Informations de l'entreprise</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="society_name">Nom de l'entreprise *</Label>
+                    <Input
+                      id="society_name"
+                      value={formData.society_name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, society_name: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="contact_person">Contact principal *</Label>
+                    <Input
+                      id="contact_person"
+                      value={formData.contact_person}
+                      onChange={(e) => setFormData(prev => ({ ...prev, contact_person: e.target.value }))}
+                      placeholder="Nom du responsable"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="contact_email">Email de contact *</Label>
+                    <Input
+                      id="contact_email"
+                      type="email"
+                      value={formData.contact_email}
+                      onChange={(e) => setFormData(prev => ({ ...prev, contact_email: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="contact_phone">Téléphone de contact *</Label>
+                    <Input
+                      id="contact_phone"
+                      value={formData.contact_phone}
+                      onChange={(e) => setFormData(prev => ({ ...prev, contact_phone: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="address">Adresse *</Label>
+                    <Input
+                      id="address"
+                      value={formData.address}
+                      onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="ice">ICE *</Label>
+                    <Input
+                      id="ice"
+                      value={formData.ice}
+                      onChange={(e) => setFormData(prev => ({ ...prev, ice: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="rc">RC *</Label>
+                    <Input
+                      id="rc"
+                      value={formData.rc}
+                      onChange={(e) => setFormData(prev => ({ ...prev, rc: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="rib">RIB *</Label>
+                    <Input
+                      id="rib"
+                      value={formData.rib}
+                      onChange={(e) => setFormData(prev => ({ ...prev, rib: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="iban">IBAN *</Label>
+                    <Input
+                      id="iban"
+                      value={formData.iban}
+                      onChange={(e) => setFormData(prev => ({ ...prev, iban: e.target.value }))}
+                      required
+                    />
+                  </div>
                 </div>
               </div>
-              
-              <div>
-                <Label htmlFor="company_details">Détails de l&apos;entreprise</Label>
-                <Textarea
-                  id="company_details"
-                  placeholder="ICE, RC, adresse, etc."
-                  value={formData.company_details}
-                  onChange={(e) => setFormData(prev => ({ ...prev, company_details: e.target.value }))}
-                />
+
+              {/* Reservation Details */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold border-b pb-2">Détails de la réservation</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="date_debut">Date de début *</Label>
+                    <Input
+                      id="date_debut"
+                      type="date"
+                      value={formData.date_debut}
+                      onChange={(e) => setFormData(prev => ({ ...prev, date_debut: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="date_fin">Date de fin *</Label>
+                    <Input
+                      id="date_fin"
+                      type="date"
+                      value={formData.date_fin}
+                      onChange={(e) => setFormData(prev => ({ ...prev, date_fin: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  
+                  {formData.date_debut && formData.date_fin && (
+                    <>
+                      <div>
+                        <Label htmlFor="number_of_cars">Nombre de véhicules *</Label>
+                        <Input
+                          id="number_of_cars"
+                          type="number"
+                          min="1"
+                          max={availableVehicles.length}
+                          value={formData.number_of_cars}
+                          onChange={(e) => {
+                            const count = parseInt(e.target.value) || 1;
+                            setFormData(prev => ({ 
+                              ...prev, 
+                              number_of_cars: count,
+                              selected_vehicles: prev.selected_vehicles.slice(0, count)
+                            }));
+                          }}
+                          required
+                        />
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {availableVehicles.length} véhicule(s) disponible(s) pour cette période
+                        </p>
+                      </div>
+
+                      {formData.number_of_cars > 0 && availableVehicles.length > 0 && (
+                        <div className="md:col-span-2">
+                          <Label>Sélectionner les véhicules ({formData.selected_vehicles.length}/{formData.number_of_cars}) *</Label>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2 max-h-40 overflow-y-auto border rounded-md p-2">
+                            {availableVehicles.map((vehicle) => (
+                              <div key={vehicle.id} className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  id={`vehicle-${vehicle.id}`}
+                                  checked={formData.selected_vehicles.includes(vehicle.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked && formData.selected_vehicles.length < formData.number_of_cars) {
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        selected_vehicles: [...prev.selected_vehicles, vehicle.id]
+                                      }));
+                                    } else if (!e.target.checked) {
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        selected_vehicles: prev.selected_vehicles.filter(id => id !== vehicle.id)
+                                      }));
+                                    }
+                                  }}
+                                  disabled={!formData.selected_vehicles.includes(vehicle.id) && formData.selected_vehicles.length >= formData.number_of_cars}
+                                  className="rounded"
+                                />
+                                <Label 
+                                  htmlFor={`vehicle-${vehicle.id}`}
+                                  className="text-sm cursor-pointer"
+                                >
+                                  {vehicle.marque} {vehicle.modele} - {vehicle.immatriculation}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  <div>
+                    <Label htmlFor="prix_jour">Prix par jour par véhicule (MAD) *</Label>
+                    <Input
+                      id="prix_jour"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.prix_jour}
+                      onChange={(e) => setFormData(prev => ({ ...prev, prix_jour: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="additional_charges">
+                      Frais supplémentaires (MAD)
+                      <span className="text-sm text-muted-foreground block">
+                        (Chauffeur, carburant, etc. - Non comptés dans les revenus)
+                      </span>
+                    </Label>
+                    <Input
+                      id="additional_charges"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.additional_charges}
+                      onChange={(e) => setFormData(prev => ({ ...prev, additional_charges: e.target.value }))}
+                    />
+                  </div>
+                </div>
               </div>
               
               <div className="flex items-center space-x-2">
@@ -356,17 +584,23 @@ export const B2BReservations: React.FC = () => {
                 <Label htmlFor="with_driver">Avec chauffeur</Label>
               </div>
 
-              {formData.date_debut && formData.date_fin && formData.prix_jour > 0 && (
+              {formData.date_debut && formData.date_fin && formData.prix_jour && formData.selected_vehicles.length > 0 && (
                 <div className="p-4 bg-muted rounded-lg">
                   <h4 className="font-semibold mb-2">Résumé de la réservation:</h4>
                   <div className="space-y-1 text-sm">
-                    <p>Entreprise: {formData.company_name}</p>
+                    <p>Entreprise: {formData.society_name}</p>
+                    <p>Contact: {formData.contact_person}</p>
                     <p>Période: {format(new Date(formData.date_debut), 'dd/MM/yyyy')} - {format(new Date(formData.date_fin), 'dd/MM/yyyy')}</p>
-                    <p>Nombre de véhicules: {formData.number_of_cars}</p>
-                    <p>Prix par jour: {formData.prix_jour} MAD</p>
-                    {formData.additional_charges > 0 && <p>Frais supplémentaires: {formData.additional_charges} MAD</p>}
+                    <p>Véhicules sélectionnés: {formData.selected_vehicles.length}/{formData.number_of_cars}</p>
+                    <p>Prix par jour par véhicule: {formData.prix_jour} MAD</p>
+                    {parseFloat(formData.additional_charges) > 0 && (
+                      <p>Frais supplémentaires: {formData.additional_charges} MAD (non comptés dans les revenus)</p>
+                    )}
                     {formData.with_driver && <p>Avec chauffeur: Oui</p>}
-                    <p className="font-semibold">Total: {calculateTotal()} MAD</p>
+                    <p className="font-semibold text-primary">Total location: {calculateTotal()} MAD</p>
+                    {parseFloat(formData.additional_charges) > 0 && (
+                      <p className="font-semibold">Total avec frais: {calculateTotal() + (parseFloat(formData.additional_charges) || 0)} MAD</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -375,7 +609,24 @@ export const B2BReservations: React.FC = () => {
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Annuler
                 </Button>
-                <Button type="submit" disabled={!formData.company_name || !formData.client_id || !formData.vehicule_id}>
+                <Button 
+                  type="submit" 
+                  disabled={
+                    !formData.society_name || 
+                    !formData.contact_person || 
+                    !formData.contact_email || 
+                    !formData.contact_phone ||
+                    !formData.address ||
+                    !formData.ice ||
+                    !formData.rc ||
+                    !formData.rib ||
+                    !formData.iban ||
+                    !formData.date_debut || 
+                    !formData.date_fin || 
+                    !formData.prix_jour ||
+                    formData.selected_vehicles.length !== formData.number_of_cars
+                  }
+                >
                   Créer la réservation
                 </Button>
               </div>
