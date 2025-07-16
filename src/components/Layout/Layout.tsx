@@ -13,13 +13,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col w-full">
       {/* Desktop: Header + Navigation Bar */}
-      <div className="hidden lg:flex lg:flex-col lg:h-full">
+      <div className="hidden lg:flex lg:flex-col lg:h-screen lg:w-full">
         <Header />
         <NavigationBar />
-        <main className="flex-1 overflow-y-auto">
-          <div className="h-full p-4 lg:p-6">
+        <main className="flex-1 overflow-y-auto w-full">
+          <div className="w-full px-6 py-6 max-w-none">
             {children}
           </div>
         </main>

@@ -285,9 +285,9 @@ export const Dashboard: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-4 lg:space-y-6 max-w-full overflow-x-hidden">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0">
-        <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+    <div className="space-y-4 lg:space-y-8 w-full">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0 w-full">
+        <h1 className="text-2xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           Dashboard
         </h1>
         <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
@@ -305,18 +305,18 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-8 w-full">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={index} className="hover:shadow-elegant transition-all-smooth hover:scale-105 border-0 overflow-hidden min-w-0">
+            <Card key={index} className="hover:shadow-elegant transition-all-smooth hover:scale-105 border-0 overflow-hidden min-w-0 w-full">
               <CardContent className="p-4 lg:p-6 relative">
                 <div className="flex items-center justify-between">
                   <div className="z-10 relative min-w-0 flex-1">
                     <p className="text-xs lg:text-sm font-medium text-muted-foreground mb-1 lg:mb-2 truncate">
                       {stat.title}
                     </p>
-                    <p className="text-xl lg:text-3xl font-bold text-foreground break-words">
+                    <p className="text-xl lg:text-2xl xl:text-3xl font-bold text-foreground break-words">
                       {stat.value}
                     </p>
                   </div>
