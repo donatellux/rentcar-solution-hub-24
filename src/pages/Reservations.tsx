@@ -194,11 +194,8 @@ export const Reservations: React.FC = () => {
         .select('vehicule_id')
         .eq('agency_id', user.id)
         .in('statut', ['confirmee', 'en_cours'])
-        .or(
-          `and(date_debut.lte.${dateRange.debut.toISOString()},date_fin.gt.${dateRange.debut.toISOString()}),` +
-          `and(date_debut.lt.${dateRange.fin.toISOString()},date_fin.gte.${dateRange.fin.toISOString()}),` +
-          `and(date_debut.gte.${dateRange.debut.toISOString()},date_fin.lte.${dateRange.fin.toISOString()})`
-        );
+        .filter('date_debut', 'lt', dateRange.fin.toISOString())
+        .filter('date_fin', 'gt', dateRange.debut.toISOString());
 
       if (reservationError) throw reservationError;
 
@@ -211,11 +208,8 @@ export const Reservations: React.FC = () => {
         .select('vehicles')
         .eq('agency_id', user.id)
         .in('status', ['confirmed', 'active'])
-        .or(
-          `and(start_date.lte.${startDate},end_date.gt.${startDate}),` +
-          `and(start_date.lt.${endDate},end_date.gte.${endDate}),` +
-          `and(start_date.gte.${startDate},end_date.lte.${endDate})`
-        );
+        .filter('start_date', 'lt', endDate)
+        .filter('end_date', 'gt', startDate);
 
       if (b2bError) {
         console.error('Error checking B2B reservations:', b2bError);

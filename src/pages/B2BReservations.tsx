@@ -201,11 +201,8 @@ export const B2BReservations: React.FC = () => {
         .select('vehicule_id')
         .eq('agency_id', user?.id)
         .in('statut', ['confirmee', 'en_cours'])
-        .or(
-          `and(date_debut.lte.${dateRange.debut.toISOString()},date_fin.gt.${dateRange.debut.toISOString()}),` +
-          `and(date_debut.lt.${dateRange.fin.toISOString()},date_fin.gte.${dateRange.fin.toISOString()}),` +
-          `and(date_debut.gte.${dateRange.debut.toISOString()},date_fin.lte.${dateRange.fin.toISOString()})`
-        );
+        .filter('date_debut', 'lt', dateRange.fin.toISOString())
+        .filter('date_fin', 'gt', dateRange.debut.toISOString());
 
       // Get B2B reservations that overlap with the selected date range
       const { data: overlappingB2BReservations } = await supabase
@@ -213,11 +210,8 @@ export const B2BReservations: React.FC = () => {
         .select('vehicles')
         .eq('agency_id', user?.id)
         .in('status', ['confirmed', 'en_cours'])
-        .or(
-          `and(start_date.lte.${dateRange.debut.toISOString().split('T')[0]},end_date.gt.${dateRange.debut.toISOString().split('T')[0]}),` +
-          `and(start_date.lt.${dateRange.fin.toISOString().split('T')[0]},end_date.gte.${dateRange.fin.toISOString().split('T')[0]}),` +
-          `and(start_date.gte.${dateRange.debut.toISOString().split('T')[0]},end_date.lte.${dateRange.fin.toISOString().split('T')[0]})`
-        );
+        .filter('start_date', 'lt', dateRange.fin.toISOString().split('T')[0])
+        .filter('end_date', 'gt', dateRange.debut.toISOString().split('T')[0]);
 
       // Extract vehicle IDs from regular reservations
       const reservedVehicleIds = overlappingReservations?.map(r => r.vehicule_id) || [];
