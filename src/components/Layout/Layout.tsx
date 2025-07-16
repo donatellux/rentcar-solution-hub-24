@@ -1,40 +1,25 @@
 
-import React, { useState } from 'react';
-import { Sidebar } from './Sidebar';
+import React from 'react';
 import { Header } from './Header';
-import { MobileNavigation } from './MobileNavigation';
+import { NavigationBar } from './NavigationBar';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
   return (
-    <div className="page-container">
-      <div className="flex h-screen w-full overflow-hidden">
-        {/* Sidebar - Fixed and sticky with mobile-optimized behavior */}
-        <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
+    <div className="min-h-screen bg-background">
+      <div className="flex flex-col h-screen w-full">
+        <Header />
+        <NavigationBar />
         
-        {/* Main content - Scrollable area with optimized spacing */}
-        <div className="flex-1 lg:ml-[220px] flex flex-col h-screen w-full min-w-0">
-          <Header onMenuToggle={toggleSidebar} />
-          
-          <main className="page-content flex-1 overflow-y-auto overflow-x-hidden lg:desktop-page-content">
-            <div className="content-wrapper desktop-full-width">
-              {children}
-            </div>
-          </main>
-        </div>
+        <main className="flex-1 overflow-y-auto w-full">
+          <div className="w-full max-w-none px-6 py-6">
+            {children}
+          </div>
+        </main>
       </div>
-      
-      {/* Mobile navigation */}
-      <MobileNavigation />
     </div>
   );
 };
