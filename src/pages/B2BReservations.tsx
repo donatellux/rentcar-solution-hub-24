@@ -99,7 +99,7 @@ export const B2BReservations: React.FC = () => {
     // Reservation details
     date_debut: '',
     date_fin: '',
-    number_of_cars: 1 as number,
+    number_of_cars: 0 as number,
     additional_charges: 0,
     selected_vehicles: [] as string[],
     vehicle_prices: [] as VehiclePrice[],
@@ -709,27 +709,55 @@ export const B2BReservations: React.FC = () => {
               </div>
             </div>
 
-            <div class="content">
-              <div class="invoice-details">
-                <div class="detail-section">
-                  <h3>Informations Client</h3>
-                  <div class="detail-item">
-                    <span class="detail-label">Entreprise:</span>
-                    <span class="detail-value">${companyName}</span>
+             <div class="content">
+                <div class="invoice-details">
+                  <div class="detail-section">
+                    <h3>Informations de l'Agence</h3>
+                    <div class="detail-item">
+                      <span class="detail-label">Nom:</span>
+                      <span class="detail-value">${agency?.agency_name || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Adresse:</span>
+                      <span class="detail-value">${agency?.address || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Téléphone:</span>
+                      <span class="detail-value">${agency?.phone || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Email:</span>
+                      <span class="detail-value">${agency?.email || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">RC:</span>
+                      <span class="detail-value">${agency?.rc || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">ICE:</span>
+                      <span class="detail-value">${agency?.ice || 'N/A'}</span>
+                    </div>
                   </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Contact:</span>
-                    <span class="detail-value">${reservation.societies?.contact_person || 'N/A'}</span>
+
+                  <div class="detail-section">
+                    <h3>Informations de l'Entreprise</h3>
+                    <div class="detail-item">
+                      <span class="detail-label">Entreprise:</span>
+                      <span class="detail-value">${companyName}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Contact:</span>
+                      <span class="detail-value">${reservation.societies?.contact_person || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Téléphone:</span>
+                      <span class="detail-value">${reservation.societies?.contact_phone || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Statut:</span>
+                      <span class="detail-value"><span class="badge">${reservation.status || 'Confirmée'}</span></span>
+                    </div>
                   </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Téléphone:</span>
-                    <span class="detail-value">${reservation.societies?.contact_phone || 'N/A'}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Statut:</span>
-                    <span class="detail-value"><span class="badge">${reservation.status || 'Confirmée'}</span></span>
-                  </div>
-                </div>
 
                 <div class="detail-section">
                   <h3>Détails de la Réservation</h3>
@@ -1094,15 +1122,15 @@ export const B2BReservations: React.FC = () => {
                           type="number"
                           min="1"
                           value={formData.number_of_cars || ''}
-                           onChange={(e) => {
-                             const value = parseInt(e.target.value) || 1;
-                             setFormData(prev => ({ 
-                               ...prev, 
-                               number_of_cars: value,
-                               selected_vehicles: [],
-                               vehicle_prices: []
-                             }));
-                           }}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value) || 0;
+                              setFormData(prev => ({ 
+                                ...prev, 
+                                number_of_cars: value,
+                                selected_vehicles: [],
+                                vehicle_prices: []
+                              }));
+                            }}
                           placeholder="Entrez le nombre de véhicules"
                           required
                         />
@@ -1320,11 +1348,16 @@ export const B2BReservations: React.FC = () => {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <div className="font-medium">
-                              {reservation.total_amount ? `${reservation.total_amount} MAD` : 'N/A'}
-                            </div>
-                          </TableCell>
+                           <TableCell>
+                             <div className="font-medium">
+                               {reservation.total_amount ? `${reservation.total_amount.toFixed(2)} MAD` : 'N/A'}
+                             </div>
+                             <div className="text-xs text-gray-500">
+                               {reservation.start_date && reservation.end_date && (
+                                 `${Math.ceil((new Date(reservation.end_date).getTime() - new Date(reservation.start_date).getTime()) / (1000 * 60 * 60 * 24))} jour(s)`
+                               )}
+                             </div>
+                           </TableCell>
                           <TableCell>
                             <Badge className={getStatusColor(reservation.status || 'confirmed')}>
                               {reservation.status || 'Confirmée'}

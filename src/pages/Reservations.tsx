@@ -426,86 +426,344 @@ export const Reservations: React.FC = () => {
         generatedAt: new Date().toISOString()
       };
 
-      // Create a simple HTML contract
+      // Calculate days and total amount
+      const startDate = reservation.date_debut ? new Date(reservation.date_debut) : new Date();
+      const endDate = reservation.date_fin ? new Date(reservation.date_fin) : new Date();
+      const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) || 1;
+      const totalAmount = (reservation.prix_par_jour || 0) * days;
+
+      // Create a professional contract based on the uploaded image format
       const contractHTML = `
         <!DOCTYPE html>
         <html>
         <head>
           <meta charset="UTF-8">
           <style>
-            body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 20px; 
+              line-height: 1.4; 
+              background-color: #f9f9f9;
+            }
+            .container {
+              background: white;
+              padding: 30px;
+              max-width: 800px;
+              margin: 0 auto;
+              border-radius: 8px;
+              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            .header { 
+              text-align: center; 
+              margin-bottom: 30px; 
+              border-bottom: 3px solid #333; 
+              padding-bottom: 20px; 
+            }
             .logo { max-width: 150px; height: auto; margin-bottom: 10px; }
-            .section { margin: 20px 0; }
-            .signature-section { margin-top: 80px; border-top: 1px solid #ccc; padding-top: 20px; }
-            .signature-box { border: 1px solid #333; height: 80px; width: 200px; display: inline-block; margin: 10px; }
-            .empty-field { border-bottom: 1px solid #333; display: inline-block; min-width: 200px; margin-left: 10px; }
-            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f2f2f2; }
+            .company-info {
+              font-size: 14px;
+              color: #666;
+              margin-bottom: 10px;
+            }
+            .contract-title {
+              font-size: 24px;
+              font-weight: bold;
+              margin: 20px 0;
+              color: #333;
+            }
+            .contract-number {
+              text-align: right;
+              font-size: 18px;
+              margin-bottom: 20px;
+              color: #666;
+            }
+            .section { 
+              margin: 25px 0; 
+              border: 2px solid #ddd;
+              padding: 15px;
+              border-radius: 8px;
+            }
+            .section-title {
+              background-color: #4a5568;
+              color: white;
+              padding: 8px 15px;
+              margin: -15px -15px 15px -15px;
+              font-weight: bold;
+              border-radius: 6px 6px 0 0;
+            }
+            .info-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 15px;
+              margin-top: 15px;
+            }
+            .info-item {
+              display: flex;
+              justify-content: space-between;
+              padding: 8px;
+              border-bottom: 1px solid #eee;
+            }
+            .info-label {
+              font-weight: bold;
+              color: #4a5568;
+            }
+            .info-value {
+              color: #333;
+            }
+            .vehicle-details {
+              background-color: #f7fafc;
+              padding: 20px;
+              border-radius: 8px;
+              margin: 20px 0;
+            }
+            .conditions {
+              background-color: #fffbf0;
+              border-left: 4px solid #f6ad55;
+              padding: 15px;
+              margin: 20px 0;
+              font-size: 12px;
+              line-height: 1.6;
+            }
+            .conditions h4 {
+              margin-top: 0;
+              color: #975a16;
+            }
+            .signature-section { 
+              margin-top: 50px; 
+              border-top: 2px solid #ccc; 
+              padding-top: 30px; 
+            }
+            .signature-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr 1fr;
+              gap: 30px;
+              text-align: center;
+            }
+            .signature-box { 
+              border: 2px solid #333; 
+              height: 80px; 
+              width: 100%; 
+              margin: 10px 0;
+              background-color: #f9f9f9;
+            }
+            .empty-field { 
+              border-bottom: 2px solid #333; 
+              display: inline-block; 
+              min-width: 200px; 
+              margin-left: 10px; 
+              height: 20px;
+            }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin: 15px 0; 
+            }
+            th, td { 
+              border: 1px solid #ddd; 
+              padding: 12px 8px; 
+              text-align: left; 
+            }
+            th { 
+              background-color: #4a5568; 
+              color: white;
+              font-weight: bold;
+            }
+            .total-section {
+              background-color: #e6fffa;
+              padding: 15px;
+              border-radius: 8px;
+              margin: 20px 0;
+            }
+            .total-amount {
+              font-size: 18px;
+              font-weight: bold;
+              color: #1a365d;
+            }
+            @media print {
+              body { background: white; margin: 0; }
+              .container { box-shadow: none; margin: 0; }
+            }
           </style>
         </head>
         <body>
-          <div class="header">
-            ${agency.logo_path ? `<img src="${agency.logo_path}" alt="Logo" class="logo">` : ''}
-            <h1>${agency.agency_name || 'Agence de Location'}</h1>
-            <p>${agency.address || ''}</p>
-            <p>Tél: ${agency.phone || ''} | Email: ${agency.email || ''}</p>
-            <p>RC: ${agency.rc || ''} | ICE: ${agency.ice || ''}</p>
-          </div>
-
-          <h2 style="text-align: center;">CONTRAT DE LOCATION DE VÉHICULE</h2>
-          
-          <div class="section">
-            <h3>Informations Client</h3>
-            <p><strong>Nom:</strong> ${reservation.clients?.prenom} ${reservation.clients?.nom}</p>
-            <p><strong>CIN:</strong> ${reservation.clients?.cin || ''}</p>
-            <p><strong>Téléphone:</strong> ${reservation.clients?.telephone || ''}</p>
-            <p><strong>Adresse:</strong> ${reservation.clients?.adresse || ''}</p>
-          </div>
-
-          <div class="section">
-            <h3>Deuxième Conducteur (Optionnel)</h3>
-            <p><strong>Nom:</strong> <span class="empty-field"></span></p>
-            <p><strong>CIN:</strong> <span class="empty-field"></span></p>
-            <p><strong>Téléphone:</strong> <span class="empty-field"></span></p>
-          </div>
-
-          <div class="section">
-            <h3>Informations Véhicule</h3>
-            <table>
-              <tr><th>Marque</th><td>${reservation.vehicles?.marque || ''}</td></tr>
-              <tr><th>Modèle</th><td>${reservation.vehicles?.modele || ''}</td></tr>
-              <tr><th>Immatriculation</th><td>${reservation.vehicles?.immatriculation || ''}</td></tr>
-              <tr><th>Année</th><td>${reservation.vehicles?.annee || ''}</td></tr>
-              <tr><th>Couleur</th><td>${reservation.vehicles?.couleur || ''}</td></tr>
-            </table>
-          </div>
-
-          <div class="section">
-            <h3>Détails de la Location</h3>
-            <table>
-              <tr><th>Date de début</th><td>${reservation.date_debut ? new Date(reservation.date_debut).toLocaleDateString() : ''}</td></tr>
-              <tr><th>Date de fin</th><td>${reservation.date_fin ? new Date(reservation.date_fin).toLocaleDateString() : ''}</td></tr>
-              <tr><th>Prix par jour</th><td>${reservation.prix_par_jour || 0} MAD</td></tr>
-              <tr><th>Lieu de délivrance</th><td>${reservation.lieu_delivrance || ''}</td></tr>
-              <tr><th>Lieu de récupération</th><td>${reservation.lieu_recuperation || ''}</td></tr>
-              <tr><th>Kilométrage départ</th><td>${reservation.km_depart || ''} km</td></tr>
-              <tr><th>Kilométrage retour</th><td>${reservation.km_retour || ''} km</td></tr>
-            </table>
-          </div>
-
-          <div class="signature-section">
-            <div style="display: flex; justify-content: space-between;">
-              <div>
-                <p><strong>Signature du Client:</strong></p>
-                <div class="signature-box"></div>
-                <p>Date: _______________</p>
+          <div class="container">
+            <div class="header">
+              ${agency.logo_path ? `<img src="${agency.logo_path}" alt="Logo" class="logo">` : ''}
+              <h1 style="margin: 10px 0; color: #2d3748;">${agency.agency_name || 'STE. GRANOLLERS CAR'}</h1>
+              <div class="company-info">
+                <p style="margin: 5px 0;"><strong>Location de voiture - كراء السيارات</strong></p>
+                <p style="margin: 5px 0;">${agency.address || 'Hay El Matar Lot Onda Ilot 27 Lot N°21-Nador'}</p>
+                <p style="margin: 5px 0;">📞 ${agency.phone || '06.11.79.51.10'}</p>
               </div>
-              <div>
-                <p><strong>Signature de l'Agence:</strong></p>
-                <div class="signature-box"></div>
-                <p>Date: _______________</p>
+            </div>
+
+            <div class="contract-title">CONTRAT DE LOCATION</div>
+            <div class="contract-number">N°${String(Math.floor(Math.random() * 99999)).padStart(5, '0')}</div>
+
+            <div class="section">
+              <div class="section-title">LOCATAIRE :</div>
+              <div class="info-grid">
+                <div class="info-item">
+                  <span class="info-label">Nom et prénom :</span>
+                  <span class="info-value">${reservation.clients?.prenom || ''} ${reservation.clients?.nom || ''}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Nationalité :</span>
+                  <span class="info-value"><span class="empty-field"></span></span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Profession :</span>
+                  <span class="info-value"><span class="empty-field"></span></span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Passeport N° :</span>
+                  <span class="info-value"><span class="empty-field"></span></span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">C.I.N N° :</span>
+                  <span class="info-value">${reservation.clients?.cin || ''}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Permis de Conduite N° :</span>
+                  <span class="info-value"><span class="empty-field"></span></span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Délivré le :</span>
+                  <span class="info-value"><span class="empty-field"></span></span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Adresse :</span>
+                  <span class="info-value">${reservation.clients?.adresse || ''}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Téléphone :</span>
+                  <span class="info-value">${reservation.clients?.telephone || ''}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-title">Autre conducteur :</div>
+              <div class="info-grid">
+                <div class="info-item">
+                  <span class="info-label">Nom et prénom :</span>
+                  <span class="info-value"><span class="empty-field"></span></span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Nationalité :</span>
+                  <span class="info-value"><span class="empty-field"></span></span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">C.I.N N° :</span>
+                  <span class="info-value"><span class="empty-field"></span></span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Permis de Conduite N° :</span>
+                  <span class="info-value"><span class="empty-field"></span></span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Délivré le :</span>
+                  <span class="info-value"><span class="empty-field"></span></span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Adresse :</span>
+                  <span class="info-value"><span class="empty-field"></span></span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Téléphone :</span>
+                  <span class="info-value"><span class="empty-field"></span></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-title">VÉHICULE</div>
+              <div class="info-grid">
+                <div class="info-item">
+                  <span class="info-label">Marque :</span>
+                  <span class="info-value">${reservation.vehicles?.marque || ''}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Immatriculation :</span>
+                  <span class="info-value">${reservation.vehicles?.immatriculation || ''}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Date Départ :</span>
+                  <span class="info-value">${startDate.toLocaleDateString('fr-FR')}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Heure de Départ :</span>
+                  <span class="info-value"><span class="empty-field"></span></span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Km Départ :</span>
+                  <span class="info-value">${reservation.km_depart || ''}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Date Retour :</span>
+                  <span class="info-value">${endDate.toLocaleDateString('fr-FR')}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Heure de Retour :</span>
+                  <span class="info-value"><span class="empty-field"></span></span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Km Retour :</span>
+                  <span class="info-value">${reservation.km_retour || ''}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Durée de Location :</span>
+                  <span class="info-value">${days} jour(s)</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Prix/Jour :</span>
+                  <span class="info-value">${reservation.prix_par_jour || 0} MAD</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Total à Payer :</span>
+                  <span class="info-value total-amount">${totalAmount} MAD</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Dépôt :</span>
+                  <span class="info-value"><span class="empty-field"></span></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="conditions">
+              <h4>CONDITIONS GÉNÉRALES</h4>
+              <ul style="margin: 10px 0; padding-left: 20px;">
+                <li>Le locataire doit être âgé de 20 ans au minimum et détenteur d'un permis de conduire en cours de validité depuis plus d'un an</li>
+                <li>Une pièce d'identité en cours de validité est exigée lors de la prise en charge du véhicule</li>
+                <li>À la date de location, le Locataire doit déposer une garantie d'un montant de 10.000DH</li>
+                <li>Le locataire s'engage à restituer le véhicule à l'état identique et au temps précisé dans le présent contrat</li>
+                <li>Il est strictement interdit l'utilisation du véhicule sous l'emprise de l'alcool ou d'autres substances non admises</li>
+                <li>Le locataire doit payer une amende de 1500 dh dans le cas de perte des clés de voiture</li>
+                <li>Le locataire s'engage à ne pas fumer dans le véhicule</li>
+              </ul>
+            </div>
+
+            <div class="signature-section">
+              <p style="text-align: center; margin-bottom: 30px; font-style: italic;">
+                J'ai lu, compris et j'approuve les termes et conditions de location de la société <strong>${agency.agency_name || 'STE GRANOLLERS CAR'}</strong> désignés dans le présent contrat
+              </p>
+              
+              <div class="signature-grid">
+                <div>
+                  <p><strong>Cachet et signature du Locataire</strong></p>
+                  <div class="signature-box"></div>
+                  <p style="margin-top: 10px;">Date: _______________</p>
+                </div>
+                <div>
+                  <p><strong>Signature 1er Conducteur</strong></p>
+                  <div class="signature-box"></div>
+                  <p style="margin-top: 10px;">Date: _______________</p>
+                </div>
+                <div>
+                  <p><strong>Signature 2e Conducteur</strong></p>
+                  <div class="signature-box"></div>
+                  <p style="margin-top: 10px;">Date: _______________</p>
+                </div>
               </div>
             </div>
           </div>
