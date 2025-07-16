@@ -399,23 +399,15 @@ export const Clients: React.FC = () => {
       </div>
 
       {loading ? (
-        <Card>
-          <CardContent className="p-6">
-            <div className="animate-pulse space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
       ) : (
-        <div className="flex-1 flex flex-col bg-card rounded-lg border">
-          <div className="px-4 py-3 border-b border-border">
-            <h3 className="text-sm font-medium text-foreground">
-              Liste des clients ({filteredClients.length})
-            </h3>
-          </div>
-          <div className="flex-1 lg:desktop-table-container">
+        <Card>
+          <CardHeader>
+            <CardTitle>Liste des clients ({filteredClients.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
             {paginatedClients.length === 0 ? (
               <div className="text-center py-8">
                 <User className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -434,146 +426,87 @@ export const Clients: React.FC = () => {
               </div>
             ) : (
               <>
-                {/* Desktop Table */}
-                <div className="hidden lg:block lg:desktop-table-wrapper">
-                  <Table className="lg:desktop-table">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-64">Nom & Prénom</TableHead>
-                        <TableHead className="w-56">Contact</TableHead>
-                        <TableHead className="w-40">CIN</TableHead>
-                        <TableHead className="w-32">Type</TableHead>
-                        <TableHead className="w-40">Nationalité</TableHead>
-                        <TableHead className="w-32">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paginatedClients.map((client) => (
-                        <TableRow key={client.id}>
-                          <TableCell>
-                            <div className="font-medium text-foreground">
-                              {client.prenom} {client.nom}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              {client.telephone && (
-                                <div className="flex items-center space-x-1 text-sm">
-                                  <Phone className="w-3 h-3 text-muted-foreground" />
-                                  <span>{client.telephone}</span>
-                                </div>
-                              )}
-                              {client.email && (
-                                <div className="flex items-center space-x-1 text-sm">
-                                  <Mail className="w-3 h-3 text-muted-foreground" />
-                                  <span>{client.email}</span>
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-medium">{client.cin}</TableCell>
-                          <TableCell>
-                            <Badge className={getClientTypeColor(client.type)}>
-                              {client.type || 'N/A'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{client.nationalite}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleEdit(client)}
-                                className="h-8 w-8 p-0"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleDelete(client.id)}
-                                className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                       ))}
-                    </TableBody>
-                  </Table>
-                </div>
-
-                {/* Mobile Cards */}
-                <div className="lg:hidden space-y-3 p-4">
-                  {paginatedClients.map((client) => (
-                    <Card key={client.id}>
-                      <CardContent className="p-4 space-y-3">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-medium text-foreground">
-                              {client.prenom} {client.nom}
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              {client.telephone}
-                            </p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nom & Prénom</TableHead>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>CIN</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Nationalité</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedClients.map((client) => (
+                      <TableRow key={client.id}>
+                        <TableCell>
+                          <div className="font-medium">
+                            {client.prenom} {client.nom}
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            {client.telephone && (
+                              <div className="flex items-center space-x-1 text-sm">
+                                <Phone className="w-3 h-3 text-gray-400" />
+                                <span>{client.telephone}</span>
+                              </div>
+                            )}
+                            {client.email && (
+                              <div className="flex items-center space-x-1 text-sm">
+                                <Mail className="w-3 h-3 text-gray-400" />
+                                <span>{client.email}</span>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{client.cin}</TableCell>
+                        <TableCell>
                           <Badge className={getClientTypeColor(client.type)}>
                             {client.type || 'N/A'}
                           </Badge>
-                        </div>
-                        
-                        <div className="border-t border-border pt-3">
-                          <p className="text-sm">
-                            <span className="font-medium">CIN:</span> {client.cin}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {client.nationalite}
-                          </p>
-                        </div>
-
-                        <div className="flex gap-2 pt-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEdit(client)}
-                            className="flex-1"
-                          >
-                            Modifier
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDelete(client.id)}
-                            className="px-3 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-                
-                {totalPages > 1 && (
-                  <div className="px-4 py-3 border-t border-border">
-                    <PaginationControls
-                      currentPage={currentPage}
-                      totalPages={totalPages}
-                      totalItems={totalItems}
-                      itemsPerPage={10}
-                      onPageChange={goToPage}
-                      onNext={nextPage}
-                      onPrev={prevPage}
-                      hasNext={hasNext}
-                      hasPrev={hasPrev}
-                    />
-                  </div>
-                )}
+                        </TableCell>
+                        <TableCell>{client.nationalite}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEdit(client)}
+                              className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDelete(client.id)}
+                              className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                <PaginationControls
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  itemsPerPage={10}
+                  onPageChange={goToPage}
+                  onNext={nextPage}
+                  onPrev={prevPage}
+                  hasNext={hasNext}
+                  hasPrev={hasPrev}
+                />
               </>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

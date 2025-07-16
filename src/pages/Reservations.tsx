@@ -1379,14 +1379,6 @@ export const Reservations: React.FC = () => {
                                   <FileText className="w-4 h-4" />
                                 )}
                               </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleDelete(reservation.id)}
-                                className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1403,7 +1395,6 @@ export const Reservations: React.FC = () => {
                       reservation={reservation}
                       onEdit={() => handleEdit(reservation)}
                       onContract={() => generateContractPDF(reservation)}
-                      onDelete={() => handleDelete(reservation.id)}
                       generatingPDF={generatingPDF === reservation.id}
                     />
                   ))}
