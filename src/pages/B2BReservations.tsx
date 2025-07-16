@@ -212,8 +212,15 @@ export const B2BReservations: React.FC = () => {
       const regularConflicts = (allRegularReservations || []).filter(res => {
         const existingStart = res.date_debut;
         const existingEnd = res.date_fin;
-        // Conflict if: existing_start < new_end AND existing_end > new_start
-        return existingStart < newEndDate && existingEnd > newStartDate;
+        // Standard overlap check
+        const hasConflict = existingStart < newEndDate && existingEnd > newStartDate;
+        
+        // Allow same day transitions: if existing ends exactly when new starts
+        if (existingEnd === newStartDate) {
+          return false; // No conflict for same-day transitions
+        }
+        
+        return hasConflict;
       });
 
       // Get B2B reservations
@@ -231,7 +238,10 @@ export const B2BReservations: React.FC = () => {
           const existingEnd = (b2bRes as any).end_date;
           
           // Check if this B2B reservation conflicts with our new period
-          if (existingStart < newEndDate && existingEnd > newStartDate) {
+          const hasB2BConflict = existingStart < newEndDate && existingEnd > newStartDate;
+          
+          // Allow same day transitions for B2B as well
+          if (hasB2BConflict && existingEnd !== newStartDate) {
             // Extract vehicle IDs from this conflicting B2B reservation
             if (Array.isArray((b2bRes as any).vehicles)) {
               for (const vehicle of (b2bRes as any).vehicles) {

@@ -214,8 +214,20 @@ export const Reservations: React.FC = () => {
       const normalConflicts = (conflictingReservations || []).filter(res => {
         const existingStart = res.date_debut;
         const existingEnd = res.date_fin;
-        // Conflict if: existing_start < new_end AND existing_end > new_start
-        return existingStart < newEndDate && existingEnd > newStartDate;
+        console.log(`Checking conflict: existing (${existingStart} to ${existingEnd}) vs new (${newStartDate} to ${newEndDate})`);
+        // Modified overlap logic to allow same-day transitions:
+        // If existing ends exactly when new starts, no conflict (same day availability)
+        const hasConflict = existingStart < newEndDate && existingEnd > newStartDate;
+        console.log(`Standard conflict check: ${hasConflict}`);
+        
+        // Special case: allow same day transition (existing ends on date X, new starts on date X)
+        if (existingEnd === newStartDate) {
+          console.log('Same day transition detected - allowing');
+          return false; // No conflict for same-day transitions
+        }
+        
+        console.log(`Final conflict result: ${hasConflict}`);
+        return hasConflict;
       });
 
       console.log('Normal reservation conflicts:', normalConflicts);
@@ -239,7 +251,11 @@ export const Reservations: React.FC = () => {
           const existingEnd = (b2bRes as any).end_date;
           
           // Check if this B2B reservation conflicts with our new period
-          if (existingStart < newEndDate && existingEnd > newStartDate) {
+          // Special handling for same-day transitions
+          const hasB2BConflict = existingStart < newEndDate && existingEnd > newStartDate;
+          
+          // Allow same day transitions for B2B as well
+          if (hasB2BConflict && existingEnd !== newStartDate) {
             // Extract vehicle IDs from this conflicting B2B reservation
             if (Array.isArray((b2bRes as any).vehicles)) {
               for (const vehicle of (b2bRes as any).vehicles) {
