@@ -188,14 +188,22 @@ export const Reservations: React.FC = () => {
     }
 
     try {
+      console.log('=== AVAILABILITY CHECK DEBUG ===');
+      console.log('Selected date range:', { 
+        debut: dateRange.debut?.toISOString(), 
+        fin: dateRange.fin?.toISOString() 
+      });
+      
       // Check normal reservations
       const { data: conflictingReservations, error: reservationError } = await supabase
         .from('reservations')
-        .select('vehicule_id')
+        .select('vehicule_id, date_debut, date_fin, statut')
         .eq('agency_id', user.id)
         .in('statut', ['confirmee', 'en_cours'])
         .filter('date_debut', 'lt', dateRange.fin.toISOString())
         .filter('date_fin', 'gt', dateRange.debut.toISOString());
+
+      console.log('Conflicting normal reservations:', conflictingReservations);
 
       if (reservationError) throw reservationError;
 
@@ -203,13 +211,17 @@ export const Reservations: React.FC = () => {
       const startDate = dateRange.debut.toISOString().split('T')[0];
       const endDate = dateRange.fin.toISOString().split('T')[0];
       
+      console.log('Checking B2B with dates:', { startDate, endDate });
+      
       const { data: conflictingB2BReservations, error: b2bError } = await supabase
         .from('b2b_reservations' as any)
-        .select('vehicles')
+        .select('vehicles, start_date, end_date, status')
         .eq('agency_id', user.id)
         .in('status', ['confirmed', 'active'])
         .filter('start_date', 'lt', endDate)
         .filter('end_date', 'gt', startDate);
+
+      console.log('Conflicting B2B reservations:', conflictingB2BReservations);
 
       if (b2bError) {
         console.error('Error checking B2B reservations:', b2bError);
@@ -217,6 +229,7 @@ export const Reservations: React.FC = () => {
 
       // Extract vehicle IDs from normal reservations
       const unavailableVehicleIds = conflictingReservations?.map(r => r.vehicule_id) || [];
+      console.log('Unavailable vehicle IDs from normal reservations:', unavailableVehicleIds);
       
       // Extract vehicle IDs from B2B reservations
       const b2bUnavailableVehicleIds: string[] = [];
@@ -229,13 +242,19 @@ export const Reservations: React.FC = () => {
           }
         }
       }
+      console.log('Unavailable vehicle IDs from B2B reservations:', b2bUnavailableVehicleIds);
 
       // Combine all unavailable vehicle IDs
       const allUnavailableVehicleIds = [...unavailableVehicleIds, ...b2bUnavailableVehicleIds];
+      console.log('All unavailable vehicle IDs:', allUnavailableVehicleIds);
       
       const available = vehicles.filter(v => 
         v.etat === 'disponible' && !allUnavailableVehicleIds.includes(v.id)
       );
+
+      console.log('All vehicles:', vehicles.map(v => ({ id: v.id, marque: v.marque, modele: v.modele, etat: v.etat })));
+      console.log('Available vehicles after filtering:', available.map(v => ({ id: v.id, marque: v.marque, modele: v.modele })));
+      console.log('=== END DEBUG ===');
 
       setAvailableVehicles(available);
     } catch (error) {
