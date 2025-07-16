@@ -23,9 +23,9 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
   };
 
   return (
-    <header className="bg-card border-b border-border px-4 py-3 shadow-sm transition-all-smooth">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+    <header className="bg-card border-b border-border px-3 py-2 shadow-sm transition-all-smooth h-12">
+      <div className="flex items-center justify-between h-full">
+        <div className="flex items-center space-x-3">
           <Button
             variant="ghost"
             size="sm"
