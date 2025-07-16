@@ -208,22 +208,12 @@ export const Vehicles: React.FC = () => {
     if (!vehicle) return;
 
     try {
+      setLoading(true);
       console.log('Starting vehicle deletion process for:', vehicle.id);
 
       // Delete all related records in the correct order to avoid foreign key constraint violations
       
-      // 1. Delete from vehicle_revenues
-      const { error: revenuesError } = await supabase
-        .from('vehicle_revenues')
-        .delete()
-        .eq('vehicle_id', vehicle.id);
-
-      if (revenuesError) {
-        console.error('Error deleting vehicle revenues:', revenuesError);
-        throw revenuesError;
-      }
-
-      // 2. Delete from entretiens (maintenance)
+      // 1. Delete from entretiens (maintenance)
       const { error: entretiensError } = await supabase
         .from('entretiens')
         .delete()
@@ -234,7 +224,7 @@ export const Vehicles: React.FC = () => {
         throw entretiensError;
       }
 
-      // 3. Delete from vehicle_expenses
+      // 2. Delete from vehicle_expenses
       const { error: expensesError } = await supabase
         .from('vehicle_expenses')
         .delete()
@@ -245,7 +235,7 @@ export const Vehicles: React.FC = () => {
         throw expensesError;
       }
 
-      // 4. Delete from documents
+      // 3. Delete from documents
       const { error: documentsError } = await supabase
         .from('documents')
         .delete()
@@ -256,7 +246,7 @@ export const Vehicles: React.FC = () => {
         throw documentsError;
       }
 
-      // 5. Delete from reservations (instead of just updating to null)
+      // 4. Delete from reservations
       const { error: reservationsError } = await supabase
         .from('reservations')
         .delete()
@@ -267,66 +257,7 @@ export const Vehicles: React.FC = () => {
         throw reservationsError;
       }
 
-      // 6. Update B2B reservations to remove vehicle from vehicles array
-      // First, get all B2B reservations that might contain this vehicle
-      const { data: b2bReservations, error: fetchB2BError } = await supabase
-        .from('b2b_reservations')
-        .select('id, vehicles')
-        .eq('agency_id', user?.id);
-
-      if (fetchB2BError) {
-        console.error('Error fetching B2B reservations:', fetchB2BError);
-        throw fetchB2BError;
-      }
-
-      // Update B2B reservations that contain this vehicle
-      if (b2bReservations) {
-        for (const reservation of b2bReservations) {
-          if (reservation.vehicles && Array.isArray(reservation.vehicles)) {
-            const updatedVehicles = reservation.vehicles.filter(v => v.id !== vehicle.id);
-            
-            // If the reservation still has vehicles, update it; otherwise delete it
-            if (updatedVehicles.length > 0) {
-              await supabase
-                .from('b2b_reservations')
-                .update({ vehicles: updatedVehicles })
-                .eq('id', reservation.id);
-            } else {
-              await supabase
-                .from('b2b_reservations')
-                .delete()
-                .eq('id', reservation.id);
-            }
-          }
-        }
-      }
-
-      // 7. Update global_revenues to remove vehicle from vehicle_ids array
-      const { data: globalRevenues, error: fetchGlobalError } = await supabase
-        .from('global_revenues')
-        .select('id, vehicle_ids')
-        .eq('agency_id', user?.id);
-
-      if (fetchGlobalError) {
-        console.error('Error fetching global revenues:', fetchGlobalError);
-        throw fetchGlobalError;
-      }
-
-      // Update global revenues that contain this vehicle
-      if (globalRevenues) {
-        for (const revenue of globalRevenues) {
-          if (revenue.vehicle_ids && Array.isArray(revenue.vehicle_ids)) {
-            const updatedVehicleIds = revenue.vehicle_ids.filter(id => id !== vehicle.id);
-            
-            await supabase
-              .from('global_revenues')
-              .update({ vehicle_ids: updatedVehicleIds })
-              .eq('id', revenue.id);
-          }
-        }
-      }
-
-      // 8. Finally, delete the vehicle
+      // 5. Finally, delete the vehicle
       const { error: vehicleError } = await supabase
         .from('vehicles')
         .delete()
@@ -351,6 +282,7 @@ export const Vehicles: React.FC = () => {
         variant: "destructive",
       });
     } finally {
+      setLoading(false);
       setVehicleToDelete(null);
     }
   };
