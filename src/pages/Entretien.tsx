@@ -341,17 +341,17 @@ export const Entretien: React.FC = () => {
           alternateRowStyles: { fillColor: [248, 250, 252] },
           styles: { fontSize: 9 },
           columnStyles: {
-            0: { cellWidth: 25 },
-            1: { cellWidth: 50 },
-            2: { cellWidth: 25 },
-            3: { cellWidth: 60 },
-            4: { cellWidth: 30, halign: 'right' }
+            0: { cellWidth: 20 },
+            1: { cellWidth: 40 },
+            2: { cellWidth: 20 },
+            3: { cellWidth: 50 },
+            4: { cellWidth: 25, halign: 'right' }
           }
         });
 
         // Summary by type
         const totalCost = filteredEntretiens.reduce((sum, entretien) => sum + (entretien.cout || 0), 0);
-        let finalY = (pdf as any).previousAutoTable.finalY + 20;
+        let finalY = (pdf as any).lastAutoTable.finalY + 20;
         
         pdf.setFontSize(14);
         pdf.setTextColor(37, 99, 235);

@@ -193,13 +193,13 @@ export const Statistics: React.FC = () => {
         alternateRowStyles: { fillColor: [248, 250, 252] },
         styles: { fontSize: 9 },
         columnStyles: {
-          0: { fontStyle: 'bold', cellWidth: 80 },
-          1: { cellWidth: 80, halign: 'right' }
+          0: { fontStyle: 'bold', cellWidth: 70 },
+          1: { cellWidth: 70, halign: 'right' }
         }
       });
 
       // Performance Analysis
-      let currentY = (pdf as any).previousAutoTable.finalY + 20;
+      let currentY = (pdf as any).lastAutoTable.finalY + 20;
       
       pdf.setFontSize(14);
       pdf.setTextColor(37, 99, 235);
@@ -227,7 +227,7 @@ export const Statistics: React.FC = () => {
       });
 
       // Recommendations
-      currentY = (pdf as any).previousAutoTable.finalY + 20;
+      currentY = (pdf as any).lastAutoTable.finalY + 20;
       
       pdf.setFontSize(14);
       pdf.setTextColor(37, 99, 235);

@@ -329,14 +329,14 @@ export const Depenses: React.FC = () => {
           alternateRowStyles: { fillColor: [248, 250, 252] },
           styles: { fontSize: 9 },
           columnStyles: {
-            0: { cellWidth: 30 },
-            1: { cellWidth: 35 },
-            2: { cellWidth: 80 },
-            3: { cellWidth: 35, halign: 'right' }
+            0: { cellWidth: 25 },
+            1: { cellWidth: 30 },
+            2: { cellWidth: 70 },
+            3: { cellWidth: 30, halign: 'right' }
           }
         });
 
-        currentY = (pdf as any).previousAutoTable.finalY + 15;
+        currentY = (pdf as any).lastAutoTable.finalY + 15;
       }
 
       // Vehicle expenses table
@@ -365,15 +365,15 @@ export const Depenses: React.FC = () => {
           alternateRowStyles: { fillColor: [248, 250, 252] },
           styles: { fontSize: 9 },
           columnStyles: {
-            0: { cellWidth: 25 },
-            1: { cellWidth: 45 },
-            2: { cellWidth: 30 },
-            3: { cellWidth: 55 },
+            0: { cellWidth: 20 },
+            1: { cellWidth: 35 },
+            2: { cellWidth: 25 },
+            3: { cellWidth: 50 },
             4: { cellWidth: 25, halign: 'right' }
           }
         });
 
-        currentY = (pdf as any).previousAutoTable.finalY + 15;
+        currentY = (pdf as any).lastAutoTable.finalY + 15;
       }
 
       // Add no data message if no expenses found
