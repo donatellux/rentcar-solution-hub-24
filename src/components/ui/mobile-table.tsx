@@ -2,6 +2,7 @@ import * as React from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface MobileTableProps {
@@ -25,9 +26,11 @@ interface MobileReservationCardProps {
     date_debut: string | null
     date_fin: string | null
     statut: string | null
+    prix_par_jour?: number | null
   }
   onEdit: () => void
   onContract: () => void
+  onDelete?: () => void
   generatingPDF?: boolean
   className?: string
 }
@@ -49,7 +52,7 @@ MobileTable.displayName = "MobileTable"
 const MobileReservationCard = React.forwardRef<
   HTMLDivElement,
   MobileReservationCardProps
->(({ className, reservation, onEdit, onContract, generatingPDF, ...props }, ref) => (
+>(({ className, reservation, onEdit, onContract, onDelete, generatingPDF, ...props }, ref) => (
   <Card ref={ref} className={cn("", className)} {...props}>
     <CardContent className="p-4 space-y-3">
       {/* Client Info */}
@@ -85,16 +88,25 @@ const MobileReservationCard = React.forwardRef<
         </p>
       </div>
 
-      {/* Date Range */}
+      {/* Date Range and Price */}
       <div className="border-t border-border pt-3">
-        <div className="text-sm">
-          {reservation.date_debut && reservation.date_fin ? (
-            <>
-              <div>{new Date(reservation.date_debut).toLocaleDateString('fr-FR')}</div>
-              <div className="text-muted-foreground">au {new Date(reservation.date_fin).toLocaleDateString('fr-FR')}</div>
-            </>
-          ) : (
-            'Dates non définies'
+        <div className="flex justify-between items-start">
+          <div className="text-sm">
+            {reservation.date_debut && reservation.date_fin ? (
+              <>
+                <div>{new Date(reservation.date_debut).toLocaleDateString('fr-FR')}</div>
+                <div className="text-muted-foreground">au {new Date(reservation.date_fin).toLocaleDateString('fr-FR')}</div>
+              </>
+            ) : (
+              'Dates non définies'
+            )}
+          </div>
+          {reservation.prix_par_jour && (
+            <div className="text-right">
+              <div className="text-sm font-medium text-primary">
+                {reservation.prix_par_jour}€/jour
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -118,6 +130,16 @@ const MobileReservationCard = React.forwardRef<
         >
           {generatingPDF ? 'Génération...' : 'Contrat'}
         </Button>
+        {onDelete && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onDelete}
+            className="px-3 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        )}
       </div>
     </CardContent>
   </Card>
