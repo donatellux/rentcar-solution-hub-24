@@ -18,6 +18,7 @@ import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { usePagination } from '@/hooks/usePagination';
 import { PaginationControls } from '@/components/PaginationControls';
+import { MobileTable, MobileReservationCard } from '@/components/ui/mobile-table';
 
 interface Reservation {
   id: string;
@@ -953,21 +954,20 @@ export const Reservations: React.FC = () => {
   } = usePagination({ data: filteredReservations, itemsPerPage: 10 });
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="h-full flex flex-col">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="page-title">
             Réservations
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Gérez vos réservations de véhicules</p>
+          <p className="page-subtitle">Gérez vos réservations de véhicules</p>
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => { resetForm(); setEditingReservation(null); }} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg">
+            <Button onClick={() => { resetForm(); setEditingReservation(null); }} className="bg-primary hover:bg-primary/90 text-primary-foreground">
               <Plus className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Nouvelle réservation</span>
-              <span className="sm:hidden">Nouveau</span>
+              <span>Nouvelle réservation</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto mx-4 dialog-mobile">
@@ -1242,15 +1242,15 @@ export const Reservations: React.FC = () => {
         </Dialog>
       </div>
 
-      <div className="flex items-center space-x-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+      <div className="flex items-center space-x-4 mb-4">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             type="text"
             placeholder="Rechercher une réservation..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 h-9"
           />
         </div>
       </div>
@@ -1266,14 +1266,13 @@ export const Reservations: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Calendar className="w-5 h-5 text-blue-600" />
-              <span>Liste des réservations ({totalItems})</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="flex-1 flex flex-col bg-card rounded-lg border">
+          <div className="px-4 py-3 border-b border-border">
+            <h3 className="text-sm font-medium text-foreground">
+              Liste des réservations ({totalItems})
+            </h3>
+          </div>
+          <div className="flex-1 lg:desktop-table-container">
             {filteredReservations.length === 0 ? (
               <div className="text-center py-8">
                 <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -1292,45 +1291,44 @@ export const Reservations: React.FC = () => {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto">
-                  <Table>
+                {/* Desktop Table */}
+                <div className="hidden lg:block lg:desktop-table-wrapper">
+                  <Table className="lg:desktop-table">
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Client</TableHead>
-                        <TableHead>Véhicule</TableHead>
-                        <TableHead>Période</TableHead>
-                        <TableHead>Prix/jour</TableHead>
-                        <TableHead>Statut</TableHead>
-                        <TableHead>Documents</TableHead>
-                        <TableHead>Actions</TableHead>
+                        <TableHead className="w-64">Client</TableHead>
+                        <TableHead className="w-48">Téléphone</TableHead>
+                        <TableHead className="w-56">Véhicule</TableHead>
+                        <TableHead className="w-48">Période</TableHead>
+                        <TableHead className="w-32">Statut</TableHead>
+                        <TableHead className="w-40">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {paginatedReservations.map((reservation) => (
-                        <TableRow key={reservation.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                        <TableRow key={reservation.id}>
                           <TableCell>
-                            <div className="flex items-center space-x-2">
-                              <User className="w-4 h-4 text-gray-400" />
-                              <div>
-                                <div className="font-medium">
-                                  {reservation.clients?.prenom} {reservation.clients?.nom}
-                                </div>
-                                <div className="text-sm text-gray-500">
-                                  {reservation.clients?.telephone}
-                                </div>
+                            <div>
+                              <div className="font-medium text-foreground">
+                                {reservation.clients?.prenom} {reservation.clients?.nom}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {reservation.clients?.cin}
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center space-x-2">
-                              <Car className="w-4 h-4 text-gray-400" />
-                              <div>
-                                <div className="font-medium">
-                                  {reservation.vehicles?.marque} {reservation.vehicles?.modele}
-                                </div>
-                                <div className="text-sm text-gray-500">
-                                  {reservation.vehicles?.immatriculation}
-                                </div>
+                            <div className="font-medium">
+                              {reservation.clients?.telephone}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">
+                                {reservation.vehicles?.marque} {reservation.vehicles?.modele}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {reservation.vehicles?.immatriculation}
                               </div>
                             </div>
                           </TableCell>
@@ -1339,7 +1337,7 @@ export const Reservations: React.FC = () => {
                               {reservation.date_debut && reservation.date_fin ? (
                                 <>
                                   <div>{new Date(reservation.date_debut).toLocaleDateString('fr-FR')}</div>
-                                  <div className="text-gray-500">au {new Date(reservation.date_fin).toLocaleDateString('fr-FR')}</div>
+                                  <div className="text-muted-foreground">au {new Date(reservation.date_fin).toLocaleDateString('fr-FR')}</div>
                                 </>
                               ) : (
                                 'Dates non définies'
@@ -1347,72 +1345,39 @@ export const Reservations: React.FC = () => {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="font-medium">
-                              {reservation.prix_par_jour ? `${reservation.prix_par_jour} MAD` : 'N/A'}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={getStatusColor(reservation.statut)}>
-                              {reservation.statut || 'N/A'}
+                            <Badge 
+                              variant={reservation.statut === 'confirmee' ? 'default' : 
+                                      reservation.statut === 'terminee' ? 'secondary' :
+                                      reservation.statut === 'annulee' ? 'destructive' : 'outline'}
+                            >
+                              {reservation.statut === 'confirmee' ? 'Confirmée' :
+                               reservation.statut === 'en_cours' ? 'En cours' :
+                               reservation.statut === 'terminee' ? 'Terminée' :
+                               reservation.statut === 'annulee' ? 'Annulée' : 'En attente'}
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {reservation.cin_scan_url && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handlePreviewImage(reservation.cin_scan_url!)}
-                                  className="text-xs hover:bg-blue-50 hover:border-blue-200"
-                                >
-                                  <Eye className="w-3 h-3 mr-1" />
-                                  CIN
-                                </Button>
-                              )}
-                              {reservation.permis_scan_url && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handlePreviewImage(reservation.permis_scan_url!)}
-                                  className="text-xs hover:bg-blue-50 hover:border-blue-200"
-                                >
-                                  <Eye className="w-3 h-3 mr-1" />
-                                  Permis
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
+                            <div className="flex items-center gap-1">
                               <Button
                                 size="sm"
-                                variant="outline"
-                                onClick={() => generateContractPDF(reservation)}
-                                disabled={generatingPDF === reservation.id}
-                                className="hover:bg-green-50 hover:border-green-200 hover:text-green-700"
-                              >
-                                {generatingPDF === reservation.id ? (
-                                  <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin mr-1" />
-                                ) : (
-                                  <FileText className="w-4 h-4 mr-1" />
-                                )}
-                                <span className="hidden sm:inline">Contrat</span>
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
+                                variant="ghost"
                                 onClick={() => handleEdit(reservation)}
-                                className="hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
+                                className="h-8 w-8 p-0"
                               >
                                 <Edit className="w-4 h-4" />
                               </Button>
                               <Button
                                 size="sm"
-                                variant="outline"
-                                onClick={() => handleDelete(reservation.id)}
-                                className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
+                                variant="ghost"
+                                onClick={() => generateContractPDF(reservation)}
+                                disabled={generatingPDF === reservation.id}
+                                className="h-8 w-8 p-0"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                {generatingPDF === reservation.id ? (
+                                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <FileText className="w-4 h-4" />
+                                )}
                               </Button>
                             </div>
                           </TableCell>
@@ -1421,24 +1386,39 @@ export const Reservations: React.FC = () => {
                     </TableBody>
                   </Table>
                 </div>
+
+                {/* Mobile Cards */}
+                <MobileTable>
+                  {paginatedReservations.map((reservation) => (
+                    <MobileReservationCard
+                      key={reservation.id}
+                      reservation={reservation}
+                      onEdit={() => handleEdit(reservation)}
+                      onContract={() => generateContractPDF(reservation)}
+                      generatingPDF={generatingPDF === reservation.id}
+                    />
+                  ))}
+                </MobileTable>
                 
                 {totalPages > 1 && (
-                  <PaginationControls
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    totalItems={totalItems}
-                    itemsPerPage={10}
-                    onPageChange={goToPage}
-                    onNext={nextPage}
-                    onPrev={prevPage}
-                    hasNext={hasNext}
-                    hasPrev={hasPrev}
-                  />
+                  <div className="px-4 py-3 border-t border-border">
+                    <PaginationControls
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      totalItems={totalItems}
+                      itemsPerPage={10}
+                      onPageChange={goToPage}
+                      onNext={nextPage}
+                      onPrev={prevPage}
+                      hasNext={hasNext}
+                      hasPrev={hasPrev}
+                    />
+                  </div>
                 )}
               </>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Image Preview Dialog */}

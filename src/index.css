@@ -121,26 +121,26 @@ All colors MUST be HSL.
 
   .page-content {
     @apply flex-1 overflow-y-auto overflow-x-hidden;
-    @apply px-3 py-4 sm:px-4 sm:py-6 lg:px-6 lg:py-8 xl:px-8 xl:py-10;
+    @apply px-3 py-3 sm:px-4 sm:py-4 lg:px-4 lg:py-4;
     /* Mobile safe area support */
     padding-bottom: calc(env(safe-area-inset-bottom) + 4rem);
     width: 100%;
   }
 
   .page-header {
-    @apply mb-4 sm:mb-6 lg:mb-8;
+    @apply mb-3 sm:mb-4 lg:mb-4;
   }
 
   .page-title {
-    @apply text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mb-1 sm:mb-2;
+    @apply text-lg sm:text-xl lg:text-2xl font-semibold text-foreground mb-1;
   }
 
   .page-subtitle {
-    @apply text-sm sm:text-base text-muted-foreground;
+    @apply text-sm text-muted-foreground;
   }
 
   .content-wrapper {
-    @apply mx-auto max-w-7xl w-full;
+    @apply w-full max-w-none;
   }
 
   .card-grid {
@@ -219,38 +219,58 @@ All colors MUST be HSL.
     }
 
     .desktop-spacing {
-      @apply space-y-8;
+      @apply space-y-6;
     }
 
-    /* Desktop table optimizations - full width tables */
+    /* Compact desktop layout - use full screen width */
+    .desktop-page-content {
+      @apply px-6 py-4;
+      height: calc(100vh - 56px); /* Compact header height */
+      width: 100%;
+    }
+
+    .desktop-full-width {
+      @apply w-full max-w-none;
+      margin: 0;
+      padding: 0;
+    }
+
     .desktop-table-container {
-      @apply w-full h-full flex flex-col;
-      min-height: calc(100vh - 120px); /* Full height minus header */
+      @apply w-full flex flex-col;
+      min-height: calc(100vh - 140px);
     }
 
     .desktop-table-wrapper {
-      @apply flex-1 w-full overflow-auto;
-      max-height: calc(100vh - 140px); /* Allow scrolling if needed */
+      @apply w-full overflow-auto;
+      border-radius: 8px;
+      border: 1px solid hsl(var(--border));
     }
 
     .desktop-table {
-      @apply w-full text-base;
+      @apply w-full text-sm;
       min-width: 100%;
+      border-collapse: collapse;
     }
 
     .desktop-table th {
-      @apply px-6 py-4 text-sm font-semibold;
-      white-space: nowrap;
+      @apply px-4 py-3 text-left font-medium text-muted-foreground;
+      background: hsl(var(--muted));
+      border-bottom: 1px solid hsl(var(--border));
+      font-size: 0.875rem;
+      font-weight: 500;
     }
 
     .desktop-table td {
-      @apply px-6 py-4;
-      white-space: nowrap;
+      @apply px-4 py-3 border-b border-border;
+      font-size: 0.875rem;
     }
 
-    .desktop-page-content {
-      @apply p-6;
-      height: calc(100vh - 80px); /* Full viewport minus header */
+    .desktop-table tbody tr {
+      @apply hover:bg-muted/50 transition-colors;
+    }
+
+    .desktop-table tbody tr:nth-child(even) {
+      @apply bg-muted/25;
     }
   }
 

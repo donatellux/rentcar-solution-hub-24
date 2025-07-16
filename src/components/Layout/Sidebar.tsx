@@ -61,42 +61,37 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
 
       {/* Sidebar */}
       <div
-        className={`sidebar-container fixed left-0 top-0 h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 transition-transform duration-300 ease-in-out z-50 ${
+        className={`sidebar-container fixed left-0 top-0 h-screen bg-sidebar-background border-r border-sidebar-border transition-transform duration-300 ease-in-out z-50 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 lg:static lg:z-auto flex flex-col w-[280px] min-w-[280px] max-w-[280px] ${
+        } lg:translate-x-0 lg:static lg:z-auto flex flex-col w-[220px] min-w-[220px] max-w-[220px] ${
           !isOpen ? 'lg:flex hidden' : ''
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Car className="w-5 h-5 text-white" />
+        <div className="flex items-center justify-between p-4 border-b border-sidebar-border flex-shrink-0">
+          <div className="flex items-center space-x-2">
+            <div className="w-7 h-7 bg-sidebar-primary rounded-lg flex items-center justify-center">
+              <Car className="w-4 h-4 text-sidebar-primary-foreground" />
             </div>
             <div>
-              <h2 className="font-bold text-lg text-gray-900 dark:text-white">
-                {agency?.agency_name || 'Rentcar Solution'}
+              <h2 className="font-semibold text-base text-sidebar-foreground">
+                {agency?.agency_name || 'mediovas'}
               </h2>
-              {agency?.slogan && (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {agency.slogan}
-                </p>
-              )}
             </div>
           </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={onToggle}
-            className="lg:hidden"
+            className="lg:hidden text-sidebar-foreground hover:bg-sidebar-accent"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </Button>
         </div>
 
         {/* Navigation - Scrollable content */}
-        <nav className="flex-1 px-4 py-6 overflow-y-auto">
-          <ul className="space-y-2">
+        <nav className="flex-1 px-3 py-4 overflow-y-auto">
+          <ul className="space-y-1">
             {navigation.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.href;
@@ -105,15 +100,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
                 <li key={item.name}>
                   <NavLink
                     to={item.href}
-                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                    className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm transition-colors ${
                       isActive
-                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
-                        : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+                        ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
+                        : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
                     }`}
                     onClick={() => window.innerWidth < 1024 && onToggle()}
                   >
-                    <Icon className="w-5 h-5" />
-                    <span className="font-medium">{item.name}</span>
+                    <Icon className="w-4 h-4" />
+                    <span>{item.name}</span>
                   </NavLink>
                 </li>
               );
@@ -122,13 +117,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
         </nav>
 
         {/* Footer - Sticky at bottom */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div className="p-3 border-t border-sidebar-border flex-shrink-0">
           <Button
             variant="ghost"
             onClick={handleSignOut}
-            className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+            className="w-full justify-start text-sm text-destructive hover:text-destructive hover:bg-destructive/10"
           >
-            <LogOut className="w-5 h-5 mr-3" />
+            <LogOut className="w-4 h-4 mr-2" />
             {t('common.logout')}
           </Button>
         </div>
