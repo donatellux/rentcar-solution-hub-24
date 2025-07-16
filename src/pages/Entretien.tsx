@@ -328,7 +328,7 @@ export const Entretien: React.FC = () => {
             entretien.vehicles ? `${entretien.vehicles.marque} ${entretien.vehicles.modele} (${entretien.vehicles.immatriculation})` : 'N/A',
             entretien.type || 'N/A',
             entretien.description || 'Aucune description',
-            `${(entretien.cout || 0).toLocaleString('fr-FR')}`
+            entretien.cout ? entretien.cout.toString() : '0'
           ])
         ];
 
@@ -362,9 +362,9 @@ export const Entretien: React.FC = () => {
           ...Object.entries(typeGroups).map(([type, entries]) => [
             type,
             entries.length.toString(),
-            entries.reduce((sum, e) => sum + (e.cout || 0), 0).toLocaleString('fr-FR')
+            entries.reduce((sum, e) => sum + (e.cout || 0), 0).toString()
           ]),
-          ['TOTAL GÉNÉRAL', filteredEntretiens.length.toString(), totalCost.toLocaleString('fr-FR')]
+          ['TOTAL GÉNÉRAL', filteredEntretiens.length.toString(), totalCost.toString()]
         ];
 
         autoTable(pdf, {

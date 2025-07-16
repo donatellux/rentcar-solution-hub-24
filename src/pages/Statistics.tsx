@@ -175,12 +175,12 @@ export const Statistics: React.FC = () => {
 
       const summaryData = [
         ['Indicateur', 'Valeur'],
-        ['Revenus Totaux', `${stats.totalRevenue.toLocaleString('fr-FR')} MAD`],
-        ['Dépenses Totales', `${stats.totalExpenses.toLocaleString('fr-FR')} MAD`],
-        ['Coûts d\'Entretien', `${stats.totalMaintenanceCosts.toLocaleString('fr-FR')} MAD`],
-        ['Bénéfice Net', `${stats.netProfit.toLocaleString('fr-FR')} MAD`],
+        ['Revenus Totaux', `${Math.round(stats.totalRevenue)} MAD`],
+        ['Dépenses Totales', `${Math.round(stats.totalExpenses)} MAD`],
+        ['Coûts d\'Entretien', `${Math.round(stats.totalMaintenanceCosts)} MAD`],
+        ['Bénéfice Net', `${Math.round(stats.netProfit)} MAD`],
         ['Nombre de Réservations', stats.reservationsCount.toString()],
-        ['Revenus par Véhicule', `${Math.round(stats.averageRevenuePerVehicle).toLocaleString('fr-FR')} MAD`],
+        ['Revenus par Véhicule', `${Math.round(stats.averageRevenuePerVehicle)} MAD`],
         ['Total Véhicules', stats.totalVehicles.toString()],
       ];
 

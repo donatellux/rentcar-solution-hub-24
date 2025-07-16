@@ -316,7 +316,7 @@ export const Depenses: React.FC = () => {
             expense.date ? new Date(expense.date).toLocaleDateString('fr-FR') : 'N/A',
             expense.category || 'N/A',
             expense.description || 'Aucune description',
-            `${(expense.amount || 0).toLocaleString('fr-FR')}`
+            expense.amount ? expense.amount.toString() : '0'
           ])
         ];
 
@@ -331,8 +331,8 @@ export const Depenses: React.FC = () => {
           columnStyles: {
             0: { cellWidth: 25 },
             1: { cellWidth: 30 },
-            2: { cellWidth: 70 },
-            3: { cellWidth: 30, halign: 'right' }
+            2: { cellWidth: 80 },
+            3: { cellWidth: 35, halign: 'right' }
           }
         });
 
@@ -352,7 +352,7 @@ export const Depenses: React.FC = () => {
             expense.vehicles ? `${expense.vehicles.marque} ${expense.vehicles.modele}` : 'N/A',
             expense.category || 'N/A',
             expense.description || 'Aucune description',
-            `${(expense.amount || 0).toLocaleString('fr-FR')}`
+            expense.amount ? expense.amount.toString() : '0'
           ])
         ];
 
@@ -366,10 +366,10 @@ export const Depenses: React.FC = () => {
           styles: { fontSize: 9 },
           columnStyles: {
             0: { cellWidth: 20 },
-            1: { cellWidth: 35 },
+            1: { cellWidth: 40 },
             2: { cellWidth: 25 },
-            3: { cellWidth: 50 },
-            4: { cellWidth: 25, halign: 'right' }
+            3: { cellWidth: 55 },
+            4: { cellWidth: 30, halign: 'right' }
           }
         });
 
@@ -393,9 +393,9 @@ export const Depenses: React.FC = () => {
       
       const summaryData = [
         ['Type', 'Nombre', 'Montant Total (MAD)'],
-        ['Dépenses Globales', filteredGlobal.length.toString(), filteredGlobal.reduce((sum, e) => sum + (e.amount || 0), 0).toLocaleString('fr-FR')],
-        ['Dépenses Véhicules', filteredVehicle.length.toString(), filteredVehicle.reduce((sum, e) => sum + (e.amount || 0), 0).toLocaleString('fr-FR')],
-        ['TOTAL GÉNÉRAL', (filteredGlobal.length + filteredVehicle.length).toString(), totalAmount.toLocaleString('fr-FR')]
+        ['Dépenses Globales', filteredGlobal.length.toString(), filteredGlobal.reduce((sum, e) => sum + (e.amount || 0), 0).toString()],
+        ['Dépenses Véhicules', filteredVehicle.length.toString(), filteredVehicle.reduce((sum, e) => sum + (e.amount || 0), 0).toString()],
+        ['TOTAL GÉNÉRAL', (filteredGlobal.length + filteredVehicle.length).toString(), totalAmount.toString()]
       ];
 
       autoTable(pdf, {
@@ -406,8 +406,9 @@ export const Depenses: React.FC = () => {
         headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 10 },
         styles: { fontSize: 9 },
         columnStyles: {
-          1: { halign: 'center' },
-          2: { halign: 'right' }
+          0: { cellWidth: 60 },
+          1: { halign: 'center', cellWidth: 30 },
+          2: { halign: 'right', cellWidth: 40 }
         }
       });
 
