@@ -953,9 +953,8 @@ export const B2BReservations: React.FC = () => {
   }
 
   return (
-    <div className="w-full h-full flex flex-col lg:desktop-table-container">
-      {/* Header Section - Desktop specific styling */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 lg:desktop-header">
+    <div className="space-y-6 p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-2">
             <Building2 className="h-8 w-8 text-blue-600" />
@@ -1274,8 +1273,7 @@ export const B2BReservations: React.FC = () => {
         </Dialog>
       </div>
 
-      {/* Search Section - Desktop specific styling */}
-      <div className="flex items-center space-x-4 lg:desktop-search">
+      <div className="flex items-center space-x-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
@@ -1288,15 +1286,14 @@ export const B2BReservations: React.FC = () => {
         </div>
       </div>
 
-      {/* Table Section - Full width for desktop */}
-      <Card className="shadow-lg lg:desktop-card flex-1 flex flex-col min-h-0">
-        <CardHeader className="pb-3">
+      <Card className="shadow-lg">
+        <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Building2 className="w-5 h-5 text-blue-600" />
             <span>Historique des réservations B2B ({totalItems})</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col min-h-0 p-0">
+        <CardContent>
           {filteredReservations.length === 0 ? (
             <div className="text-center py-8">
               <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -1315,17 +1312,17 @@ export const B2BReservations: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className="flex-1 overflow-auto lg:desktop-table-wrapper">
-                <Table className="w-full lg:desktop-table">
+              <div className="overflow-x-auto lg:w-full lg:h-full">
+                <Table className="lg:w-full lg:min-w-full">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[250px]">Entreprise</TableHead>
-                      <TableHead className="w-[300px]">Véhicules</TableHead>
-                      <TableHead className="w-[200px]">Période</TableHead>
-                      <TableHead className="w-[150px]">Montant Total</TableHead>
-                      <TableHead className="w-[120px]">Statut</TableHead>
-                      <TableHead className="w-[150px]">Options</TableHead>
-                      <TableHead className="w-[180px]">Actions</TableHead>
+                      <TableHead>Entreprise</TableHead>
+                      <TableHead>Véhicules</TableHead>
+                      <TableHead>Période</TableHead>
+                      <TableHead>Montant Total</TableHead>
+                      <TableHead>Statut</TableHead>
+                      <TableHead>Options</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1333,7 +1330,7 @@ export const B2BReservations: React.FC = () => {
                       const vehicleInfo = getVehicleInfo(reservation);
                       return (
                         <TableRow key={reservation.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                          <TableCell className="w-[250px]">
+                          <TableCell>
                             <div className="flex items-center space-x-2">
                               <Building2 className="w-4 h-4 text-gray-400" />
                               <div>
@@ -1346,7 +1343,7 @@ export const B2BReservations: React.FC = () => {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="w-[300px]">
+                          <TableCell>
                             <div className="space-y-1">
                               {vehicleInfo.map((vehicle, index) => (
                                 <div key={index} className="flex items-center space-x-2">
@@ -1363,7 +1360,7 @@ export const B2BReservations: React.FC = () => {
                               ))}
                             </div>
                           </TableCell>
-                          <TableCell className="w-[200px]">
+                          <TableCell>
                             <div className="text-sm">
                               {reservation.start_date && reservation.end_date ? (
                                 <>
@@ -1375,7 +1372,7 @@ export const B2BReservations: React.FC = () => {
                               )}
                             </div>
                           </TableCell>
-                           <TableCell className="w-[150px]">
+                           <TableCell>
                              <div className="font-medium">
                                {reservation.total_amount ? `${reservation.total_amount.toFixed(2)} MAD` : 'N/A'}
                              </div>
@@ -1385,12 +1382,12 @@ export const B2BReservations: React.FC = () => {
                                )}
                              </div>
                            </TableCell>
-                          <TableCell className="w-[120px]">
+                          <TableCell>
                             <Badge className={getStatusColor(reservation.status || 'confirmed')}>
                               {reservation.status || 'Confirmée'}
                             </Badge>
                           </TableCell>
-                          <TableCell className="w-[150px]">
+                          <TableCell>
                             <div className="text-sm space-y-1">
                               {reservation.with_driver && <Badge variant="secondary">Avec chauffeur</Badge>}
                               {reservation.additional_charges && reservation.additional_charges > 0 && (
@@ -1400,7 +1397,7 @@ export const B2BReservations: React.FC = () => {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell className="w-[180px]">
+                          <TableCell>
                             <div className="flex flex-wrap gap-1">
                               <Button
                                 size="sm"
@@ -1441,19 +1438,17 @@ export const B2BReservations: React.FC = () => {
               </div>
               
               {totalPages > 1 && (
-                <div className="px-6 py-4 border-t">
-                  <PaginationControls
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    totalItems={totalItems}
-                    itemsPerPage={10}
-                    onPageChange={goToPage}
-                    onNext={nextPage}
-                    onPrev={prevPage}
-                    hasNext={hasNext}
-                    hasPrev={hasPrev}
-                  />
-                </div>
+                <PaginationControls
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  itemsPerPage={10}
+                  onPageChange={goToPage}
+                  onNext={nextPage}
+                  onPrev={prevPage}
+                  hasNext={hasNext}
+                  hasPrev={hasPrev}
+                />
               )}
             </>
           )}
