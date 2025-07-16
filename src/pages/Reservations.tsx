@@ -195,8 +195,8 @@ export const Reservations: React.FC = () => {
         .eq('agency_id', user.id)
         .in('statut', ['confirmee', 'en_cours'])
         .or(
-          `and(date_debut.lte.${dateRange.debut.toISOString()},date_fin.gte.${dateRange.debut.toISOString()}),` +
-          `and(date_debut.lte.${dateRange.fin.toISOString()},date_fin.gte.${dateRange.fin.toISOString()}),` +
+          `and(date_debut.lte.${dateRange.debut.toISOString()},date_fin.gt.${dateRange.debut.toISOString()}),` +
+          `and(date_debut.lt.${dateRange.fin.toISOString()},date_fin.gte.${dateRange.fin.toISOString()}),` +
           `and(date_debut.gte.${dateRange.debut.toISOString()},date_fin.lte.${dateRange.fin.toISOString()})`
         );
 
@@ -212,8 +212,8 @@ export const Reservations: React.FC = () => {
         .eq('agency_id', user.id)
         .in('status', ['confirmed', 'active'])
         .or(
-          `and(start_date.lte.${startDate},end_date.gte.${startDate}),` +
-          `and(start_date.lte.${endDate},end_date.gte.${endDate}),` +
+          `and(start_date.lte.${startDate},end_date.gt.${startDate}),` +
+          `and(start_date.lt.${endDate},end_date.gte.${endDate}),` +
           `and(start_date.gte.${startDate},end_date.lte.${endDate})`
         );
 

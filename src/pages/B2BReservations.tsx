@@ -202,8 +202,8 @@ export const B2BReservations: React.FC = () => {
         .eq('agency_id', user?.id)
         .in('statut', ['confirmee', 'en_cours'])
         .or(
-          `and(date_debut.lte.${dateRange.debut.toISOString()},date_fin.gte.${dateRange.debut.toISOString()}),` +
-          `and(date_debut.lte.${dateRange.fin.toISOString()},date_fin.gte.${dateRange.fin.toISOString()}),` +
+          `and(date_debut.lte.${dateRange.debut.toISOString()},date_fin.gt.${dateRange.debut.toISOString()}),` +
+          `and(date_debut.lt.${dateRange.fin.toISOString()},date_fin.gte.${dateRange.fin.toISOString()}),` +
           `and(date_debut.gte.${dateRange.debut.toISOString()},date_fin.lte.${dateRange.fin.toISOString()})`
         );
 
@@ -214,8 +214,8 @@ export const B2BReservations: React.FC = () => {
         .eq('agency_id', user?.id)
         .in('status', ['confirmed', 'en_cours'])
         .or(
-          `and(start_date.lte.${dateRange.debut.toISOString().split('T')[0]},end_date.gte.${dateRange.debut.toISOString().split('T')[0]}),` +
-          `and(start_date.lte.${dateRange.fin.toISOString().split('T')[0]},end_date.gte.${dateRange.fin.toISOString().split('T')[0]}),` +
+          `and(start_date.lte.${dateRange.debut.toISOString().split('T')[0]},end_date.gt.${dateRange.debut.toISOString().split('T')[0]}),` +
+          `and(start_date.lt.${dateRange.fin.toISOString().split('T')[0]},end_date.gte.${dateRange.fin.toISOString().split('T')[0]}),` +
           `and(start_date.gte.${dateRange.debut.toISOString().split('T')[0]},end_date.lte.${dateRange.fin.toISOString().split('T')[0]})`
         );
 
