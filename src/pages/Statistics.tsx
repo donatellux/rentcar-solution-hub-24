@@ -203,6 +203,15 @@ export const Statistics: React.FC = () => {
       const vehicleExpenses = vehicleExpensesQuery.data || [];
       const maintenanceExpenses = maintenanceQuery.data || [];
 
+      // Debug logging to check what data is being returned
+      console.log('Vehicle ID:', vehicleId);
+      console.log('Reservations data:', reservations);
+      console.log('Vehicle expenses data:', vehicleExpenses);
+      console.log('Maintenance data:', maintenanceExpenses);
+      console.log('Reservations query error:', reservationsQuery.error);
+      console.log('Vehicle expenses query error:', vehicleExpensesQuery.error);
+      console.log('Maintenance query error:', maintenanceQuery.error);
+
       // Calculate vehicle statistics using real data
       const totalRevenue = (reservations || []).reduce((sum, reservation) => {
         if (reservation.prix_par_jour && reservation.date_debut && reservation.date_fin) {
