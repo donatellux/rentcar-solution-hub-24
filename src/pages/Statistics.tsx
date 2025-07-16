@@ -117,14 +117,14 @@ export const Statistics: React.FC = () => {
         .gte('date', startDate.toISOString().split('T')[0])
         .lte('date', endDate.toISOString().split('T')[0]);
 
-      // Get B2B revenues from global_revenues
+      // Get B2B revenues from b2b_reservations table
       const { data: b2bRevenues } = await supabase
-        .from('global_revenues' as any)
-        .select('amount, date')
+        .from('b2b_reservations' as any)
+        .select('total_amount, start_date')
         .eq('agency_id', user.id)
-        .eq('source', 'B2B Reservations')
-        .gte('date', startDate.toISOString().split('T')[0])
-        .lte('date', endDate.toISOString().split('T')[0]);
+        .in('status', ['confirmed', 'active'])
+        .gte('start_date', startDate.toISOString().split('T')[0])
+        .lte('start_date', endDate.toISOString().split('T')[0]);
 
       // Get vehicles count
       const { data: vehiclesList } = await supabase
@@ -145,7 +145,7 @@ export const Statistics: React.FC = () => {
 
       // Calculate B2B revenue - handle potential query errors
       const b2bRevenueTotal = Array.isArray(b2bRevenues) ? 
-        b2bRevenues.reduce((sum, revenue) => sum + ((revenue as any).amount || 0), 0) : 0;
+        b2bRevenues.reduce((sum, revenue) => sum + ((revenue as any).total_amount || 0), 0) : 0;
 
       // Total revenue from both normal and B2B reservations
       const totalRevenue = normalReservationRevenue + b2bRevenueTotal;
@@ -199,11 +199,10 @@ export const Statistics: React.FC = () => {
 
       // Fetch B2B reservation revenues for the specific vehicle
       const b2bRevenuesQuery = await supabase
-        .from('vehicle_revenues' as any)
-        .select('amount, start_date, end_date')
+        .from('b2b_reservations' as any)
+        .select('total_amount, vehicles, start_date, end_date')
         .eq('agency_id', user.id)
-        .eq('vehicle_id', vehicleId)
-        .eq('source', 'B2B Reservation')
+        .in('status', ['confirmed', 'active'])
         .gte('start_date', dateRange.startDate)
         .lte('end_date', dateRange.endDate);
 
@@ -256,9 +255,22 @@ export const Statistics: React.FC = () => {
         return sum;
       }, 0);
 
-      // Calculate B2B revenue - handle potential query errors
-      const b2bRevenueTotal = Array.isArray(b2bRevenues) && !b2bRevenuesQuery.error ? 
-        b2bRevenues.reduce((sum, revenue) => sum + ((revenue as any).amount || 0), 0) : 0;
+      // Calculate B2B revenue for this specific vehicle
+      let b2bRevenueTotal = 0;
+      if (Array.isArray(b2bRevenues) && !b2bRevenuesQuery.error) {
+        for (const b2bRes of b2bRevenues) {
+          if (Array.isArray((b2bRes as any).vehicles)) {
+            for (const vehicle of (b2bRes as any).vehicles) {
+              if (vehicle.vehicle_id === vehicleId) {
+                // Calculate proportional revenue for this vehicle
+                const vehicleCount = (b2bRes as any).vehicles.length;
+                const vehicleShare = ((b2bRes as any).total_amount || 0) / vehicleCount;
+                b2bRevenueTotal += vehicleShare;
+              }
+            }
+          }
+        }
+      }
 
       // Total revenue from both normal and B2B reservations
       const totalRevenue = normalReservationRevenue + b2bRevenueTotal;

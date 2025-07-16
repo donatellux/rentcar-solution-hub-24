@@ -109,7 +109,8 @@ export const Dashboard: React.FC = () => {
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
       
-      const monthlyRevenue = reservations?.reduce((sum, reservation) => {
+      // Calculate normal reservations revenue
+      const normalRevenue = reservations?.reduce((sum, reservation) => {
         if (reservation.prix_par_jour && reservation.date_debut && reservation.date_fin) {
           const startDate = new Date(reservation.date_debut);
           const endDate = new Date(reservation.date_fin);
@@ -121,6 +122,26 @@ export const Dashboard: React.FC = () => {
         }
         return sum;
       }, 0) || 0;
+
+      // Get B2B revenues for current month
+      const { data: b2bRevenues } = await supabase
+        .from('b2b_reservations' as any)
+        .select('total_amount, start_date')
+        .eq('agency_id', user.id)
+        .in('status', ['confirmed', 'active']);
+
+      const b2bMonthlyRevenue = Array.isArray(b2bRevenues) ? b2bRevenues.reduce((sum, reservation: any) => {
+        if (reservation.total_amount && reservation.start_date) {
+          const startDate = new Date(reservation.start_date);
+          if (startDate.getMonth() === currentMonth && startDate.getFullYear() === currentYear) {
+            return sum + reservation.total_amount;
+          }
+        }
+        return sum;
+      }, 0) : 0;
+
+      // Total monthly revenue from both normal and B2B reservations
+      const monthlyRevenue = normalRevenue + b2bMonthlyRevenue;
 
       // Calculate total expenses from actual data
       // Get current month's expenses from depenses and entretiens
