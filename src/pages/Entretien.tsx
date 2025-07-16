@@ -267,115 +267,145 @@ export const Entretien: React.FC = () => {
   };
 
   const generatePDF = async () => {
-    const pdf = new jsPDF();
-    const pageWidth = pdf.internal.pageSize.width;
-    
-    // Header with logo space
-    pdf.setFontSize(20);
-    pdf.setTextColor(37, 99, 235);
-    pdf.text('RAPPORT DES ENTRETIENS', pageWidth / 2, 30, { align: 'center' });
-    
-    pdf.setFontSize(12);
-    pdf.setTextColor(0, 0, 0);
-    pdf.text(`Période du ${new Date(pdfDateRange.startDate).toLocaleDateString('fr-FR')} au ${new Date(pdfDateRange.endDate).toLocaleDateString('fr-FR')}`, pageWidth / 2, 40, { align: 'center' });
-    pdf.text(`Généré le: ${new Date().toLocaleDateString('fr-FR')}`, pageWidth / 2, 47, { align: 'center' });
-
-    // Filter entretiens by date range
-    const startDate = new Date(pdfDateRange.startDate);
-    const endDate = new Date(pdfDateRange.endDate);
-    endDate.setHours(23, 59, 59, 999);
-
-    const filteredEntretiens = entretiens.filter(entretien => {
-      if (!entretien.date) return false;
-      const entretienDate = new Date(entretien.date);
-      return entretienDate >= startDate && entretienDate <= endDate;
-    });
-
-    if (filteredEntretiens.length > 0) {
-      // Group by type for analysis
-      const typeGroups = filteredEntretiens.reduce((groups, entretien) => {
-        const type = entretien.type || 'Autre';
-        if (!groups[type]) groups[type] = [];
-        groups[type].push(entretien);
-        return groups;
-      }, {} as Record<string, typeof filteredEntretiens>);
-
-      // Main table
-      const tableData = [
-        ['Date', 'Véhicule', 'Type', 'Description', 'Coût (MAD)'],
-        ...filteredEntretiens.map(entretien => [
-          entretien.date ? new Date(entretien.date).toLocaleDateString('fr-FR') : 'N/A',
-          entretien.vehicles ? `${entretien.vehicles.marque} ${entretien.vehicles.modele} (${entretien.vehicles.immatriculation})` : 'N/A',
-          entretien.type || 'N/A',
-          entretien.description || 'Aucune description',
-          `${(entretien.cout || 0).toLocaleString('fr-FR')}`
-        ])
-      ];
-
-      (pdf as any).autoTable({
-        head: [tableData[0]],
-        body: tableData.slice(1),
-        startY: 60,
-        theme: 'grid',
-        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 10 },
-        alternateRowStyles: { fillColor: [248, 250, 252] },
-        styles: { fontSize: 9 },
-        columnStyles: {
-          0: { cellWidth: 25 },
-          1: { cellWidth: 50 },
-          2: { cellWidth: 25 },
-          3: { cellWidth: 60 },
-          4: { cellWidth: 30, halign: 'right' }
-        }
+    if (!pdfDateRange.startDate || !pdfDateRange.endDate) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner une période valide",
+        variant: "destructive",
       });
-
-      // Summary by type
-      const totalCost = filteredEntretiens.reduce((sum, entretien) => sum + (entretien.cout || 0), 0);
-      let finalY = (pdf as any).lastAutoTable.finalY + 20;
-      
-      pdf.setFontSize(16);
-      pdf.setTextColor(37, 99, 235);
-      pdf.text('RÉSUMÉ PAR TYPE', 20, finalY);
-      
-      const summaryData = [
-        ['Type d\'entretien', 'Nombre', 'Coût Total (MAD)'],
-        ...Object.entries(typeGroups).map(([type, entries]) => [
-          type,
-          entries.length.toString(),
-          entries.reduce((sum, e) => sum + (e.cout || 0), 0).toLocaleString('fr-FR')
-        ]),
-        ['TOTAL GÉNÉRAL', filteredEntretiens.length.toString(), totalCost.toLocaleString('fr-FR')]
-      ];
-
-      (pdf as any).autoTable({
-        head: [summaryData[0]],
-        body: summaryData.slice(1),
-        startY: finalY + 10,
-        theme: 'grid',
-        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 10 },
-        styles: { fontSize: 9 },
-        columnStyles: {
-          1: { halign: 'center' },
-          2: { halign: 'right' }
-        }
-      });
-    } else {
-      pdf.setFontSize(12);
-      pdf.setTextColor(128, 128, 128);
-      pdf.text('Aucun entretien trouvé pour cette période', pageWidth / 2, 60, { align: 'center' });
+      return;
     }
 
-    // Footer
-    pdf.setFontSize(8);
-    pdf.setTextColor(128, 128, 128);
-    pdf.text('Rapport généré automatiquement par le système de gestion', pageWidth / 2, pdf.internal.pageSize.height - 10, { align: 'center' });
+    if (new Date(pdfDateRange.startDate) > new Date(pdfDateRange.endDate)) {
+      toast({
+        title: "Erreur",
+        description: "La date de début doit être antérieure à la date de fin",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    pdf.save(`rapport-entretiens-${pdfDateRange.startDate}-${pdfDateRange.endDate}.pdf`);
+    try {
+      const pdf = new jsPDF();
+      const pageWidth = pdf.internal.pageSize.width;
+      
+      // Header with logo space
+      pdf.setFontSize(20);
+      pdf.setTextColor(37, 99, 235);
+      pdf.text('RAPPORT DES ENTRETIENS', pageWidth / 2, 30, { align: 'center' });
+      
+      pdf.setFontSize(12);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(`Période du ${new Date(pdfDateRange.startDate).toLocaleDateString('fr-FR')} au ${new Date(pdfDateRange.endDate).toLocaleDateString('fr-FR')}`, pageWidth / 2, 40, { align: 'center' });
+      pdf.text(`Généré le: ${new Date().toLocaleDateString('fr-FR')}`, pageWidth / 2, 47, { align: 'center' });
 
-    toast({
-      title: "Succès",
-      description: "Rapport PDF généré avec succès",
-    });
+      // Filter entretiens by date range (inclusive)
+      const startDate = new Date(pdfDateRange.startDate);
+      startDate.setHours(0, 0, 0, 0);
+      const endDate = new Date(pdfDateRange.endDate);
+      endDate.setHours(23, 59, 59, 999);
+
+      const filteredEntretiens = entretiens.filter(entretien => {
+        if (!entretien.date) return false;
+        const entretienDate = new Date(entretien.date);
+        return entretienDate >= startDate && entretienDate <= endDate;
+      });
+
+      if (filteredEntretiens.length > 0) {
+        // Group by type for analysis
+        const typeGroups = filteredEntretiens.reduce((groups, entretien) => {
+          const type = entretien.type || 'Autre';
+          if (!groups[type]) groups[type] = [];
+          groups[type].push(entretien);
+          return groups;
+        }, {} as Record<string, typeof filteredEntretiens>);
+
+        // Main table
+        const tableData = [
+          ['Date', 'Véhicule', 'Type', 'Description', 'Coût (MAD)'],
+          ...filteredEntretiens.map(entretien => [
+            entretien.date ? new Date(entretien.date).toLocaleDateString('fr-FR') : 'N/A',
+            entretien.vehicles ? `${entretien.vehicles.marque} ${entretien.vehicles.modele} (${entretien.vehicles.immatriculation})` : 'N/A',
+            entretien.type || 'N/A',
+            entretien.description || 'Aucune description',
+            `${(entretien.cout || 0).toLocaleString('fr-FR')}`
+          ])
+        ];
+
+        (pdf as any).autoTable({
+          head: [tableData[0]],
+          body: tableData.slice(1),
+          startY: 60,
+          theme: 'grid',
+          headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 10 },
+          alternateRowStyles: { fillColor: [248, 250, 252] },
+          styles: { fontSize: 9 },
+          columnStyles: {
+            0: { cellWidth: 25 },
+            1: { cellWidth: 50 },
+            2: { cellWidth: 25 },
+            3: { cellWidth: 60 },
+            4: { cellWidth: 30, halign: 'right' }
+          }
+        });
+
+        // Summary by type
+        const totalCost = filteredEntretiens.reduce((sum, entretien) => sum + (entretien.cout || 0), 0);
+        let finalY = (pdf as any).lastAutoTable.finalY + 20;
+        
+        pdf.setFontSize(14);
+        pdf.setTextColor(37, 99, 235);
+        pdf.text('RÉSUMÉ PAR TYPE', 20, finalY);
+        
+        const summaryData = [
+          ['Type d\'entretien', 'Nombre', 'Coût Total (MAD)'],
+          ...Object.entries(typeGroups).map(([type, entries]) => [
+            type,
+            entries.length.toString(),
+            entries.reduce((sum, e) => sum + (e.cout || 0), 0).toLocaleString('fr-FR')
+          ]),
+          ['TOTAL GÉNÉRAL', filteredEntretiens.length.toString(), totalCost.toLocaleString('fr-FR')]
+        ];
+
+        (pdf as any).autoTable({
+          head: [summaryData[0]],
+          body: summaryData.slice(1),
+          startY: finalY + 10,
+          theme: 'grid',
+          headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 10 },
+          styles: { fontSize: 9 },
+          columnStyles: {
+            1: { halign: 'center' },
+            2: { halign: 'right' }
+          }
+        });
+      } else {
+        pdf.setFontSize(12);
+        pdf.setTextColor(128, 128, 128);
+        pdf.text('Aucun entretien trouvé pour cette période', pageWidth / 2, 60, { align: 'center' });
+      }
+
+      // Footer
+      pdf.setFontSize(8);
+      pdf.setTextColor(128, 128, 128);
+      pdf.text('Rapport généré automatiquement par le système de gestion', pageWidth / 2, pdf.internal.pageSize.height - 10, { align: 'center' });
+
+      // Save and open the PDF
+      const fileName = `rapport-entretiens-${pdfDateRange.startDate}-${pdfDateRange.endDate}.pdf`;
+      pdf.save(fileName);
+
+      toast({
+        title: "Succès",
+        description: "Rapport PDF généré avec succès",
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la génération du PDF",
+        variant: "destructive",
+      });
+    }
   };
 
   const getTypeColor = (type: string | null) => {

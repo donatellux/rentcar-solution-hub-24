@@ -136,108 +136,141 @@ export const Statistics: React.FC = () => {
   };
 
   const generateComprehensiveReport = async () => {
-    const pdf = new jsPDF();
-    const pageWidth = pdf.internal.pageSize.width;
-    
-    // Header with logo space
-    pdf.setFontSize(20);
-    pdf.setTextColor(37, 99, 235); // Blue color
-    pdf.text('RAPPORT STATISTIQUES AGENCE', pageWidth / 2, 30, { align: 'center' });
-    
-    pdf.setFontSize(12);
-    pdf.setTextColor(0, 0, 0);
-    pdf.text(`Période du ${new Date(dateRange.startDate).toLocaleDateString('fr-FR')} au ${new Date(dateRange.endDate).toLocaleDateString('fr-FR')}`, pageWidth / 2, 40, { align: 'center' });
-    pdf.text(`Généré le: ${new Date().toLocaleDateString('fr-FR')}`, pageWidth / 2, 47, { align: 'center' });
+    if (!dateRange.startDate || !dateRange.endDate) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner une période valide",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    // Summary section
-    pdf.setFontSize(16);
-    pdf.setTextColor(37, 99, 235);
-    pdf.text('RÉSUMÉ EXÉCUTIF', 20, 65);
+    if (new Date(dateRange.startDate) > new Date(dateRange.endDate)) {
+      toast({
+        title: "Erreur",
+        description: "La date de début doit être antérieure à la date de fin",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    const summaryData = [
-      ['Indicateur', 'Valeur'],
-      ['Revenus Totaux', `${stats.totalRevenue.toLocaleString()} MAD`],
-      ['Dépenses Totales', `${stats.totalExpenses.toLocaleString()} MAD`],
-      ['Coûts d\'Entretien', `${stats.totalMaintenanceCosts.toLocaleString()} MAD`],
-      ['Bénéfice Net', `${stats.netProfit.toLocaleString()} MAD`],
-      ['Nombre de Réservations', stats.reservationsCount.toString()],
-      ['Revenus par Véhicule', `${stats.averageRevenuePerVehicle.toLocaleString()} MAD`],
-      ['Total Véhicules', stats.totalVehicles.toString()],
-    ];
+    try {
+      const pdf = new jsPDF();
+      const pageWidth = pdf.internal.pageSize.width;
+      
+      // Header with logo space
+      pdf.setFontSize(20);
+      pdf.setTextColor(37, 99, 235); // Blue color
+      pdf.text('RAPPORT STATISTIQUES AGENCE', pageWidth / 2, 30, { align: 'center' });
+      
+      pdf.setFontSize(12);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(`Période du ${new Date(dateRange.startDate).toLocaleDateString('fr-FR')} au ${new Date(dateRange.endDate).toLocaleDateString('fr-FR')}`, pageWidth / 2, 40, { align: 'center' });
+      pdf.text(`Généré le: ${new Date().toLocaleDateString('fr-FR')}`, pageWidth / 2, 47, { align: 'center' });
 
-    (pdf as any).autoTable({
-      head: [summaryData[0]],
-      body: summaryData.slice(1),
-      startY: 75,
-      theme: 'grid',
-      headStyles: { fillColor: [37, 99, 235], textColor: 255 },
-      alternateRowStyles: { fillColor: [248, 250, 252] },
-      columnStyles: {
-        0: { fontStyle: 'bold', cellWidth: 80 },
-        1: { cellWidth: 80, halign: 'right' }
-      }
-    });
+      // Summary section
+      pdf.setFontSize(14);
+      pdf.setTextColor(37, 99, 235);
+      pdf.text('RÉSUMÉ EXÉCUTIF', 20, 65);
 
-    // Performance Analysis
-    let currentY = (pdf as any).lastAutoTable.finalY + 20;
-    
-    pdf.setFontSize(16);
-    pdf.setTextColor(37, 99, 235);
-    pdf.text('ANALYSE DE PERFORMANCE', 20, currentY);
+      const summaryData = [
+        ['Indicateur', 'Valeur'],
+        ['Revenus Totaux', `${stats.totalRevenue.toLocaleString('fr-FR')} MAD`],
+        ['Dépenses Totales', `${stats.totalExpenses.toLocaleString('fr-FR')} MAD`],
+        ['Coûts d\'Entretien', `${stats.totalMaintenanceCosts.toLocaleString('fr-FR')} MAD`],
+        ['Bénéfice Net', `${stats.netProfit.toLocaleString('fr-FR')} MAD`],
+        ['Nombre de Réservations', stats.reservationsCount.toString()],
+        ['Revenus par Véhicule', `${Math.round(stats.averageRevenuePerVehicle).toLocaleString('fr-FR')} MAD`],
+        ['Total Véhicules', stats.totalVehicles.toString()],
+      ];
 
-    const profitMargin = stats.totalRevenue > 0 ? ((stats.netProfit / stats.totalRevenue) * 100).toFixed(1) : '0';
-    const expenseRatio = stats.totalRevenue > 0 ? (((stats.totalExpenses + stats.totalMaintenanceCosts) / stats.totalRevenue) * 100).toFixed(1) : '0';
+      (pdf as any).autoTable({
+        head: [summaryData[0]],
+        body: summaryData.slice(1),
+        startY: 75,
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 10 },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        styles: { fontSize: 9 },
+        columnStyles: {
+          0: { fontStyle: 'bold', cellWidth: 80 },
+          1: { cellWidth: 80, halign: 'right' }
+        }
+      });
 
-    const analysisData = [
-      ['Métrique', 'Valeur', 'Analyse'],
-      ['Marge Bénéficiaire', `${profitMargin}%`, profitMargin > '15' ? 'Excellente' : profitMargin > '10' ? 'Bonne' : 'À améliorer'],
-      ['Ratio Dépenses/Revenus', `${expenseRatio}%`, expenseRatio < '70' ? 'Optimal' : expenseRatio < '85' ? 'Acceptable' : 'Élevé'],
-      ['Utilisation Flotte', `${(stats.reservationsCount / (stats.totalVehicles * 30)).toFixed(1)} rés./véh./mois`, 'Variable selon période'],
-    ];
+      // Performance Analysis
+      let currentY = (pdf as any).lastAutoTable.finalY + 20;
+      
+      pdf.setFontSize(14);
+      pdf.setTextColor(37, 99, 235);
+      pdf.text('ANALYSE DE PERFORMANCE', 20, currentY);
 
-    (pdf as any).autoTable({
-      head: [analysisData[0]],
-      body: analysisData.slice(1),
-      startY: currentY + 10,
-      theme: 'grid',
-      headStyles: { fillColor: [37, 99, 235], textColor: 255 },
-      alternateRowStyles: { fillColor: [248, 250, 252] }
-    });
+      const profitMargin = stats.totalRevenue > 0 ? ((stats.netProfit / stats.totalRevenue) * 100).toFixed(1) : '0';
+      const expenseRatio = stats.totalRevenue > 0 ? (((stats.totalExpenses + stats.totalMaintenanceCosts) / stats.totalRevenue) * 100).toFixed(1) : '0';
+      const utilizationRate = stats.totalVehicles > 0 ? (stats.reservationsCount / stats.totalVehicles).toFixed(1) : '0';
 
-    // Recommendations
-    currentY = (pdf as any).lastAutoTable.finalY + 20;
-    
-    pdf.setFontSize(16);
-    pdf.setTextColor(37, 99, 235);
-    pdf.text('RECOMMANDATIONS', 20, currentY);
+      const analysisData = [
+        ['Métrique', 'Valeur', 'Analyse'],
+        ['Marge Bénéficiaire', `${profitMargin}%`, profitMargin > '15' ? 'Excellente' : profitMargin > '10' ? 'Bonne' : 'À améliorer'],
+        ['Ratio Dépenses/Revenus', `${expenseRatio}%`, expenseRatio < '70' ? 'Optimal' : expenseRatio < '85' ? 'Acceptable' : 'Élevé'],
+        ['Utilisation Flotte', `${utilizationRate} rés./véh.`, utilizationRate > '10' ? 'Élevée' : utilizationRate > '5' ? 'Modérée' : 'Faible'],
+      ];
 
-    pdf.setFontSize(11);
-    pdf.setTextColor(0, 0, 0);
-    
-    const recommendations = [
-      '• Optimiser les coûts d\'entretien par la maintenance préventive',
-      '• Analyser la rentabilité par véhicule pour identifier les plus performants',
-      '• Réviser les tarifs si la marge bénéficiaire est faible',
-      '• Diversifier les services pour augmenter les revenus par client'
-    ];
+      (pdf as any).autoTable({
+        head: [analysisData[0]],
+        body: analysisData.slice(1),
+        startY: currentY + 10,
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 10 },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        styles: { fontSize: 9 }
+      });
 
-    let textY = currentY + 15;
-    recommendations.forEach(rec => {
-      pdf.text(rec, 20, textY);
-      textY += 7;
-    });
+      // Recommendations
+      currentY = (pdf as any).lastAutoTable.finalY + 20;
+      
+      pdf.setFontSize(14);
+      pdf.setTextColor(37, 99, 235);
+      pdf.text('RECOMMANDATIONS', 20, currentY);
 
-    // Footer
-    pdf.setFontSize(8);
-    pdf.setTextColor(128, 128, 128);
-    pdf.text('Rapport généré automatiquement par le système de gestion', pageWidth / 2, pdf.internal.pageSize.height - 10, { align: 'center' });
+      pdf.setFontSize(10);
+      pdf.setTextColor(0, 0, 0);
+      
+      const recommendations = [
+        '• Optimiser les coûts d\'entretien par la maintenance préventive',
+        '• Analyser la rentabilité par véhicule pour identifier les plus performants',
+        '• Réviser les tarifs si la marge bénéficiaire est faible',
+        '• Diversifier les services pour augmenter les revenus par client',
+        '• Améliorer l\'utilisation de la flotte si le taux est faible'
+      ];
 
-    pdf.save(`rapport-statistiques-${dateRange.startDate}-${dateRange.endDate}.pdf`);
+      let textY = currentY + 15;
+      recommendations.forEach(rec => {
+        pdf.text(rec, 20, textY);
+        textY += 7;
+      });
 
-    toast({
-      title: "Succès",
-      description: "Rapport PDF généré avec succès",
-    });
+      // Footer
+      pdf.setFontSize(8);
+      pdf.setTextColor(128, 128, 128);
+      pdf.text('Rapport généré automatiquement par le système de gestion', pageWidth / 2, pdf.internal.pageSize.height - 10, { align: 'center' });
+
+      // Save and open the PDF
+      const fileName = `rapport-statistiques-${dateRange.startDate}-${dateRange.endDate}.pdf`;
+      pdf.save(fileName);
+
+      toast({
+        title: "Succès",
+        description: "Rapport PDF généré avec succès",
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la génération du PDF",
+        variant: "destructive",
+      });
+    }
   };
 
   const statCards = [
