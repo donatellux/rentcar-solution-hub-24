@@ -217,7 +217,7 @@ export const Dashboard: React.FC = () => {
       <div className="space-y-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
+          {[...Array(5)].map((_, i) => (
             <Card key={i} className="animate-pulse">
               <CardContent className="p-6">
                 <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
@@ -229,6 +229,7 @@ export const Dashboard: React.FC = () => {
     );
   }
 
+  // Reduced to only essential KPIs
   const statCards = [
     {
       title: 'Total Véhicules',
@@ -243,12 +244,6 @@ export const Dashboard: React.FC = () => {
       gradient: 'gradient-success',
     },
     {
-      title: 'Total Clients',
-      value: stats.totalClients,
-      icon: Users,
-      gradient: 'gradient-info',
-    },
-    {
       title: 'Réservations Actives',
       value: stats.activeReservations,
       icon: Calendar,
@@ -261,28 +256,10 @@ export const Dashboard: React.FC = () => {
       gradient: 'gradient-success',
     },
     {
-      title: 'Dépenses Totales',
-      value: `${stats.totalExpenses.toLocaleString()} MAD`,
-      icon: TrendingUp,
-      gradient: 'gradient-warning',
-    },
-    {
       title: 'Bénéfice Net',
       value: `${stats.netProfit.toLocaleString()} MAD`,
-      icon: DollarSign,
-      gradient: stats.netProfit >= 0 ? 'gradient-success' : 'bg-destructive',
-    },
-    {
-      title: 'Revenus par Véhicule',
-      value: `${stats.averageRevenuePerVehicle.toLocaleString()} MAD`,
       icon: TrendingUp,
-      gradient: 'gradient-info',
-    },
-    {
-      title: 'Alertes Entretien',
-      value: stats.maintenanceAlerts,
-      icon: AlertTriangle,
-      gradient: stats.maintenanceAlerts > 0 ? 'bg-destructive' : 'gradient-success',
+      gradient: stats.netProfit >= 0 ? 'gradient-success' : 'bg-destructive',
     },
   ];
 
@@ -292,9 +269,17 @@ export const Dashboard: React.FC = () => {
         <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           Dashboard
         </h1>
-        <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-          <TrendingUp className="w-4 h-4" />
-          <span>Dernière mise à jour: {new Date().toLocaleDateString('fr-FR')}</span>
+        <div className="flex items-center space-x-4">
+          <Link to="/statistiques">
+            <Button variant="outline" size="sm" className="text-blue-600 border-blue-300 hover:bg-blue-50">
+              Voir toutes les statistiques
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </Link>
+          <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+            <TrendingUp className="w-4 h-4" />
+            <span>Dernière mise à jour: {new Date().toLocaleDateString('fr-FR')}</span>
+          </div>
         </div>
       </div>
 
