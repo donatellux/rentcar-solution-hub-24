@@ -210,18 +210,7 @@ export const Vehicles: React.FC = () => {
       console.log('Starting vehicle deletion process for:', vehicle.id);
 
       // First, delete related records in the correct order
-      // 1. Delete from vehicle_revenues
-      const { error: revenueError } = await supabase
-        .from('vehicle_revenues')
-        .delete()
-        .eq('vehicle_id', vehicle.id);
-
-      if (revenueError) {
-        console.error('Error deleting vehicle revenues:', revenueError);
-        throw revenueError;
-      }
-
-      // 2. Delete from entretiens
+      // 1. Delete from entretiens
       const { error: entretiensError } = await supabase
         .from('entretiens')
         .delete()
@@ -232,7 +221,7 @@ export const Vehicles: React.FC = () => {
         throw entretiensError;
       }
 
-      // 3. Delete from vehicle_expenses
+      // 2. Delete from vehicle_expenses
       const { error: expensesError } = await supabase
         .from('vehicle_expenses')
         .delete()
@@ -243,7 +232,7 @@ export const Vehicles: React.FC = () => {
         throw expensesError;
       }
 
-      // 4. Update reservations to remove vehicle reference (set to null) instead of deleting
+      // 3. Update reservations to remove vehicle reference (set to null) instead of deleting
       const { error: reservationError } = await supabase
         .from('reservations')
         .update({ vehicule_id: null })
@@ -254,7 +243,7 @@ export const Vehicles: React.FC = () => {
         throw reservationError;
       }
 
-      // 5. Finally, delete the vehicle
+      // 4. Finally, delete the vehicle
       const { error: vehicleError } = await supabase
         .from('vehicles')
         .delete()
@@ -703,7 +692,7 @@ export const Vehicles: React.FC = () => {
             <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
             <AlertDialogDescription>
               Êtes-vous sûr de vouloir supprimer le véhicule {vehicleToDelete?.marque} {vehicleToDelete?.modele} ({vehicleToDelete?.immatriculation}) ?
-              Cette action supprimera également tous les enregistrements associés (revenus, entretiens, dépenses) et ne peut pas être annulée.
+              Cette action supprimera également tous les enregistrements associés (entretiens, dépenses) et ne peut pas être annulée.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
