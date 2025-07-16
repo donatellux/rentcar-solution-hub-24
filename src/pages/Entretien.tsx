@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Edit, Trash2, Wrench, AlertTriangle, Calendar, Car, Download } from 'lucide-react';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -332,7 +332,7 @@ export const Entretien: React.FC = () => {
           ])
         ];
 
-        (pdf as any).autoTable({
+        autoTable(pdf, {
           head: [tableData[0]],
           body: tableData.slice(1),
           startY: 60,
@@ -351,7 +351,7 @@ export const Entretien: React.FC = () => {
 
         // Summary by type
         const totalCost = filteredEntretiens.reduce((sum, entretien) => sum + (entretien.cout || 0), 0);
-        let finalY = (pdf as any).lastAutoTable.finalY + 20;
+        let finalY = (pdf as any).previousAutoTable.finalY + 20;
         
         pdf.setFontSize(14);
         pdf.setTextColor(37, 99, 235);
@@ -367,7 +367,7 @@ export const Entretien: React.FC = () => {
           ['TOTAL GÉNÉRAL', filteredEntretiens.length.toString(), totalCost.toLocaleString('fr-FR')]
         ];
 
-        (pdf as any).autoTable({
+        autoTable(pdf, {
           head: [summaryData[0]],
           body: summaryData.slice(1),
           startY: finalY + 10,

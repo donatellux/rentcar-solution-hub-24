@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 interface StatsPeriod {
   totalRevenue: number;
@@ -184,7 +184,7 @@ export const Statistics: React.FC = () => {
         ['Total Véhicules', stats.totalVehicles.toString()],
       ];
 
-      (pdf as any).autoTable({
+      autoTable(pdf, {
         head: [summaryData[0]],
         body: summaryData.slice(1),
         startY: 75,
@@ -199,7 +199,7 @@ export const Statistics: React.FC = () => {
       });
 
       // Performance Analysis
-      let currentY = (pdf as any).lastAutoTable.finalY + 20;
+      let currentY = (pdf as any).previousAutoTable.finalY + 20;
       
       pdf.setFontSize(14);
       pdf.setTextColor(37, 99, 235);
@@ -216,7 +216,7 @@ export const Statistics: React.FC = () => {
         ['Utilisation Flotte', `${utilizationRate} rés./véh.`, utilizationRate > '10' ? 'Élevée' : utilizationRate > '5' ? 'Modérée' : 'Faible'],
       ];
 
-      (pdf as any).autoTable({
+      autoTable(pdf, {
         head: [analysisData[0]],
         body: analysisData.slice(1),
         startY: currentY + 10,
@@ -227,7 +227,7 @@ export const Statistics: React.FC = () => {
       });
 
       // Recommendations
-      currentY = (pdf as any).lastAutoTable.finalY + 20;
+      currentY = (pdf as any).previousAutoTable.finalY + 20;
       
       pdf.setFontSize(14);
       pdf.setTextColor(37, 99, 235);

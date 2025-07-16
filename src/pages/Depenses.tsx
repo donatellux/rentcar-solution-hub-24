@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Edit, Trash2, Receipt, Car, Building, Download } from 'lucide-react';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -320,7 +320,7 @@ export const Depenses: React.FC = () => {
           ])
         ];
 
-        (pdf as any).autoTable({
+        autoTable(pdf, {
           head: [globalData[0]],
           body: globalData.slice(1),
           startY: currentY + 10,
@@ -336,7 +336,7 @@ export const Depenses: React.FC = () => {
           }
         });
 
-        currentY = (pdf as any).lastAutoTable.finalY + 15;
+        currentY = (pdf as any).previousAutoTable.finalY + 15;
       }
 
       // Vehicle expenses table
@@ -356,7 +356,7 @@ export const Depenses: React.FC = () => {
           ])
         ];
 
-        (pdf as any).autoTable({
+        autoTable(pdf, {
           head: [vehicleData[0]],
           body: vehicleData.slice(1),
           startY: currentY + 10,
@@ -373,7 +373,7 @@ export const Depenses: React.FC = () => {
           }
         });
 
-        currentY = (pdf as any).lastAutoTable.finalY + 15;
+        currentY = (pdf as any).previousAutoTable.finalY + 15;
       }
 
       // Add no data message if no expenses found
@@ -398,7 +398,7 @@ export const Depenses: React.FC = () => {
         ['TOTAL GÉNÉRAL', (filteredGlobal.length + filteredVehicle.length).toString(), totalAmount.toLocaleString('fr-FR')]
       ];
 
-      (pdf as any).autoTable({
+      autoTable(pdf, {
         head: [summaryData[0]],
         body: summaryData.slice(1),
         startY: currentY + 10,
