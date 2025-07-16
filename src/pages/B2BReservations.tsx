@@ -115,20 +115,30 @@ export const B2BReservations: React.FC = () => {
     }
   }, [user]);
 
+  // Fetch B2B reservations from b2b_reservations table
   const fetchData = async () => {
+    if (!user) return;
+    setLoading(true);
+
     try {
-      setLoading(true);
-      
-      // Fetch B2B reservations - for now just get reservations with is_b2b flag
-      const { data: reservationsData } = await supabase
-        .from('reservations')
+      // Fetch from b2b_reservations table
+      const { data: b2bReservations, error: b2bError } = await supabase
+        .from('b2b_reservations' as any)
         .select(`
           *,
-          vehicles(marque, modele, immatriculation)
+          societies!inner (society_name, contact_person, contact_phone)
         `)
-        .eq('agency_id', user?.id)
-        .or('is_b2b.eq.true,lieu_delivrance.ilike.B2B%')
+        .eq('agency_id', user.id)
         .order('created_at', { ascending: false });
+
+      if (b2bError) throw b2bError;
+
+      // Type-safe assignment
+      if (Array.isArray(b2bReservations)) {
+        setReservations(b2bReservations as any);
+      } else {
+        setReservations([]);
+      }
       
       // Fetch vehicles
       const { data: vehiclesData } = await supabase
@@ -136,7 +146,6 @@ export const B2BReservations: React.FC = () => {
         .select('id, marque, modele, immatriculation, etat')
         .eq('agency_id', user?.id);
 
-      setReservations((reservationsData as any) || []);
       setVehicles(vehiclesData || []);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -321,22 +330,34 @@ export const B2BReservations: React.FC = () => {
         throw b2bReservationError;
       }
 
-      // Add each vehicle's revenue to global expenses
-      const expensePromises = formData.vehicle_prices.map(async (vehiclePrice) => {
+      // Add total revenue to global revenues
+      await supabase.from('global_revenues' as any).insert([{
+        agency_id: user?.id,
+        source: 'B2B Reservations',
+        amount: totalRevenue,
+        description: `Réservation B2B - ${formData.society_name}`,
+        date: new Date().toISOString().split('T')[0],
+        vehicle_ids: formData.vehicle_prices.map(vp => vp.vehicleId)
+      }]);
+
+      // Add each vehicle's revenue to vehicle revenues for statistics
+      const vehicleRevenuePromises = formData.vehicle_prices.map(async (vehiclePrice) => {
         const totalPriceForVehicle = vehiclePrice.price * days;
         const vehicle = availableVehicles.find(v => v.id === vehiclePrice.vehicleId);
         
-        await supabase.from('global_expenses').insert([{
+        await supabase.from('vehicle_revenues' as any).insert([{
           agency_id: user?.id,
-          type: 'revenue',
-          category: 'B2B Reservations',
+          vehicle_id: vehiclePrice.vehicleId,
+          source: 'B2B Reservation',
           amount: totalPriceForVehicle,
-          description: `Réservation B2B - ${formData.society_name} - ${vehicle?.marque} ${vehicle?.modele}`,
-          date: new Date().toISOString().split('T')[0]
+          description: `B2B - ${formData.society_name} - ${vehicle?.marque} ${vehicle?.modele}`,
+          date: formData.date_debut,
+          start_date: formData.date_debut,
+          end_date: formData.date_fin
         }]);
       });
 
-      await Promise.all(expensePromises);
+      await Promise.all(vehicleRevenuePromises);
 
       await fetchData();
       resetForm();
@@ -380,21 +401,24 @@ export const B2BReservations: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette réservation B2B ?')) return;
+
     try {
       const { error } = await supabase
-        .from('reservations')
+        .from('b2b_reservations' as any)
         .delete()
         .eq('id', id);
 
       if (error) throw error;
 
-      await fetchData();
       toast({
         title: "Succès",
-        description: "Réservation supprimée avec succès",
+        description: "Réservation B2B supprimée avec succès",
       });
+
+      await fetchData();
     } catch (error) {
-      console.error('Error deleting reservation:', error);
+      console.error('Error deleting B2B reservation:', error);
       toast({
         title: "Erreur",
         description: "Erreur lors de la suppression",
@@ -410,20 +434,28 @@ export const B2BReservations: React.FC = () => {
 
   // Helper function to extract company name from reservation
   const getCompanyName = (reservation: any) => {
-    if (reservation.societies?.society_name) return reservation.societies.society_name;
-    if (reservation.lieu_delivrance?.startsWith('B2B:')) {
-      const parts = reservation.lieu_delivrance.split('|');
-      return parts[0].replace('B2B:', '').trim();
+    return reservation.societies?.society_name || 'Entreprise';
+  };
+
+  // Helper function to get vehicle info from B2B reservation
+  const getVehicleInfo = (reservation: any) => {
+    if (reservation.vehicles && Array.isArray(reservation.vehicles) && reservation.vehicles.length > 0) {
+      return reservation.vehicles.map((v: any) => ({
+        name: `${v.vehicle_name}`,
+        price: v.price_per_day,
+        total: v.total_amount
+      }));
     }
-    return 'Entreprise';
+    return [{ name: 'N/A', price: 0, total: 0 }];
   };
 
   // Filter reservations based on search term
-  const filteredReservations = reservations.filter(reservation =>
-    `${getCompanyName(reservation)} ${reservation.vehicles?.marque} ${reservation.vehicles?.modele}`
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase())
-  );
+  const filteredReservations = reservations.filter(reservation => {
+    const companyName = getCompanyName(reservation);
+    const vehicleInfo = getVehicleInfo(reservation);
+    const searchText = `${companyName} ${vehicleInfo.map(v => v.name).join(' ')}`.toLowerCase();
+    return searchText.includes(searchTerm.toLowerCase());
+  });
 
   // Pagination
   const {
@@ -808,92 +840,96 @@ export const B2BReservations: React.FC = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Entreprise</TableHead>
-                      <TableHead>Véhicule</TableHead>
+                      <TableHead>Véhicules</TableHead>
                       <TableHead>Période</TableHead>
-                      <TableHead>Prix/jour</TableHead>
+                      <TableHead>Montant Total</TableHead>
                       <TableHead>Statut</TableHead>
                       <TableHead>Options</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedReservations.map((reservation) => (
-                      <TableRow key={reservation.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <Building2 className="w-4 h-4 text-gray-400" />
-                            <div>
-                              <div className="font-medium">
-                                {getCompanyName(reservation)}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {reservation.societies?.contact_person || 
-                                 (reservation.lieu_delivrance?.includes('Contact:') 
-                                   ? reservation.lieu_delivrance.split('Contact:')[1]?.split('|')[0]?.trim() 
-                                   : 'N/A')}
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <Car className="w-4 h-4 text-gray-400" />
-                            <div>
-                              <div className="font-medium">
-                                {reservation.vehicles?.marque} {reservation.vehicles?.modele}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {reservation.vehicles?.immatriculation}
+                    {paginatedReservations.map((reservation) => {
+                      const vehicleInfo = getVehicleInfo(reservation);
+                      return (
+                        <TableRow key={reservation.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <Building2 className="w-4 h-4 text-gray-400" />
+                              <div>
+                                <div className="font-medium">
+                                  {getCompanyName(reservation)}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {reservation.societies?.contact_person || 'N/A'}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            {reservation.date_debut && reservation.date_fin ? (
-                              <>
-                                <div>{new Date(reservation.date_debut).toLocaleDateString('fr-FR')}</div>
-                                <div className="text-gray-500">au {new Date(reservation.date_fin).toLocaleDateString('fr-FR')}</div>
-                              </>
-                            ) : (
-                              'Dates non définies'
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium">
-                            {reservation.prix_par_jour ? `${reservation.prix_par_jour} MAD` : 'N/A'}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(reservation.statut)}>
-                            {reservation.statut || 'N/A'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            {reservation.with_driver && <Badge variant="secondary">Avec chauffeur</Badge>}
-                            {reservation.additional_charges && reservation.additional_charges > 0 && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                Charges: {reservation.additional_charges} MAD
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDelete(reservation.id)}
-                              className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              {vehicleInfo.map((vehicle, index) => (
+                                <div key={index} className="flex items-center space-x-2">
+                                  <Car className="w-4 h-4 text-gray-400" />
+                                  <div>
+                                    <div className="font-medium text-sm">
+                                      {vehicle.name}
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                      {vehicle.price} MAD/jour
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              {reservation.start_date && reservation.end_date ? (
+                                <>
+                                  <div>{new Date(reservation.start_date).toLocaleDateString('fr-FR')}</div>
+                                  <div className="text-gray-500">au {new Date(reservation.end_date).toLocaleDateString('fr-FR')}</div>
+                                </>
+                              ) : (
+                                'Dates non définies'
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">
+                              {reservation.total_amount ? `${reservation.total_amount} MAD` : 'N/A'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(reservation.status || 'confirmed')}>
+                              {reservation.status || 'Confirmée'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm space-y-1">
+                              {reservation.with_driver && <Badge variant="secondary">Avec chauffeur</Badge>}
+                              {reservation.additional_charges && reservation.additional_charges > 0 && (
+                                <div className="text-xs text-gray-500">
+                                  Charges: {reservation.additional_charges} MAD
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDelete(reservation.id)}
+                                className="hover:bg-red-50 hover:border-red-200 hover:text-red-700"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>

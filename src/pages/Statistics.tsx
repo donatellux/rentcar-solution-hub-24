@@ -117,6 +117,15 @@ export const Statistics: React.FC = () => {
         .gte('date', startDate.toISOString().split('T')[0])
         .lte('date', endDate.toISOString().split('T')[0]);
 
+      // Get B2B revenues from global_revenues
+      const { data: b2bRevenues } = await supabase
+        .from('global_revenues' as any)
+        .select('amount, date')
+        .eq('agency_id', user.id)
+        .eq('source', 'B2B Reservations')
+        .gte('date', startDate.toISOString().split('T')[0])
+        .lte('date', endDate.toISOString().split('T')[0]);
+
       // Get vehicles count
       const { data: vehiclesList } = await supabase
         .from('vehicles')
@@ -124,7 +133,7 @@ export const Statistics: React.FC = () => {
         .eq('agency_id', user.id);
 
       // Calculate statistics
-      const totalRevenue = reservations?.reduce((sum, reservation) => {
+      const normalReservationRevenue = reservations?.reduce((sum, reservation) => {
         if (reservation.prix_par_jour && reservation.date_debut && reservation.date_fin) {
           const start = new Date(reservation.date_debut);
           const end = new Date(reservation.date_fin);
@@ -133,6 +142,13 @@ export const Statistics: React.FC = () => {
         }
         return sum;
       }, 0) || 0;
+
+      // Calculate B2B revenue - handle potential query errors
+      const b2bRevenueTotal = Array.isArray(b2bRevenues) ? 
+        b2bRevenues.reduce((sum, revenue) => sum + ((revenue as any).amount || 0), 0) : 0;
+
+      // Total revenue from both normal and B2B reservations
+      const totalRevenue = normalReservationRevenue + b2bRevenueTotal;
 
       const totalExpenses = [
         ...(globalExpenses || []).map(e => e.amount || 0),
@@ -181,6 +197,16 @@ export const Statistics: React.FC = () => {
         .gte('date_debut', dateRange.startDate)
         .lte('date_fin', dateRange.endDate);
 
+      // Fetch B2B reservation revenues for the specific vehicle
+      const b2bRevenuesQuery = await supabase
+        .from('vehicle_revenues' as any)
+        .select('amount, start_date, end_date')
+        .eq('agency_id', user.id)
+        .eq('vehicle_id', vehicleId)
+        .eq('source', 'B2B Reservation')
+        .gte('start_date', dateRange.startDate)
+        .lte('end_date', dateRange.endDate);
+
       // Format dates consistently 
       const startDateStr = dateRange.startDate;
       const endDateStr = dateRange.endDate;
@@ -206,18 +232,21 @@ export const Statistics: React.FC = () => {
       const reservations = reservationsQuery.data || [];
       const vehicleExpenses = vehicleExpensesQuery.data || [];
       const maintenanceExpenses = maintenanceQuery.data || [];
+      const b2bRevenues = b2bRevenuesQuery.data || [];
 
       // Debug logging to check what data is being returned
       console.log('Vehicle ID:', vehicleId);
       console.log('Reservations data:', reservations);
       console.log('Vehicle expenses data:', vehicleExpenses);
       console.log('Maintenance data:', maintenanceExpenses);
+      console.log('B2B revenues data:', b2bRevenues);
       console.log('Reservations query error:', reservationsQuery.error);
       console.log('Vehicle expenses query error:', vehicleExpensesQuery.error);
       console.log('Maintenance query error:', maintenanceQuery.error);
+      console.log('B2B revenues query error:', b2bRevenuesQuery.error);
 
       // Calculate vehicle statistics using real data
-      const totalRevenue = (reservations || []).reduce((sum, reservation) => {
+      const normalReservationRevenue = (reservations || []).reduce((sum, reservation) => {
         if (reservation.prix_par_jour && reservation.date_debut && reservation.date_fin) {
           const start = new Date(reservation.date_debut);
           const end = new Date(reservation.date_fin);
@@ -226,6 +255,13 @@ export const Statistics: React.FC = () => {
         }
         return sum;
       }, 0);
+
+      // Calculate B2B revenue - handle potential query errors
+      const b2bRevenueTotal = Array.isArray(b2bRevenues) && !b2bRevenuesQuery.error ? 
+        b2bRevenues.reduce((sum, revenue) => sum + ((revenue as any).amount || 0), 0) : 0;
+
+      // Total revenue from both normal and B2B reservations
+      const totalRevenue = normalReservationRevenue + b2bRevenueTotal;
 
       const totalExpenses = (vehicleExpenses || []).reduce((sum, expense) => 
         sum + (expense.amount || 0), 0);
