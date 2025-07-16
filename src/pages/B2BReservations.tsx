@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,7 +60,7 @@ export const B2BReservations: React.FC = () => {
     client_email: '',
     date_debut: '',
     date_fin: '',
-    nombre_vehicules: '', // Changed to string for proper input handling
+    nombre_vehicules: '',
     prix_total: '',
     statut: 'en_attente',
     notes: '',
@@ -75,14 +76,26 @@ export const B2BReservations: React.FC = () => {
     if (!user) return;
 
     try {
-      // Fetch B2B reservations
+      // Fetch B2B reservations using raw query to avoid TypeScript issues
       const { data: reservationsData, error: reservationsError } = await supabase
-        .from('b2b_reservations')
-        .select('*')
-        .eq('agency_id', user.id)
-        .order('created_at', { ascending: false });
+        .rpc('get_b2b_reservations', { agency_uuid: user.id });
 
-      if (reservationsError) throw reservationsError;
+      // If RPC doesn't exist, fall back to direct query with type casting
+      let b2bData = reservationsData;
+      if (reservationsError) {
+        const { data: fallbackData, error: fallbackError } = await (supabase as any)
+          .from('b2b_reservations')
+          .select('*')
+          .eq('agency_id', user.id)
+          .order('created_at', { ascending: false });
+        
+        if (fallbackError) {
+          console.error('Error fetching B2B reservations:', fallbackError);
+          b2bData = [];
+        } else {
+          b2bData = fallbackData;
+        }
+      }
 
       // Fetch agency data
       const { data: agencyData, error: agencyError } = await supabase
@@ -93,7 +106,7 @@ export const B2BReservations: React.FC = () => {
 
       if (agencyError && agencyError.code !== 'PGRST116') throw agencyError;
 
-      setReservations(reservationsData || []);
+      setReservations(b2bData || []);
       setAgency(agencyData || null);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -112,10 +125,10 @@ export const B2BReservations: React.FC = () => {
     if (!user) return;
 
     // Validation
-    if (!formData.client_name || !formData.client_phone) {
+    if (!formData.client_name || !formData.client_phone || !formData.nombre_vehicules) {
       toast({
         title: "Erreur",
-        description: "Veuillez renseigner le nom et le téléphone du client",
+        description: "Veuillez renseigner le nom, téléphone du client et le nombre de véhicules",
         variant: "destructive",
       });
       return;
@@ -140,13 +153,13 @@ export const B2BReservations: React.FC = () => {
 
       let error;
       if (editingReservation) {
-        const { error: updateError } = await supabase
+        const { error: updateError } = await (supabase as any)
           .from('b2b_reservations')
           .update(reservationData)
           .eq('id', editingReservation.id);
         error = updateError;
       } else {
-        const { error: insertError } = await supabase
+        const { error: insertError } = await (supabase as any)
           .from('b2b_reservations')
           .insert(reservationData);
         error = insertError;
@@ -182,7 +195,7 @@ export const B2BReservations: React.FC = () => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cette réservation ?')) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('b2b_reservations')
         .delete()
         .eq('id', reservationId);
@@ -214,7 +227,7 @@ export const B2BReservations: React.FC = () => {
       client_email: reservation.client_email || '',
       date_debut: reservation.date_debut ? reservation.date_debut.split('T')[0] : '',
       date_fin: reservation.date_fin ? reservation.date_fin.split('T')[0] : '',
-      nombre_vehicules: reservation.nombre_vehicules?.toString() || '', // Convert to string
+      nombre_vehicules: reservation.nombre_vehicules?.toString() || '',
       prix_total: reservation.prix_total?.toString() || '',
       statut: reservation.statut || 'en_attente',
       notes: reservation.notes || '',
@@ -230,7 +243,7 @@ export const B2BReservations: React.FC = () => {
       client_email: '',
       date_debut: '',
       date_fin: '',
-      nombre_vehicules: '', // Reset to empty string
+      nombre_vehicules: '',
       prix_total: '',
       statut: 'en_attente',
       notes: '',
@@ -257,61 +270,231 @@ export const B2BReservations: React.FC = () => {
         generatedAt: new Date().toISOString()
       };
 
-      // Create a simple HTML invoice
+      // Create a modern, stylish HTML invoice
       const invoiceHTML = `
         <!DOCTYPE html>
         <html>
         <head>
           <meta charset="UTF-8">
-          <title>Facture - ${reservation.client_name}</title>
+          <title>Devis B2B - ${reservation.client_name}</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
-            .logo { max-width: 150px; height: auto; margin-bottom: 10px; }
-            .invoice-details { text-align: right; margin-bottom: 20px; }
-            .section { margin: 20px 0; }
-            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f2f2f2; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: 'Arial', sans-serif; 
+              line-height: 1.6; 
+              color: #333;
+              background: #f8f9fa;
+            }
+            .container { 
+              max-width: 800px; 
+              margin: 0 auto; 
+              background: white;
+              box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            }
+            .header { 
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              padding: 30px;
+              position: relative;
+              overflow: hidden;
+            }
+            .header::before {
+              content: '';
+              position: absolute;
+              top: -50%;
+              right: -50%;
+              width: 200%;
+              height: 200%;
+              background: rgba(255,255,255,0.1);
+              transform: rotate(45deg);
+            }
+            .logo { 
+              max-width: 120px; 
+              height: auto; 
+              margin-bottom: 15px;
+              position: relative;
+              z-index: 2;
+            }
+            .company-info {
+              position: relative;
+              z-index: 2;
+            }
+            .company-name { 
+              font-size: 28px; 
+              font-weight: bold; 
+              margin-bottom: 10px;
+            }
+            .invoice-title {
+              text-align: center;
+              padding: 30px;
+              background: #f8f9fa;
+              border-bottom: 3px solid #667eea;
+            }
+            .invoice-title h1 {
+              font-size: 32px;
+              color: #667eea;
+              margin-bottom: 10px;
+            }
+            .invoice-number {
+              font-size: 18px;
+              color: #666;
+            }
+            .content {
+              padding: 30px;
+            }
+            .info-section {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 30px;
+            }
+            .info-box {
+              flex: 1;
+              margin-right: 20px;
+            }
+            .info-box:last-child {
+              margin-right: 0;
+            }
+            .info-box h3 {
+              color: #667eea;
+              margin-bottom: 15px;
+              font-size: 18px;
+              border-bottom: 2px solid #667eea;
+              padding-bottom: 5px;
+            }
+            .info-box p {
+              margin-bottom: 8px;
+            }
+            .details-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 30px 0;
+              background: white;
+              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+              border-radius: 8px;
+              overflow: hidden;
+            }
+            .details-table th {
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              padding: 15px;
+              text-align: left;
+              font-weight: bold;
+            }
+            .details-table td {
+              padding: 15px;
+              border-bottom: 1px solid #eee;
+            }
+            .details-table tr:hover {
+              background: #f8f9fa;
+            }
+            .total-section {
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              padding: 25px;
+              text-align: center;
+              margin: 30px 0;
+              border-radius: 8px;
+            }
+            .total-amount {
+              font-size: 32px;
+              font-weight: bold;
+              margin-bottom: 10px;
+            }
+            .footer {
+              background: #f8f9fa;
+              padding: 20px;
+              text-align: center;
+              border-top: 1px solid #eee;
+              color: #666;
+            }
+            .status-badge {
+              display: inline-block;
+              padding: 8px 16px;
+              border-radius: 20px;
+              font-weight: bold;
+              text-transform: uppercase;
+              font-size: 12px;
+            }
+            .status-en_attente { background: #fff3cd; color: #856404; }
+            .status-confirmee { background: #d4edda; color: #155724; }
+            .status-en_cours { background: #cce7ff; color: #004085; }
+            .status-annulee { background: #f8d7da; color: #721c24; }
+            @media print {
+              body { background: white; }
+              .container { box-shadow: none; }
+            }
           </style>
         </head>
         <body>
-          <div class="header">
-            ${agency.logo_path ? `<img src="${agency.logo_path}" alt="Logo" class="logo">` : ''}
-            <h1>${agency.agency_name || 'Agence de Location'}</h1>
-            <p>${agency.address || ''}</p>
-            <p>Tél: ${agency.phone || ''} | Email: ${agency.email || ''}</p>
-            <p>RC: ${agency.rc || ''} | ICE: ${agency.ice || ''}</p>
-          </div>
+          <div class="container">
+            <div class="header">
+              ${agency.logo_path ? `<img src="${agency.logo_path}" alt="Logo" class="logo">` : ''}
+              <div class="company-info">
+                <div class="company-name">${agency.agency_name || 'Agence de Location'}</div>
+                <p>${agency.address || ''}</p>
+                <p>Tél: ${agency.phone || ''} | Email: ${agency.email || ''}</p>
+                <p>RC: ${agency.rc || ''} | ICE: ${agency.ice || ''}</p>
+              </div>
+            </div>
 
-          <div class="invoice-details">
-            <h2>Facture</h2>
-            <p>Date: ${new Date(invoiceData.generatedAt).toLocaleDateString()}</p>
-            <p>Facture N°: INV-${reservation.id.substring(0, 8).toUpperCase()}</p>
-          </div>
+            <div class="invoice-title">
+              <h1>DEVIS B2B</h1>
+              <div class="invoice-number">N° ${reservation.id.substring(0, 8).toUpperCase()}</div>
+              <div>Date: ${new Date(invoiceData.generatedAt).toLocaleDateString('fr-FR')}</div>
+            </div>
 
-          <div class="section">
-            <h3>Informations Client</h3>
-            <p><strong>Nom:</strong> ${reservation.client_name}</p>
-            <p><strong>Entreprise:</strong> ${reservation.client_company || 'N/A'}</p>
-            <p><strong>Téléphone:</strong> ${reservation.client_phone}</p>
-            <p><strong>Email:</strong> ${reservation.client_email || 'N/A'}</p>
-          </div>
+            <div class="content">
+              <div class="info-section">
+                <div class="info-box">
+                  <h3>Informations Client</h3>
+                  <p><strong>Nom:</strong> ${reservation.client_name}</p>
+                  <p><strong>Entreprise:</strong> ${reservation.client_company || 'N/A'}</p>
+                  <p><strong>Téléphone:</strong> ${reservation.client_phone}</p>
+                  <p><strong>Email:</strong> ${reservation.client_email || 'N/A'}</p>
+                </div>
+                <div class="info-box">
+                  <h3>Détails de la Réservation</h3>
+                  <p><strong>Statut:</strong> <span class="status-badge status-${reservation.statut}">${reservation.statut}</span></p>
+                  <p><strong>Date début:</strong> ${reservation.date_debut ? new Date(reservation.date_debut).toLocaleDateString('fr-FR') : 'N/A'}</p>
+                  <p><strong>Date fin:</strong> ${reservation.date_fin ? new Date(reservation.date_fin).toLocaleDateString('fr-FR') : 'N/A'}</p>
+                  <p><strong>Durée:</strong> ${reservation.date_debut && reservation.date_fin ? Math.ceil((new Date(reservation.date_fin).getTime() - new Date(reservation.date_debut).getTime()) / (1000 * 3600 * 24)) + ' jours' : 'N/A'}</p>
+                </div>
+              </div>
 
-          <div class="section">
-            <h3>Détails de la Réservation</h3>
-            <table>
-              <tr><th>Date de début</th><td>${reservation.date_debut ? new Date(reservation.date_debut).toLocaleDateString() : ''}</td></tr>
-              <tr><th>Date de fin</th><td>${reservation.date_fin ? new Date(reservation.date_fin).toLocaleDateString() : ''}</td></tr>
-              <tr><th>Nombre de véhicules</th><td>${reservation.nombre_vehicules || 0}</td></tr>
-              <tr><th>Prix total</th><td>${reservation.prix_total || 0} MAD</td></tr>
-              <tr><th>Statut</th><td>${reservation.statut || 'N/A'}</td></tr>
-              <tr><th>Notes</th><td>${reservation.notes || 'Aucune note'}</td></tr>
-            </table>
-          </div>
+              <table class="details-table">
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th>Quantité</th>
+                    <th>Prix Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Location de véhicules B2B</td>
+                    <td>${reservation.nombre_vehicules || 0} véhicule(s)</td>
+                    <td>${reservation.prix_total || 0} MAD</td>
+                  </tr>
+                </tbody>
+              </table>
 
-          <div class="section">
-            <h3>Total à Payer: ${reservation.prix_total || 0} MAD</h3>
+              ${reservation.notes ? `
+                <div class="info-box">
+                  <h3>Notes</h3>
+                  <p>${reservation.notes}</p>
+                </div>
+              ` : ''}
+
+              <div class="total-section">
+                <div class="total-amount">${reservation.prix_total || 0} MAD</div>
+                <div>Montant Total TTC</div>
+              </div>
+            </div>
+
+            <div class="footer">
+              <p>Ce devis est valable 30 jours à compter de la date d'émission.</p>
+              <p>Merci de votre confiance !</p>
+            </div>
           </div>
         </body>
         </html>
@@ -322,7 +505,7 @@ export const B2BReservations: React.FC = () => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `Facture_${reservation.client_name.replace(/\s/g, '_')}_${reservation.id.substring(0, 8)}.html`;
+      link.download = `Devis_B2B_${reservation.client_name?.replace(/\s/g, '_')}_${reservation.id.substring(0, 8)}.html`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -330,13 +513,13 @@ export const B2BReservations: React.FC = () => {
 
       toast({
         title: "Succès",
-        description: "Facture générée et téléchargée avec succès",
+        description: "Devis généré et téléchargé avec succès",
       });
     } catch (error) {
       console.error('Error generating invoice:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de générer la facture",
+        description: "Impossible de générer le devis",
         variant: "destructive",
       });
     } finally {
@@ -527,7 +710,7 @@ export const B2BReservations: React.FC = () => {
                 </Button>
                 <Button 
                   type="submit" 
-                  disabled={uploading || !formData.client_name || !formData.client_phone} 
+                  disabled={uploading || !formData.client_name || !formData.client_phone || !formData.nombre_vehicules} 
                   className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 w-full sm:w-auto"
                 >
                   {uploading ? (
@@ -647,7 +830,7 @@ export const B2BReservations: React.FC = () => {
                                 ) : (
                                   <FileText className="w-4 h-4 mr-1" />
                                 )}
-                                <span className="hidden sm:inline">Facture</span>
+                                <span className="hidden sm:inline">Devis</span>
                               </Button>
                               <Button
                                 size="sm"

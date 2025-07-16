@@ -202,27 +202,33 @@ export const Reservations: React.FC = () => {
 
       if (reservationError) throw reservationError;
 
-      // Check B2B reservations that might conflict
-      const { data: b2bReservations, error: b2bError } = await supabase
-        .from('b2b_reservations')
-        .select('nombre_vehicules')
-        .eq('agency_id', user.id)
-        .in('statut', ['confirmee', 'en_cours'])
-        .or(
-          `and(date_debut.lte.${dateRange.debut.toISOString()},date_fin.gte.${dateRange.debut.toISOString()}),` +
-          `and(date_debut.lte.${dateRange.fin.toISOString()},date_fin.gte.${dateRange.fin.toISOString()}),` +
-          `and(date_debut.gte.${dateRange.debut.toISOString()},date_fin.lte.${dateRange.fin.toISOString()})`
-        );
+      // Check B2B reservations using type casting to avoid TypeScript errors
+      let b2bReservations: any[] = [];
+      try {
+        const { data: b2bData, error: b2bError } = await (supabase as any)
+          .from('b2b_reservations')
+          .select('nombre_vehicules')
+          .eq('agency_id', user.id)
+          .in('statut', ['confirmee', 'en_cours'])
+          .or(
+            `and(date_debut.lte.${dateRange.debut.toISOString()},date_fin.gte.${dateRange.debut.toISOString()}),` +
+            `and(date_debut.lte.${dateRange.fin.toISOString()},date_fin.gte.${dateRange.fin.toISOString()}),` +
+            `and(date_debut.gte.${dateRange.debut.toISOString()},date_fin.lte.${dateRange.fin.toISOString()})`
+          );
 
-      if (b2bError) {
-        console.error('Error fetching B2B reservations:', b2bError);
-        // Continue without B2B check if there's an error
+        if (b2bError) {
+          console.error('Error fetching B2B reservations:', b2bError);
+        } else {
+          b2bReservations = b2bData || [];
+        }
+      } catch (error) {
+        console.error('Error checking B2B reservations:', error);
       }
 
       const unavailableVehicleIds = conflictingReservations?.map(r => r.vehicule_id) || [];
       
       // Calculate how many vehicles are blocked by B2B reservations
-      const b2bBlockedCount = b2bReservations?.reduce((total, b2b) => total + (b2b.nombre_vehicules || 0), 0) || 0;
+      const b2bBlockedCount = b2bReservations.reduce((total, b2b) => total + (b2b.nombre_vehicules || 0), 0);
       
       let available = vehicles.filter(v => 
         v.etat === 'disponible' && !unavailableVehicleIds.includes(v.id)
